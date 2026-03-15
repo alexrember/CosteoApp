@@ -52,6 +52,19 @@ android {
         compose = true
         buildConfig = true
     }
+
+    @Suppress("UnstableApiUsage")
+    testOptions {
+        managedDevices {
+            localDevices {
+                create("testDevice") {
+                    device = "Pixel 6"
+                    apiLevel = 34
+                    systemImageSource = "aosp-atd"
+                }
+            }
+        }
+    }
 }
 
 detekt {

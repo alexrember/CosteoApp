@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -75,6 +79,28 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        val allCompleted = uiState.totalTiendas > 0 && uiState.totalProductos > 0
+        if (!allCompleted) {
+            Text(
+                text = "Primeros pasos",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ChecklistItem(
+                text = "Agregar tu primera tienda",
+                completed = uiState.totalTiendas > 0,
+                onClick = onNavigateToTiendaForm
+            )
+            ChecklistItem(
+                text = "Registrar tu primer producto",
+                completed = uiState.totalProductos > 0,
+                onClick = onNavigateToProductoForm
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
         Text(
             text = "Accesos rapidos",
             style = MaterialTheme.typography.titleMedium
@@ -89,6 +115,27 @@ fun DashboardScreen(
             Icon(Icons.Filled.Inventory2, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
             Text("Agregar producto")
         }
+    }
+}
+
+@Composable
+private fun ChecklistItem(
+    text: String,
+    completed: Boolean,
+    onClick: () -> Unit
+) {
+    TextButton(onClick = onClick) {
+        Icon(
+            imageVector = if (completed) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+            contentDescription = null,
+            tint = if (completed) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            color = if (completed) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

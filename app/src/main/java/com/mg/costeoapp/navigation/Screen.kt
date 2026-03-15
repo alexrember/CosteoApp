@@ -2,6 +2,9 @@ package com.mg.costeoapp.navigation
 
 import kotlinx.serialization.Serializable
 
+// --- Onboarding ---
+@Serializable object OnboardingRoute
+
 // --- Fase 0 ---
 @Serializable object DashboardRoute
 

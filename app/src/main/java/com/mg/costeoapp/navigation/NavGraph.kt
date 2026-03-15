@@ -1,5 +1,6 @@
 package com.mg.costeoapp.navigation
 
+import android.content.Context
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -9,16 +10,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.mg.costeoapp.core.ui.components.BottomNavItem
 import com.mg.costeoapp.core.ui.components.CosteoBottomNavBar
 import com.mg.costeoapp.feature.dashboard.ui.DashboardScreen
+import com.mg.costeoapp.feature.onboarding.ui.OnboardingScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoDetailScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoFormScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoListScreen
@@ -38,10 +40,26 @@ private val bottomNavRoutes = setOf(
     ProductoListRoute::class.qualifiedName
 )
 
+private const val PREFS_NAME = "costeo_prefs"
+private const val KEY_ONBOARDING_COMPLETADO = "onboarding_completado"
+
+private fun isOnboardingCompleted(context: Context): Boolean {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    return prefs.getBoolean(KEY_ONBOARDING_COMPLETADO, false)
+}
+
+private fun setOnboardingCompleted(context: Context) {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    prefs.edit().putBoolean(KEY_ONBOARDING_COMPLETADO, true).apply()
+}
+
 @Composable
 fun CosteoNavGraph(
     navController: NavHostController = rememberNavController()
 ) {
+    val context = LocalContext.current
+    val startDestination: Any = if (isOnboardingCompleted(context)) DashboardRoute else OnboardingRoute
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -72,9 +90,20 @@ fun CosteoNavGraph(
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = DashboardRoute,
+            startDestination = startDestination,
             modifier = Modifier.padding(padding)
         ) {
+            composable<OnboardingRoute> {
+                OnboardingScreen(
+                    onFinish = {
+                        setOnboardingCompleted(context)
+                        navController.navigate(DashboardRoute) {
+                            popUpTo(OnboardingRoute) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable<DashboardRoute> {
                 DashboardScreen(
                     onNavigateToTiendaForm = {

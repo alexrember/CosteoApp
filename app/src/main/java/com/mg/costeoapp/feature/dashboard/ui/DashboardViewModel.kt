@@ -14,7 +14,8 @@ import javax.inject.Inject
 
 data class DashboardUiState(
     val totalTiendas: Int = 0,
-    val totalProductos: Int = 0
+    val totalProductos: Int = 0,
+    val totalPrecios: Int = 0
 )
 
 @HiltViewModel
