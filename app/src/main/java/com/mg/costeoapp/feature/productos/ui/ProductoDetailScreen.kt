@@ -151,7 +151,10 @@ private fun ProductoInfoCard(producto: Producto) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            DetailRow("Unidad", "${producto.cantidadPorEmpaque} ${unidad?.nombreDisplay ?: producto.unidadMedida}")
+            DetailRow("Contenido", "${producto.cantidadPorEmpaque} ${unidad?.nombreDisplay ?: producto.unidadMedida}")
+            if (producto.unidadesPorEmpaque > 1) {
+                DetailRow("Unidades por empaque", "${producto.unidadesPorEmpaque}")
+            }
             if (!producto.codigoBarras.isNullOrBlank()) {
                 DetailRow("Codigo de barras", producto.codigoBarras)
             }

@@ -80,9 +80,19 @@ fun ProductoFormScreen(
             CosteoTextField(
                 value = uiState.cantidadPorEmpaque,
                 onValueChange = viewModel::onCantidadPorEmpaqueChanged,
-                label = "Cantidad por empaque *",
+                label = "Contenido por unidad *",
                 keyboardType = KeyboardType.Decimal,
                 error = uiState.fieldErrors["cantidadPorEmpaque"]
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            CosteoTextField(
+                value = uiState.unidadesPorEmpaque,
+                onValueChange = viewModel::onUnidadesPorEmpaqueChanged,
+                label = "Unidades por empaque (ej: 12 si es pack)",
+                keyboardType = KeyboardType.Number,
+                error = uiState.fieldErrors["unidadesPorEmpaque"]
             )
 
             Spacer(modifier = Modifier.height(24.dp))

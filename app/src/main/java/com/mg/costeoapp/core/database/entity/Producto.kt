@@ -27,6 +27,9 @@ data class Producto(
     @ColumnInfo(name = "cantidad_por_empaque")
     val cantidadPorEmpaque: Double,
 
+    @ColumnInfo(name = "unidades_por_empaque", defaultValue = "1")
+    val unidadesPorEmpaque: Int = 1,
+
     @ColumnInfo(name = "es_servicio")
     val esServicio: Boolean = false,
 

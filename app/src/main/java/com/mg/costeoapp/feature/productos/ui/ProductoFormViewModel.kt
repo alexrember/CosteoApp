@@ -48,6 +48,7 @@ class ProductoFormViewModel @Inject constructor(
                         codigoBarras = producto.codigoBarras ?: "",
                         unidadMedida = UnidadMedida.fromCodigo(producto.unidadMedida) ?: UnidadMedida.LIBRA,
                         cantidadPorEmpaque = producto.cantidadPorEmpaque.toString(),
+                        unidadesPorEmpaque = producto.unidadesPorEmpaque.toString(),
                         esServicio = producto.esServicio,
                         notas = producto.notas ?: "",
                         factorMerma = producto.factorMerma.toString(),
@@ -77,6 +78,10 @@ class ProductoFormViewModel @Inject constructor(
         _uiState.update { it.copy(cantidadPorEmpaque = value, fieldErrors = it.fieldErrors - "cantidadPorEmpaque") }
     }
 
+    fun onUnidadesPorEmpaqueChanged(value: String) {
+        _uiState.update { it.copy(unidadesPorEmpaque = value, fieldErrors = it.fieldErrors - "unidadesPorEmpaque") }
+    }
+
     fun save() {
         if (!validate()) return
         if (_uiState.value.isSaving) return
@@ -91,6 +96,7 @@ class ProductoFormViewModel @Inject constructor(
                 codigoBarras = state.codigoBarras.trim().ifBlank { null },
                 unidadMedida = state.unidadMedida.codigo,
                 cantidadPorEmpaque = state.cantidadPorEmpaque.toDouble(),
+                unidadesPorEmpaque = state.unidadesPorEmpaque.toIntOrNull() ?: 1,
                 esServicio = state.esServicio,
                 notas = state.notas.trim().ifBlank { null },
                 factorMerma = state.factorMerma.toIntOrNull() ?: 0,

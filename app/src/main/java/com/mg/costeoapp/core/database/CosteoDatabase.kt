@@ -20,7 +20,7 @@ import com.mg.costeoapp.core.database.entity.Tienda
         ProductoTienda::class,
         Inventario::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class CosteoDatabase : RoomDatabase() {
@@ -50,6 +50,12 @@ abstract class CosteoDatabase : RoomDatabase() {
                 """)
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_inventario_producto_id ON inventario(producto_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_inventario_tienda_id ON inventario(tienda_id)")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE productos ADD COLUMN unidades_por_empaque INTEGER NOT NULL DEFAULT 1")
             }
         }
     }

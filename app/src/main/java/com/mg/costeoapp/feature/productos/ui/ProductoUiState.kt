@@ -18,6 +18,7 @@ data class ProductoFormUiState(
     val codigoBarras: String = "",
     val unidadMedida: UnidadMedida = UnidadMedida.LIBRA,
     val cantidadPorEmpaque: String = "",
+    val unidadesPorEmpaque: String = "1",
     val esServicio: Boolean = false,
     val notas: String = "",
     val factorMerma: String = "0",

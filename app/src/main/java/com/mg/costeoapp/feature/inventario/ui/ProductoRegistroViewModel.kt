@@ -34,6 +34,7 @@ data class ProductoRegistroUiState(
     val nombre: String = "",
     val unidadMedida: UnidadMedida = UnidadMedida.LIBRA,
     val cantidadPorEmpaque: String = "",
+    val unidadesPorEmpaque: String = "1",
     val precio: String = "",
     val tiendaNombre: String = "",
     val buscandoEnApi: Boolean = false,
@@ -190,6 +191,10 @@ class ProductoRegistroViewModel @Inject constructor(
         _uiState.update { it.copy(cantidadPorEmpaque = value, fieldErrors = it.fieldErrors - "cantidadPorEmpaque") }
     }
 
+    fun onUnidadesPorEmpaqueChanged(value: String) {
+        _uiState.update { it.copy(unidadesPorEmpaque = value, fieldErrors = it.fieldErrors - "unidadesPorEmpaque") }
+    }
+
     fun onPrecioChanged(value: String) {
         _uiState.update { it.copy(precio = value, fieldErrors = it.fieldErrors - "precio") }
     }
@@ -210,7 +215,7 @@ class ProductoRegistroViewModel @Inject constructor(
                 codigoBarras = state.codigoBarras.ifBlank { null },
                 unidadMedida = state.unidadMedida.codigo,
                 cantidadPorEmpaque = state.cantidadPorEmpaque.toDouble(),
-                // Nutricion desde Open Food Facts si disponible
+                unidadesPorEmpaque = state.unidadesPorEmpaque.toIntOrNull() ?: 1,
                 nutricionPorcionG = nutricionExterna?.porcionG,
                 nutricionCalorias = nutricionExterna?.calorias,
                 nutricionProteinasG = nutricionExterna?.proteinas,
