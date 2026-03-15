@@ -148,4 +148,24 @@ class ProductoFlowTest {
 
 		composeRule.onNodeWithText("Para Borrar Prod").assertDoesNotExist()
 	}
+
+	@Test
+	fun t6_busqueda_de_productos() {
+		crearProducto("Arroz Busqueda")
+		crearProducto("Frijoles Busqueda")
+
+		navigateToProductos()
+
+		composeRule.onNode(hasText("Buscar producto...")).performTextInput("arroz")
+		composeRule.waitForIdle()
+
+		composeRule.onNodeWithText("Arroz Busqueda").assertIsDisplayed()
+		composeRule.onNodeWithText("Frijoles Busqueda").assertDoesNotExist()
+
+		composeRule.onNodeWithContentDescription("Limpiar").performClick()
+		composeRule.waitForIdle()
+
+		composeRule.onNodeWithText("Arroz Busqueda").assertIsDisplayed()
+		composeRule.onNodeWithText("Frijoles Busqueda").assertIsDisplayed()
+	}
 }
