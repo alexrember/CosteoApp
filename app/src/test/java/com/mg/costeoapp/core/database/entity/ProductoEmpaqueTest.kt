@@ -75,6 +75,23 @@ class ProductoEmpaqueTest {
     }
 
     @Test
+    fun `escenario 4 - bolsa de 10 manzanas`() {
+        val producto = Producto(
+            nombre = "Bolsa de Manzanas",
+            unidadMedida = "unidad",
+            cantidadPorEmpaque = 1.0,
+            unidadesPorEmpaque = 10
+        )
+
+        assertEquals(1.0, producto.cantidadPorEmpaque, 0.01)
+        assertEquals(10, producto.unidadesPorEmpaque)
+
+        val precioBolsa = 500L // $5.00
+        val costoPorManzana = precioBolsa / producto.unidadesPorEmpaque
+        assertEquals(50L, costoPorManzana) // $0.50 por manzana
+    }
+
+    @Test
     fun `default unidadesPorEmpaque es 1`() {
         val producto = Producto(
             nombre = "Producto simple",
