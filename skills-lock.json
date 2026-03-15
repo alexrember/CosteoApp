@@ -1,6 +1,36 @@
 {
   "version": 1,
   "skills": {
+    "Auto-Update Systems Expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "2cd5b5fdac489cbbf27d827a9573770ffc70f335249ace27a2942a5033560d05"
+    },
+    "CI/CD Pipeline Security Expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "3089a9a8227f9841e9b7a06e874c5db7e51b854b158a8472ad8a7207dc3cee51"
+    },
+    "Cross-Platform Build Expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "6066440296d887da77c3103b65e17441d2fddaf0d07221f33ad0bcfc03399507"
+    },
+    "Database Design Expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "366da3842f00548f8714766e9a53b23d1dba7aebbabfaa7743fdc082a53633fe"
+    },
+    "SQLCipher Encrypted Database Expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "f06bec4cc4eaba50b239c20fa5dfc43e9b08c67901c2a8b589a41ad77a49957c"
+    },
+    "SQLite Database Expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "0e75baa1c3159dba4c6db79330634327039c9813410256b73357dcbb0ed9d0ea"
+    },
     "accessibility-compliance": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -131,6 +161,11 @@
       "sourceType": "github",
       "computedHash": "0e161c4a4f3a3f5bd6949a1ebc833fd61d29f35a4fed307567a8114d003a95fc"
     },
+    "api-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "6cf6b00e5ffe788e74beae7e892502e2fce242991dbbdd4dbe0779e0f9741f27"
+    },
     "appinsights-instrumentation": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
@@ -140,6 +175,16 @@
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "computedHash": "848a1946f838e1b36f4af8b65caeea9e5bfa486d6059325520bb6124c05b0526"
+    },
+    "applescript": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "402edab11115b141df716e553441b9aa1b7a5a0751eb2a54aac49f68b352726a"
+    },
+    "appsec-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "52113e0f9a1bd1d45dfcffd03a594dfc77168f2f7ab5cc82258da3ce68c03b88"
     },
     "arch-linux-triage": {
       "source": "github/awesome-copilot",
@@ -175,6 +220,16 @@
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "computedHash": "2c4b990eba7b246b17c043a60b85f0910a98ce5e8aad13b92e34c260fdf23d4b"
+    },
+    "async-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "3f84bde7bba2a67d9afcc18691409fdcce2c93aae61087dd2ef1c99d4ddea47e"
+    },
+    "async-programming": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "868f77dd041a4212924d4dbaeae2053d6239bd7a94db162b916bae3d473ff76a"
     },
     "async-python-patterns": {
       "source": "wshobson/agents",
@@ -351,10 +406,20 @@
       "sourceType": "github",
       "computedHash": "aec76bd6b3246889ada4fecba3f78a6c5d0717d66a70af5791279556a3891759"
     },
+    "browser-automation": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "59a6b75c500d882f9b2cc9b5b85859fec3f2414ac0cc600db30bc3e07949dc66"
+    },
     "canvas-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
       "computedHash": "a2fe47d24b3fd8e52faef731fff099c557e698083cd644b2e5695cc4dd8c7715"
+    },
+    "celery-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "a0bc038bb3a9c930024720a2f34eb5fa7aad2152171cc7f7943afdf8c98f7f60"
     },
     "centos-linux-triage": {
       "source": "github/awesome-copilot",
@@ -381,6 +446,16 @@
       "sourceType": "github",
       "computedHash": "85d9c4ef94e00ddfc937d50aab72a307e80b98bc7e6744ec6e239ef68819c2d7"
     },
+    "cicd-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "0bdbb10c296b5f70e4fe588f4be30bd77f300b06873557af09498fffcd294360"
+    },
+    "cilium-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "65626a0ac73cc7c471d985a7c9e47afb4a84c38601b0d229f63ac5ee89faf9ad"
+    },
     "claude-api": {
       "source": "anthropics/skills",
       "sourceType": "github",
@@ -395,6 +470,11 @@
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "computedHash": "adc13add373b57d92d9e74dc7b864636ad48b4be3c3b600269440ab71c70b30d"
+    },
+    "cloud-api-integration": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "1b8d3859d3fa2064233e636fd71754876c574f94ed5930b9b58d2d2ab6c7dc4b"
     },
     "cloud-architect": {
       "source": "jeffallan/claude-skills",
@@ -746,6 +826,11 @@
       "sourceType": "github",
       "computedHash": "9b0374786cb8db1c5dda878681bc953e97d5d200b33d2b06ace9ac13db1270e9"
     },
+    "dbus": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "5ce3dbcd68211f9d64fd4f0e73f4249180c0cb49d82089e9db3a52b28f4db394"
+    },
     "debian-linux-triage": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
@@ -810,6 +895,11 @@
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "computedHash": "9c71bc5839febec1c42fdd6f5aed3beb3fa9df399460f0d20310124abd77cc31"
+    },
+    "devsecops-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "0e770b2394b93cd8189a910d92edfb3a5e2b40460c8c2ddb2e13d56dc3254523"
     },
     "dispatching-parallel-agents": {
       "source": "obra/superpowers",
@@ -941,10 +1031,15 @@
       "sourceType": "github",
       "computedHash": "6b5cc12c853f8bdd62103d096b0050765a5ff5d6b86dba6a1f35c6e885e1558d"
     },
-    "fastapi-expert": {
-      "source": "jeffallan/claude-skills",
+    "fastapi": {
+      "source": "martinholovsky/claude-skills-generator",
       "sourceType": "github",
-      "computedHash": "1cf755bb184def33f9aff86940c10a6f1ffbea56ed05d41f35ce4ab4dbe08ed7"
+      "computedHash": "4c23569494ad4bb7d044790519d31ac702029d718686ad29d1242ed81823eb03"
+    },
+    "fastapi-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "e39bc5387bb44ff2f949a94a9ba3b90a121b80d24714af70c945894b7bab920e"
     },
     "fastapi-templates": {
       "source": "wshobson/agents",
@@ -1166,6 +1261,11 @@
       "sourceType": "github",
       "computedHash": "e8df22024090440fce624e6a99faca4b66aa267a428b5a63a0c0416fa4eb2629"
     },
+    "glsl": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "ac49df8f99d8ed17e57ab31ef1d3332443a67a7ff8b9862b0ca5345923b8e97b"
+    },
     "go-concurrency-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -1201,10 +1301,30 @@
       "sourceType": "github",
       "computedHash": "e9b692daf06faf96fa28b2b98f50b362e68b974db5ab503963a610c719cda79b"
     },
+    "graph-database-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "6ab96774b78cd46ef5bcf1d4afa3f77952705e26ffcf0c4f24cc075c604e19ae"
+    },
     "graphql-architect": {
       "source": "jeffallan/claude-skills",
       "sourceType": "github",
       "computedHash": "eb7b270f227622d410105b4dd8be1f5078a0967388ae4a50765708e33e8ebadf"
+    },
+    "graphql-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "018bc22e7bb4b3531e7267721f866ebed06d9728a48e510e458070690ef97a97"
+    },
+    "gsap": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "b7d401d70a6f6f2bd29bb36ee803564cb071cc43bf5701e32a5dedbf88cc1466"
+    },
+    "harbor-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "91dc26d80c593b09c940557ad76639bbd7f7d109a94ae43d097d1b082fece005"
     },
     "helm-chart-scaffolding": {
       "source": "wshobson/agents",
@@ -1296,6 +1416,11 @@
       "sourceType": "github",
       "computedHash": "f1b9c6b1277178fc33e5a612761c1cd1cf6ab5f946d05d69d52026d142c0a0c1"
     },
+    "javascript-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "709901044d12ee235dda90c99d453f8eaf8d2bd0f87533e7cab4deaf07a8c2b5"
+    },
     "javascript-pro": {
       "source": "jeffallan/claude-skills",
       "sourceType": "github",
@@ -1325,6 +1450,11 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "47d2fe175423c7bc4f26019b3acf0ea7d3f37159172a217466c50b8d1b83cbb4"
+    },
+    "kanidm-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "1dafec206e0faa355fa9191586e401925a7a3711787db1b31a9d8291783908ff"
     },
     "kotlin-concurrency-expert": {
       "source": "new-silvermoon/awesome-android-agent-skills",
@@ -1391,10 +1521,20 @@
       "sourceType": "github",
       "computedHash": "30707431b0d9fde5be78fa47da0dad8c782e742adeeb4e10986e27e1ddddae0a"
     },
+    "linux-at-spi2": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "d0658d48b83c4c7771fdcfff934942b89defdd1a2e7730826c57c34f0947f08f"
+    },
     "llm-evaluation": {
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "e6ecef1dfafd90f7aed14b1ef54c4ced5c84183416e36b03bcb657e3fe8f5098"
+    },
+    "llm-integration": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "f28dfe9983a26dd8599fdfeac82693ff3226e19ce9775f078770dc171f67fca6"
     },
     "llm-monitoring-dashboard": {
       "source": "supercent-io/skills-template",
@@ -1460,6 +1600,11 @@
       "source": "shelbeely/shelbeely-agent-skills",
       "sourceType": "github",
       "computedHash": "23cd9e9846b2024a6270e4aaa459131fe0af98b2756b21dfde2cd2c51f021fb7"
+    },
+    "macos-accessibility": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "5ce51ea9aea29d58b5eaa4f32a0305f854974d7e6770eeba2d31babf0b347e03"
     },
     "make-repo-contribution": {
       "source": "github/awesome-copilot",
@@ -1655,6 +1800,11 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "3902f919488d8ddc983e157bbcd5f16b739b84eeaab57002bf52b7f9601ed6ad"
+    },
+    "model-quantization": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "aaafe3f6f262e875a3049127b0777fecd261ac125f82ec5033877dcb02321f8a"
     },
     "model-recommendation": {
       "source": "github/awesome-copilot",
@@ -1871,6 +2021,11 @@
       "sourceType": "github",
       "computedHash": "455d56996d27abb1031058e8822ccef172d4c3195bbc555f13883b208a9c7e3f"
     },
+    "pinia": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "dab6b5d9f97a1b93353a6210afcbee84ea1e91db7e92c409f89fc92f926f9ed1"
+    },
     "planning-oracle-to-postgres-migration-integration-testing": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
@@ -2016,6 +2171,11 @@
       "sourceType": "github",
       "computedHash": "5e265f5769cda03ba152f51fb9502af6550a2c2c76b7bb44f45e7ff8db1cf53e"
     },
+    "prompt-engineering": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "52f48c79ce79a939d8953eeab474efc327b7c66b74edb39d9e29fd58e0bca059"
+    },
     "prompt-engineering-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -2035,6 +2195,11 @@
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "computedHash": "06481f4bbc6d80a52091ec9ba5856eb1dc5f80cbabb40fd4ad02aaea3085a0dc"
+    },
+    "python": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "c5e80b09977275e3199fd988e3556cd3c8822d0ee563faa71a20cf1d9550aff0"
     },
     "python-anti-patterns": {
       "source": "wshobson/agents",
@@ -2120,6 +2285,11 @@
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "computedHash": "954dfd6b818d8b88708cdae77b3cb2d5986480bcd489902d9d9a4f0ad921577d"
+    },
+    "rabbitmq-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "584e368d2811078acfb437c22ca07f1c93da52cbdcabcc8c24562128185c4b6b"
     },
     "rag-architect": {
       "source": "jeffallan/claude-skills",
@@ -2260,6 +2430,11 @@
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "computedHash": "ef4e3a11a87fb4765c274e5398bf138db316b86819955217befaaf908a44e79b"
+    },
+    "rust": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "b70d9a080fc68001f0e4824f59fadabb287fd26407da97d0a7d2cde4724344fe"
     },
     "rust-async-patterns": {
       "source": "wshobson/agents",
@@ -2406,6 +2581,11 @@
       "sourceType": "github",
       "computedHash": "790018346d32d988c144882a71ae1fb77a67c2023b01ab3bfe4b0e39b787ac76"
     },
+    "speech-to-text": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "c6fb55b2789130826a86fe2d7ed1b067ae825027c237bd0c8b20f3d9f917477f"
+    },
     "sponsor-finder": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
@@ -2516,6 +2696,11 @@
       "sourceType": "github",
       "computedHash": "9c87c315aed143ee3b34bec8117100f5035e0df09e6b23e1ecc772cff434c9ad"
     },
+    "surrealdb-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "193e7e210b4db1842cc5ae0d040ce1492d82371ab648a82821ea6ec91d9cbc65"
+    },
     "survey": {
       "source": "supercent-io/skills-template",
       "sourceType": "github",
@@ -2546,6 +2731,16 @@
       "sourceType": "github",
       "computedHash": "7ff2f4650597e98ca4cd8f01231fb432ab4d187d6b12e641485aa871a04448cc"
     },
+    "tailwindcss": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "f592cd917989fe9a57ca6811a859b7caa5e413bee23410ed2d4174a76721c93a"
+    },
+    "talos-os-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "c73dc27024caa5c8fd1ecbf18832b5a155377837c60cf1858f8d685bec1d7b5c"
+    },
     "task-coordination-strategies": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -2560,6 +2755,11 @@
       "source": "supercent-io/skills-template",
       "sourceType": "github",
       "computedHash": "1459a31d3c87df7fd601a99479363a7f66da1cd2089f08405a7d4854d0da3a93"
+    },
+    "tauri": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "8846df779beba33d583a1712ecfb18a3dc0a542ad1c95643a2797e0eb44f43ab"
     },
     "team-communication-protocols": {
       "source": "wshobson/agents",
@@ -2626,6 +2826,11 @@
       "sourceType": "github",
       "computedHash": "a270840ba3ba30e3cef5d267eea62497cbd6b3a58de57c41b785524a60015490"
     },
+    "text-to-speech": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "b0cc88dca844894b5c6d16ea16529dd2ba471ca92cc8dd403b7903d4710f8348"
+    },
     "the-fool": {
       "source": "jeffallan/claude-skills",
       "sourceType": "github",
@@ -2640,6 +2845,11 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "b2d4ee1f9b75989778a4206a91355e45addda2eba8dbc97a5e1874701fc791d3"
+    },
+    "threejs-tresjs": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "482eb8dc5bfdc99ca9ba3d0146f92c08fa0e1bd01d5d73670a0919a5a2e5416d"
     },
     "tldr-prompt": {
       "source": "github/awesome-copilot",
@@ -2661,10 +2871,20 @@
       "sourceType": "github",
       "computedHash": "e0891d5543574b98be4224ce970b4b08507e3b61a4444cd6db9eee2fc79570ca"
     },
+    "typescript": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "cf7ff1a78d07002d388df7d9de896bd45c61b2269e4a8f90e008dd913eaf19cf"
+    },
     "typescript-advanced-types": {
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "3a3be8c925f96ac4e1280db28a01677e7ca5197f3792de2bbf35ab3bb324b6dd"
+    },
+    "typescript-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "b3d242af278cd9e3c208e21ccb4ca502b7046caebe6917659357a38c90f7ecce"
     },
     "typescript-mcp-server-generator": {
       "source": "github/awesome-copilot",
@@ -2695,6 +2915,11 @@
       "source": "supercent-io/skills-template",
       "sourceType": "github",
       "computedHash": "6903616a42c711d7cee7ddc2a34233c8dfda67868dd47905edd3c6374fc49ba9"
+    },
+    "ui-ux-expert": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "c8d244c733101670bf2909f2af53d468380269cfc6172938dbaa97111a9848e1"
     },
     "unity-ecs-patterns": {
       "source": "wshobson/agents",
@@ -2806,6 +3031,16 @@
       "sourceType": "github",
       "computedHash": "e99d604d7004eab12ef0f7f136609d3a849d448df1123cac051becbaa86a87bc"
     },
+    "vue-nuxt": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "0c263fbb7360659c075f4a75f2911804cc688a46b76aa939fd71ade38fb4a7f5"
+    },
+    "wake-word-detection": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "154b9c7a23b4154a77a536392f5273518f5e4c5e0d769eb81df77b8671f3d4d9"
+    },
     "wcag-audit-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -2820,6 +3055,11 @@
       "source": "anthropics/skills",
       "sourceType": "github",
       "computedHash": "143730c6db11d82d8c5db4d0cf8f435421983f1fc510b24f77ee9a0e8bae7704"
+    },
+    "web-audio-api": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "d791e113525eafe8c0bc0fb3dbbdef05d470b0cfedd9f1eaa2f00081d3fce1bd"
     },
     "web-coder": {
       "source": "github/awesome-copilot",
@@ -2851,6 +3091,16 @@
       "sourceType": "github",
       "computedHash": "cf8e5916d474886bd67b09691247f43f331523008b7d366064bc607ab42d6302"
     },
+    "webgl": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "981e4742ad032bb9e44a13dc1e03266f207e56fdfe4ed33108731837de3686b8"
+    },
+    "websocket": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "95b114a48e8de6379506359866eb08cd40bc3fcda529de5c62cfc65f7e8e6466"
+    },
     "websocket-engineer": {
       "source": "jeffallan/claude-skills",
       "sourceType": "github",
@@ -2865,6 +3115,11 @@
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "computedHash": "d9ac2589c07a7b7ad3a7ef693b972bcc13cbd420e644e3a8ea381bb9f852238c"
+    },
+    "windows-ui-automation": {
+      "source": "martinholovsky/claude-skills-generator",
+      "sourceType": "github",
+      "computedHash": "52d1feaed342c8d0b8081fa090d7ecc53791447ca94504df5a1f62c54f0f6dec"
     },
     "winmd-api-search": {
       "source": "github/awesome-copilot",
