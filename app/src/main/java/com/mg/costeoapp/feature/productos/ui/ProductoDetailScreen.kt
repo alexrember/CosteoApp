@@ -42,6 +42,7 @@ import com.mg.costeoapp.core.ui.components.LoadingIndicator
 import com.mg.costeoapp.core.util.CurrencyFormatter
 import com.mg.costeoapp.core.util.DateFormatter
 import com.mg.costeoapp.core.util.UnidadMedida
+import com.mg.costeoapp.core.util.formatDisplay
 
 @Composable
 fun ProductoDetailScreen(
@@ -151,7 +152,7 @@ private fun ProductoInfoCard(producto: Producto) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            DetailRow("Contenido", "${producto.cantidadPorEmpaque} ${unidad?.nombreDisplay ?: producto.unidadMedida}")
+            DetailRow("Contenido", "${producto.cantidadPorEmpaque.formatDisplay()} ${unidad?.nombreDisplay ?: producto.unidadMedida}")
             if (producto.unidadesPorEmpaque > 1) {
                 DetailRow("Unidades por empaque", "${producto.unidadesPorEmpaque}")
             }
@@ -194,13 +195,13 @@ private fun NutricionSection(producto: Producto) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Informacion nutricional", style = MaterialTheme.typography.titleSmall)
             Spacer(modifier = Modifier.height(8.dp))
-            producto.nutricionPorcionG?.let { DetailRow("Porcion", "${it}g") }
-            producto.nutricionCalorias?.let { DetailRow("Calorias", "$it") }
-            producto.nutricionProteinasG?.let { DetailRow("Proteinas", "${it}g") }
-            producto.nutricionCarbohidratosG?.let { DetailRow("Carbohidratos", "${it}g") }
-            producto.nutricionGrasasG?.let { DetailRow("Grasas", "${it}g") }
-            producto.nutricionFibraG?.let { DetailRow("Fibra", "${it}g") }
-            producto.nutricionSodioMg?.let { DetailRow("Sodio", "${it}mg") }
+            producto.nutricionPorcionG?.let { DetailRow("Porcion", "${it.formatDisplay()}g") }
+            producto.nutricionCalorias?.let { DetailRow("Calorias", it.formatDisplay()) }
+            producto.nutricionProteinasG?.let { DetailRow("Proteinas", "${it.formatDisplay()}g") }
+            producto.nutricionCarbohidratosG?.let { DetailRow("Carbohidratos", "${it.formatDisplay()}g") }
+            producto.nutricionGrasasG?.let { DetailRow("Grasas", "${it.formatDisplay()}g") }
+            producto.nutricionFibraG?.let { DetailRow("Fibra", "${it.formatDisplay()}g") }
+            producto.nutricionSodioMg?.let { DetailRow("Sodio", "${it.formatDisplay()}mg") }
             producto.nutricionFuente?.let { DetailRow("Fuente", it) }
         }
     }

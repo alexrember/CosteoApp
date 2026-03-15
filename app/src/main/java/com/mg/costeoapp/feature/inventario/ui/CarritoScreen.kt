@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -25,7 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +59,8 @@ fun CarritoScreen(
             }
         }
     }
+
+    var itemToRemoveIndex by remember { mutableIntStateOf(-1) }
 
     Scaffold(
         topBar = {
@@ -108,26 +114,37 @@ fun CarritoScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = item.producto.nombre,
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 2
                                 )
                                 Text(
-                                    text = "${item.cantidad.toInt()} x ${CurrencyFormatter.fromCents(item.precioUnitario)}",
+                                    text = "${CurrencyFormatter.fromCents(item.precioUnitario)} c/u",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                            // Controles de cantidad: - [N] +
+                            IconButton(onClick = {
+                                val needsConfirm = viewModel.disminuirCantidad(index)
+                                if (needsConfirm) itemToRemoveIndex = index
+                            }) {
+                                Icon(Icons.Filled.Remove, contentDescription = "Menos")
+                            }
+                            Text(
+                                text = "${item.cantidad.toInt()}",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                            IconButton(onClick = { viewModel.aumentarCantidad(index) }) {
+                                Icon(Icons.Filled.Add, contentDescription = "Mas")
+                            }
+                            // Subtotal
                             Text(
                                 text = CurrencyFormatter.fromCents(item.subtotal),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 8.dp)
                             )
-                            IconButton(onClick = { viewModel.removerItem(index) }) {
-                                Icon(
-                                    Icons.Filled.Delete,
-                                    contentDescription = "Quitar",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
                         }
                         HorizontalDivider()
                     }
@@ -167,5 +184,18 @@ fun CarritoScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
+    }
+
+    // Dialogo de confirmacion para quitar item
+    if (itemToRemoveIndex >= 0 && itemToRemoveIndex < uiState.items.size) {
+        val itemName = uiState.items[itemToRemoveIndex].producto.nombre
+        com.mg.costeoapp.core.ui.components.ConfirmDeleteDialog(
+            itemName = itemName,
+            onConfirm = {
+                viewModel.removerItem(itemToRemoveIndex)
+                itemToRemoveIndex = -1
+            },
+            onDismiss = { itemToRemoveIndex = -1 }
+        )
     }
 }

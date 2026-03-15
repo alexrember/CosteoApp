@@ -45,6 +45,28 @@ class CompraManager @Inject constructor() {
         }
     }
 
+    fun aumentarCantidad(index: Int) {
+        _items.update { currentItems ->
+            currentItems.toMutableList().apply {
+                val item = this[index]
+                this[index] = item.copy(cantidad = item.cantidad + 1)
+            }
+        }
+    }
+
+    fun disminuirCantidad(index: Int): Boolean {
+        val item = _items.value[index]
+        if (item.cantidad <= 1) {
+            return true // Señal para pedir confirmación
+        }
+        _items.update { currentItems ->
+            currentItems.toMutableList().apply {
+                this[index] = this[index].copy(cantidad = this[index].cantidad - 1)
+            }
+        }
+        return false
+    }
+
     fun removerItem(index: Int) {
         _items.update { it.toMutableList().apply { removeAt(index) } }
     }

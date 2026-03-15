@@ -36,17 +36,21 @@ class ScannerViewModel @Inject constructor(
     private val _events = Channel<UiEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
-    private var lastNavigatedBarcode: String? = null
-
-    // Guardar nutricion del ultimo escaneo para pasarla al registro
     var lastNutricion: NutricionExterna? = null
         private set
+
+    // Estabilizacion: requiere N detecciones consecutivas del mismo codigo
+    private var candidateBarcode: String? = null
+    private var candidateCount = 0
+    private val requiredDetections = 3
+
+    // Cooldown: despues de procesar, ignorar por un tiempo
+    private var processingBarcode: String? = null
 
     init {
         _uiState.update {
             it.copy(tiendaNombre = compraManager.getTienda()?.nombre ?: "")
         }
-        // Observar cambios en el carrito para actualizar el badge reactivamente
         viewModelScope.launch {
             compraManager.items.collect { items ->
                 _uiState.update { it.copy(carritoCount = items.size) }
@@ -56,7 +60,28 @@ class ScannerViewModel @Inject constructor(
 
     fun onBarcodeDetected(barcode: String) {
         if (_uiState.value.isProcessing) return
-        if (barcode == lastNavigatedBarcode) return
+
+        // Estabilizacion: contar detecciones consecutivas del mismo codigo
+        if (barcode == candidateBarcode) {
+            candidateCount++
+        } else {
+            candidateBarcode = barcode
+            candidateCount = 1
+        }
+
+        // No procesar hasta tener suficientes detecciones consecutivas
+        if (candidateCount < requiredDetections) return
+
+        // Cooldown: si acabamos de procesar este codigo, ignorar
+        if (barcode == processingBarcode) return
+
+        // Reset candidate para la siguiente deteccion
+        candidateCount = 0
+        processBarcode(barcode)
+    }
+
+    private fun processBarcode(barcode: String) {
+        processingBarcode = barcode
 
         viewModelScope.launch {
             _uiState.update {
@@ -80,18 +105,17 @@ class ScannerViewModel @Inject constructor(
 
                 compraManager.agregarProducto(productoLocal, 1.0, precio)
 
-                lastNavigatedBarcode = barcode
                 _uiState.update {
                     it.copy(
                         isProcessing = false,
-                        lookupState = BarcodeLookupState.EncontradoLocal(productoLocal),
-                        carritoCount = compraManager.itemCount
+                        lookupState = BarcodeLookupState.EncontradoLocal(productoLocal)
                     )
                 }
                 _events.send(UiEvent.ShowError("${productoLocal.nombre} agregado al carrito"))
 
-                kotlinx.coroutines.delay(1500)
-                lastNavigatedBarcode = null
+                // Cooldown: permitir re-escanear despues de 2 segundos
+                kotlinx.coroutines.delay(2000)
+                processingBarcode = null
                 _uiState.update { it.copy(lookupState = BarcodeLookupState.Idle) }
                 return@launch
             }
@@ -113,7 +137,6 @@ class ScannerViewModel @Inject constructor(
             lastNutricion = deferredNutricion.await()
 
             if (walmartResults.isNotEmpty()) {
-                lastNavigatedBarcode = barcode
                 _uiState.update {
                     it.copy(
                         isProcessing = false,
@@ -121,7 +144,6 @@ class ScannerViewModel @Inject constructor(
                     )
                 }
             } else {
-                lastNavigatedBarcode = barcode
                 _uiState.update {
                     it.copy(
                         isProcessing = false,
@@ -133,19 +155,20 @@ class ScannerViewModel @Inject constructor(
     }
 
     fun resetScanner() {
+        processingBarcode = null
+        candidateBarcode = null
+        candidateCount = 0
         _uiState.update {
             it.copy(
                 scannedBarcode = null,
                 isProcessing = false,
                 lookupState = BarcodeLookupState.Idle,
-                error = null,
-                carritoCount = compraManager.itemCount
+                error = null
             )
         }
     }
 
     fun readyForNewScan() {
-        lastNavigatedBarcode = null
         lastNutricion = null
         resetScanner()
     }

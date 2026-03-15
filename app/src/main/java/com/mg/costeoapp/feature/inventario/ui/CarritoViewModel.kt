@@ -38,6 +38,14 @@ class CarritoViewModel @Inject constructor(
         }
     }
 
+    fun aumentarCantidad(index: Int) {
+        compraManager.aumentarCantidad(index)
+    }
+
+    fun disminuirCantidad(index: Int): Boolean {
+        return compraManager.disminuirCantidad(index)
+    }
+
     fun removerItem(index: Int) {
         compraManager.removerItem(index)
     }
