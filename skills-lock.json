@@ -2551,6 +2551,11 @@
       "sourceType": "github",
       "computedHash": "146d0f407e3f04aac0378b74bb238833b24bbd5e6387b932e82cfbf228f219b4"
     },
+    "sleek-design-mobile-apps": {
+      "source": "sleekdotdesign/agent-skills",
+      "sourceType": "github",
+      "computedHash": "58114c00f6fad065388af90270ce9a1c95c327a009889397525c92694afde12d"
+    },
     "slo-implementation": {
       "source": "wshobson/agents",
       "sourceType": "github",
