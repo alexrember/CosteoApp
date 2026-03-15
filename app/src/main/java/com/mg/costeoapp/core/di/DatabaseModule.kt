@@ -5,6 +5,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mg.costeoapp.core.database.CosteoDatabase
+import com.mg.costeoapp.core.database.DatabaseSeeder
+import com.mg.costeoapp.core.database.dao.InventarioDao
 import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
 import com.mg.costeoapp.core.database.dao.TiendaDao
@@ -27,10 +29,11 @@ object DatabaseModule {
             CosteoDatabase::class.java,
             "costeo_database"
         )
+            .addMigrations(CosteoDatabase.MIGRATION_1_2)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
-                    com.mg.costeoapp.core.database.DatabaseSeeder.seed(db)
+                    DatabaseSeeder.seed(db)
                 }
             })
             .build()
@@ -46,4 +49,8 @@ object DatabaseModule {
     @Provides
     fun provideProductoTiendaDao(database: CosteoDatabase): ProductoTiendaDao =
         database.productoTiendaDao()
+
+    @Provides
+    fun provideInventarioDao(database: CosteoDatabase): InventarioDao =
+        database.inventarioDao()
 }
