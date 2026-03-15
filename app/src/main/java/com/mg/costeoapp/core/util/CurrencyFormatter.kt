@@ -2,6 +2,7 @@ package com.mg.costeoapp.core.util
 
 import java.text.NumberFormat
 import java.util.Locale
+import kotlin.math.roundToLong
 
 object CurrencyFormatter {
 
@@ -12,6 +13,6 @@ object CurrencyFormatter {
     fun toCents(dollars: String): Long? {
         val cleaned = dollars.replace("$", "").replace(",", "").trim()
         val value = cleaned.toDoubleOrNull() ?: return null
-        return (value * 100).toLong()
+        return (value * 100).roundToLong()
     }
 }

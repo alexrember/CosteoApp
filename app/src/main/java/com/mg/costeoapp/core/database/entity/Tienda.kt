@@ -2,9 +2,13 @@ package com.mg.costeoapp.core.database.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "tiendas")
+@Entity(
+    tableName = "tiendas",
+    indices = [Index(value = ["nombre"], unique = true)]
+)
 data class Tienda(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

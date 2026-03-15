@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "8ce78bfd5ee611a0e5f8e3ab02da8a8e",
+    "identityHash": "5b962b5db723a34a2c8d9985e910ba05",
     "entities": [
       {
         "tableName": "tiendas",
@@ -70,7 +70,18 @@
           "columnNames": [
             "id"
           ]
-        }
+        },
+        "indices": [
+          {
+            "name": "index_tiendas_nombre",
+            "unique": true,
+            "columnNames": [
+              "nombre"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_tiendas_nombre` ON `${TABLE_NAME}` (`nombre`)"
+          }
+        ]
       },
       {
         "tableName": "productos",
@@ -317,7 +328,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8ce78bfd5ee611a0e5f8e3ab02da8a8e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5b962b5db723a34a2c8d9985e910ba05')"
     ]
   }
 }

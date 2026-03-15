@@ -1,5 +1,6 @@
 package com.mg.costeoapp.feature.tiendas.data
 
+import android.database.sqlite.SQLiteConstraintException
 import com.mg.costeoapp.core.database.dao.TiendaDao
 import com.mg.costeoapp.core.database.entity.Tienda
 import kotlinx.coroutines.flow.Flow
@@ -22,7 +23,11 @@ class TiendaRepositoryImpl @Inject constructor(
         if (existing != null) {
             return Result.failure(IllegalArgumentException("Ya existe una tienda con ese nombre"))
         }
-        return Result.success(tiendaDao.insert(tienda))
+        return try {
+            Result.success(tiendaDao.insert(tienda))
+        } catch (e: SQLiteConstraintException) {
+            Result.failure(IllegalArgumentException("Ya existe una tienda con ese nombre"))
+        }
     }
 
     override suspend fun update(tienda: Tienda): Result<Unit> {
@@ -30,8 +35,12 @@ class TiendaRepositoryImpl @Inject constructor(
         if (existing != null && existing.id != tienda.id) {
             return Result.failure(IllegalArgumentException("Ya existe otra tienda con ese nombre"))
         }
-        tiendaDao.update(tienda.copy(updatedAt = System.currentTimeMillis()))
-        return Result.success(Unit)
+        return try {
+            tiendaDao.update(tienda.copy(updatedAt = System.currentTimeMillis()))
+            Result.success(Unit)
+        } catch (e: SQLiteConstraintException) {
+            Result.failure(IllegalArgumentException("Ya existe otra tienda con ese nombre"))
+        }
     }
 
     override suspend fun softDelete(id: Long) = tiendaDao.softDelete(id)

@@ -1,16 +1,21 @@
 package com.mg.costeoapp.core.util
 
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 object DateFormatter {
 
     private val locale = Locale.Builder().setLanguage("es").setRegion("SV").build()
-    private val dateFormat = SimpleDateFormat("dd/MM/yyyy", locale)
-    private val dateTimeFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", locale)
+    private val zone = ZoneId.systemDefault()
 
-    fun formatDate(timestamp: Long): String = dateFormat.format(Date(timestamp))
+    private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", locale)
+    private val dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", locale)
 
-    fun formatDateTime(timestamp: Long): String = dateTimeFormat.format(Date(timestamp))
+    fun formatDate(timestamp: Long): String =
+        Instant.ofEpochMilli(timestamp).atZone(zone).format(dateFormatter)
+
+    fun formatDateTime(timestamp: Long): String =
+        Instant.ofEpochMilli(timestamp).atZone(zone).format(dateTimeFormatter)
 }
