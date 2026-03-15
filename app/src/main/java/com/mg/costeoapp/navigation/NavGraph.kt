@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -17,9 +18,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.mg.costeoapp.core.ui.components.BottomNavItem
 import com.mg.costeoapp.core.ui.components.CosteoBottomNavBar
 import com.mg.costeoapp.feature.dashboard.ui.DashboardScreen
+import com.mg.costeoapp.feature.inventario.ui.CarritoScreen
+import com.mg.costeoapp.feature.inventario.ui.InventarioListScreen
+import com.mg.costeoapp.feature.inventario.ui.ProductoRegistroScreen
+import com.mg.costeoapp.feature.inventario.ui.ScannerScreen
 import com.mg.costeoapp.feature.onboarding.ui.OnboardingScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoDetailScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoFormScreen
@@ -31,13 +37,15 @@ import com.mg.costeoapp.feature.tiendas.ui.TiendaListScreen
 private val bottomNavItems = listOf(
     BottomNavItem("Inicio", Icons.Filled.Home, DashboardRoute),
     BottomNavItem("Tiendas", Icons.Filled.Store, TiendaListRoute),
-    BottomNavItem("Productos", Icons.Filled.Inventory2, ProductoListRoute)
+    BottomNavItem("Productos", Icons.Filled.Inventory2, ProductoListRoute),
+    BottomNavItem("Inventario", Icons.Filled.ShoppingCart, InventarioListRoute)
 )
 
 private val bottomNavRoutes = setOf(
     DashboardRoute::class.qualifiedName,
     TiendaListRoute::class.qualifiedName,
-    ProductoListRoute::class.qualifiedName
+    ProductoListRoute::class.qualifiedName,
+    InventarioListRoute::class.qualifiedName
 )
 
 private const val PREFS_NAME = "costeo_prefs"
@@ -161,6 +169,49 @@ fun CosteoNavGraph(
             composable<ProductoPrecioFormRoute> {
                 ProductoPrecioFormScreen(
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // --- Fase 2: Inventario ---
+
+            composable<InventarioListRoute> {
+                InventarioListScreen(
+                    onNavigateToScanner = {
+                        navController.navigate(ScannerRoute)
+                    }
+                )
+            }
+
+            composable<ScannerRoute> {
+                ScannerScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToRegistro = { barcode ->
+                        navController.navigate(ProductoRegistroRoute(codigoBarras = barcode))
+                    },
+                    onProductoEncontrado = { productoId ->
+                        navController.navigate(ProductoDetailRoute(productoId = productoId))
+                    }
+                )
+            }
+
+            composable<ProductoRegistroRoute> {
+                ProductoRegistroScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable<CarritoRoute> {
+                CarritoScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToScanner = {
+                        navController.navigate(ScannerRoute)
+                    },
+                    onCompraConfirmada = {
+                        navController.navigate(InventarioListRoute) {
+                            popUpTo(DashboardRoute) { saveState = true }
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
         }
