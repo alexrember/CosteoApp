@@ -2,31 +2,26 @@ package com.mg.costeoapp.core.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primario - Verde azulado
-val CosteoGreenPrimary = Color(0xFF0D7C66)
-val CosteoGreenPrimaryContainer = Color(0xFFB8E8D6)
+val CosteoPrimary = Color(0xFF7E57C2)
+val CosteoPrimaryContainer = Color(0xFFD1C4E9)
 val CosteoOnPrimary = Color(0xFFFFFFFF)
-val CosteoOnPrimaryContainer = Color(0xFF063D33)
+val CosteoOnPrimaryContainer = Color(0xFF311B6B)
 
-// Secundario - Naranja
-val CosteoOrangeSecondary = Color(0xFFF57C00)
-val CosteoOrangeSecondaryContainer = Color(0xFFFFE0B2)
+val CosteoSecondary = Color(0xFF556B2F)
+val CosteoSecondaryContainer = Color(0xFFC5E1A5)
 val CosteoOnSecondary = Color(0xFFFFFFFF)
-val CosteoOnSecondaryContainer = Color(0xFF5D3000)
+val CosteoOnSecondaryContainer = Color(0xFF2E3B1A)
 
-// Terciario - Gris azulado
 val CosteoTertiary = Color(0xFF546E7A)
 val CosteoTertiaryContainer = Color(0xFFCFD8DC)
 val CosteoOnTertiary = Color(0xFFFFFFFF)
 val CosteoOnTertiaryContainer = Color(0xFF1C313A)
 
-// Error
 val CosteoError = Color(0xFFD32F2F)
 val CosteoErrorContainer = Color(0xFFFFCDD2)
 val CosteoOnError = Color(0xFFFFFFFF)
 val CosteoOnErrorContainer = Color(0xFF5F0000)
 
-// Superficies - Modo Claro
 val CosteoSurface = Color(0xFFFAFAFA)
 val CosteoOnSurface = Color(0xFF212121)
 val CosteoSurfaceVariant = Color(0xFFF5F5F5)
@@ -38,21 +33,20 @@ val CosteoOnBackground = Color(0xFF212121)
 val CosteoInverseSurface = Color(0xFF303030)
 val CosteoInverseOnSurface = Color(0xFFF5F5F5)
 
-// Superficies - Modo Oscuro
 val CosteoDarkSurface = Color(0xFF121212)
 val CosteoDarkOnSurface = Color(0xFFE0E0E0)
 val CosteoDarkSurfaceVariant = Color(0xFF2C2C2C)
 val CosteoDarkOnSurfaceVariant = Color(0xFFBDBDBD)
 val CosteoDarkBackground = Color(0xFF121212)
 val CosteoDarkOnBackground = Color(0xFFE0E0E0)
-val CosteoDarkPrimary = Color(0xFF4DB6A0)
-val CosteoDarkPrimaryContainer = Color(0xFF0D7C66)
-val CosteoDarkOnPrimary = Color(0xFF00201A)
-val CosteoDarkOnPrimaryContainer = Color(0xFFB8E8D6)
-val CosteoDarkSecondary = Color(0xFFFFB74D)
-val CosteoDarkSecondaryContainer = Color(0xFFF57C00)
-val CosteoDarkOnSecondary = Color(0xFF3E2000)
-val CosteoDarkOnSecondaryContainer = Color(0xFFFFE0B2)
+val CosteoDarkPrimary = Color(0xFFB39DDB)
+val CosteoDarkPrimaryContainer = Color(0xFF5E35B1)
+val CosteoDarkOnPrimary = Color(0xFF1A0033)
+val CosteoDarkOnPrimaryContainer = Color(0xFFD1C4E9)
+val CosteoDarkSecondary = Color(0xFF8BC34A)
+val CosteoDarkSecondaryContainer = Color(0xFF556B2F)
+val CosteoDarkOnSecondary = Color(0xFF1B2A0E)
+val CosteoDarkOnSecondaryContainer = Color(0xFFC5E1A5)
 val CosteoDarkOutline = Color(0xFF616161)
 val CosteoDarkOutlineVariant = Color(0xFF424242)
 val CosteoDarkInverseSurface = Color(0xFFE0E0E0)

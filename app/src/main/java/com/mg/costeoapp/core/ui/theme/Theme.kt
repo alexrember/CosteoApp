@@ -7,13 +7,13 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 private val LightColorScheme = lightColorScheme(
-    primary = CosteoGreenPrimary,
+    primary = CosteoPrimary,
     onPrimary = CosteoOnPrimary,
-    primaryContainer = CosteoGreenPrimaryContainer,
+    primaryContainer = CosteoPrimaryContainer,
     onPrimaryContainer = CosteoOnPrimaryContainer,
-    secondary = CosteoOrangeSecondary,
+    secondary = CosteoSecondary,
     onSecondary = CosteoOnSecondary,
-    secondaryContainer = CosteoOrangeSecondaryContainer,
+    secondaryContainer = CosteoSecondaryContainer,
     onSecondaryContainer = CosteoOnSecondaryContainer,
     tertiary = CosteoTertiary,
     onTertiary = CosteoOnTertiary,
