@@ -21,11 +21,16 @@ class ProductoDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ProductoDetailUiState())
     val uiState: StateFlow<ProductoDetailUiState> = _uiState.asStateFlow()
 
+    private val productoId: Long = savedStateHandle.get<Long>("productoId") ?: 0L
+
     init {
-        val productoId = savedStateHandle.get<Long>("productoId")
-        if (productoId != null && productoId != 0L) {
-            loadProducto(productoId)
+        if (productoId != 0L) {
+            refresh()
         }
+    }
+
+    fun refresh() {
+        loadProducto(productoId)
     }
 
     private fun loadProducto(id: Long) {

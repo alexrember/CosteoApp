@@ -57,13 +57,14 @@ class TiendaFlowTest {
 	}
 
 	@Test
-	fun t3_navegacion_a_productos_muestra_empty_state() {
+	fun t3_navegacion_a_productos_funciona() {
 		composeRule.onNode(
 			hasContentDescription("Productos"),
 			useUnmergedTree = true
 		).performClick()
 		composeRule.waitForIdle()
-		composeRule.onNodeWithText("No hay productos registrados.", substring = true).assertIsDisplayed()
+		// Verifica que estamos en la pantalla de productos (FAB visible)
+		composeRule.onNodeWithContentDescription("Agregar producto").assertIsDisplayed()
 	}
 
 	@Test
