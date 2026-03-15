@@ -1,12 +1,14 @@
 package com.mg.costeoapp.feature.inventario.data
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import com.mg.costeoapp.feature.inventario.data.mapper.parseContenidoFromName
 import com.mg.costeoapp.feature.inventario.data.mapper.toStoreSearchResults
 import com.mg.costeoapp.feature.inventario.data.remote.WalmartVtexApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -16,8 +18,10 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Test de integracion contra Walmart SV VTEX API real.
- * Verifica que el servicio responde y el parsing funciona.
- * Usa el codigo de barras de leche (7441001601132) confirmado por el usuario.
+ * Verifica que el servicio responde, el parsing funciona,
+ * y todos los campos que necesitamos estan presentes.
+ *
+ * Codigo de barras de referencia: 7441001601132 (Leche Dos Pinos 946ml)
  */
 class WalmartApiTest {
 
@@ -50,57 +54,129 @@ class WalmartApiTest {
             .create(WalmartVtexApi::class.java)
     }
 
+    // --- DTO: campos crudos de la API ---
+
     @Test
-    fun `buscar leche por codigo de barras retorna resultados`() = runTest {
-        val response = api.searchByBarcode(fq = "alternateIds_Ean:7441001601132")
-
-        assertTrue("API deberia responder exitosamente", response.isSuccessful)
-
-        val products = response.body()
-        assertNotNull("Body no deberia ser null", products)
-        assertTrue("Deberia encontrar al menos 1 producto", products!!.isNotEmpty())
-
-        val firstProduct = products[0]
-        assertNotNull("Nombre del producto no deberia ser null", firstProduct.productName)
-        println("Producto encontrado: ${firstProduct.productName}")
-        println("Marca: ${firstProduct.brand}")
-
-        // Verificar que el mapeo a StoreSearchResult funciona
-        val results = firstProduct.toStoreSearchResults()
-        assertTrue("Deberia tener al menos 1 resultado mapeado", results.isNotEmpty())
-
-        val result = results[0]
-        println("Store: ${result.storeName}")
-        println("Precio: ${result.price?.let { "$${it / 100.0}" } ?: "N/A"}")
-        println("Disponible: ${result.isAvailable}")
-        assertTrue("Precio deberia ser > 0", (result.price ?: 0) > 0)
+    fun `DTO productName viene en la respuesta`() = runTest {
+        val products = fetchLeche()
+        assertNotNull("productName", products[0].productName)
+        assertTrue("productName no vacio", products[0].productName!!.isNotBlank())
     }
 
     @Test
-    fun `buscar por nombre retorna resultados`() = runTest {
+    fun `DTO brand viene en la respuesta`() = runTest {
+        val products = fetchLeche()
+        assertNotNull("brand", products[0].brand)
+    }
+
+    @Test
+    fun `DTO items tiene al menos un item`() = runTest {
+        val products = fetchLeche()
+        val items = products[0].items
+        assertNotNull("items", items)
+        assertTrue("items no vacio", items!!.isNotEmpty())
+    }
+
+    @Test
+    fun `DTO item tiene ean`() = runTest {
+        val products = fetchLeche()
+        val item = products[0].items!!.first()
+        assertNotNull("ean", item.ean)
+        assertEquals("7441001601132", item.ean)
+    }
+
+    @Test
+    fun `DTO item tiene measurementUnit`() = runTest {
+        val products = fetchLeche()
+        val item = products[0].items!!.first()
+        assertNotNull("measurementUnit", item.measurementUnit)
+    }
+
+    @Test
+    fun `DTO item tiene sellers con precio`() = runTest {
+        val products = fetchLeche()
+        val sellers = products[0].items!!.first().sellers
+        assertNotNull("sellers", sellers)
+        assertTrue("sellers no vacio", sellers!!.isNotEmpty())
+
+        val offer = sellers[0].commertialOffer
+        assertNotNull("commertialOffer", offer)
+        assertNotNull("price", offer!!.price)
+        assertTrue("price > 0", offer.price!! > 0)
+    }
+
+    @Test
+    fun `DTO seller tiene sellerName`() = runTest {
+        val products = fetchLeche()
+        val seller = products[0].items!!.first().sellers!!.first()
+        assertNotNull("sellerName", seller.sellerName)
+    }
+
+    @Test
+    fun `DTO offer tiene isAvailable`() = runTest {
+        val products = fetchLeche()
+        val offer = products[0].items!!.first().sellers!!.first().commertialOffer!!
+        assertNotNull("isAvailable", offer.isAvailable)
+    }
+
+    // --- Mapeo: StoreSearchResult ---
+
+    @Test
+    fun `mapeo a StoreSearchResult tiene todos los campos`() = runTest {
+        val products = fetchLeche()
+        val results = products[0].toStoreSearchResults()
+        assertTrue("resultados no vacio", results.isNotEmpty())
+
+        val r = results[0]
+        assertTrue("storeName no vacio", r.storeName.isNotBlank())
+        assertTrue("productName no vacio", r.productName.isNotBlank())
+        assertNotNull("price", r.price)
+        assertTrue("price > 0", r.price!! > 0)
+        assertNotNull("ean", r.ean)
+        assertEquals("source", "walmart_vtex", r.source)
+    }
+
+    // --- ContentParser: extrae contenido del nombre ---
+
+    @Test
+    fun `contenido se parsea del nombre del producto`() = runTest {
+        val products = fetchLeche()
+        val nombre = products[0].productName!!
+        val contenido = parseContenidoFromName(nombre)
+        assertNotNull("contenido parseado del nombre: $nombre", contenido)
+        assertEquals("cantidad 946", 946.0, contenido!!.cantidad, 0.01)
+        assertEquals("unidad ml", com.mg.costeoapp.core.util.UnidadMedida.MILILITRO, contenido.unidad)
+    }
+
+    // --- Busqueda por nombre ---
+
+    @Test
+    fun `busqueda por nombre retorna resultados`() = runTest {
         val response = api.searchByName(ft = "leche entera")
-
-        assertTrue("API deberia responder exitosamente", response.isSuccessful)
-
+        assertTrue("respuesta exitosa", response.isSuccessful)
         val products = response.body()
-        assertNotNull("Body no deberia ser null", products)
-        assertTrue("Deberia encontrar productos para 'leche entera'", products!!.isNotEmpty())
-
-        println("Resultados para 'leche entera': ${products.size} productos")
-        products.take(3).forEach { p ->
-            println("  - ${p.productName} (${p.brand})")
-        }
+        assertNotNull("body", products)
+        assertTrue("productos encontrados", products!!.isNotEmpty())
     }
 
+    // --- Codigo inexistente ---
+
     @Test
-    fun `codigo de barras inexistente retorna lista vacia`() = runTest {
+    fun `codigo inexistente retorna lista vacia`() = runTest {
         val response = api.searchByBarcode(fq = "alternateIds_Ean:0000000000000")
+        assertTrue("respuesta exitosa", response.isSuccessful)
+        val products = response.body() ?: emptyList()
+        assertTrue("lista vacia o sin resultados", products.isEmpty())
+    }
 
-        assertTrue("API deberia responder exitosamente", response.isSuccessful)
+    // --- Helper ---
 
+    private suspend fun fetchLeche(): List<com.mg.costeoapp.feature.inventario.data.dto.VtexProduct> {
+        val response = api.searchByBarcode(fq = "alternateIds_Ean:7441001601132")
+        assertTrue("API responde", response.isSuccessful)
         val products = response.body()
-        // VTEX puede retornar lista vacia o null para productos no encontrados
-        val count = products?.size ?: 0
-        println("Productos encontrados para codigo inexistente: $count")
+        assertNotNull("body no null", products)
+        assertTrue("al menos 1 producto", products!!.isNotEmpty())
+        return products
     }
 }
