@@ -5,6 +5,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -148,5 +149,27 @@ class TiendaFlowTest {
 		// Confirmar en dialogo
 		composeRule.onAllNodes(hasText("Eliminar")).onFirst().performClick()
 		composeRule.waitForIdle()
+	}
+
+	@Test
+	fun t8_dashboard_contadores_y_accesos_rapidos() {
+		// Verificar que el dashboard muestra las stat cards
+		composeRule.onNodeWithText("CosteoApp").assertIsDisplayed()
+		composeRule.onAllNodesWithText("Tiendas").onFirst().assertIsDisplayed()
+		composeRule.onAllNodesWithText("Productos").onFirst().assertIsDisplayed()
+
+		// Click en acceso rapido "Agregar tienda"
+		composeRule.onNodeWithText("Agregar tienda").performClick()
+		composeRule.waitForIdle()
+		composeRule.onNodeWithText("Nueva tienda").assertIsDisplayed()
+
+		// Regresar al dashboard
+		composeRule.onNodeWithContentDescription("Regresar").performClick()
+		composeRule.waitForIdle()
+
+		// Click en acceso rapido "Agregar producto"
+		composeRule.onNodeWithText("Agregar producto").performClick()
+		composeRule.waitForIdle()
+		composeRule.onNodeWithText("Nuevo producto").assertIsDisplayed()
 	}
 }
