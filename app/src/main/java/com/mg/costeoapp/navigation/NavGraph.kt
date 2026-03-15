@@ -42,7 +42,7 @@ private fun DashboardPlaceholder() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "CosteoApp",
+            text = "Costeo MG",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary
         )
