@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -69,6 +70,34 @@ fun ProductoRegistroScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            if (uiState.tiendaNombre.isNotBlank()) {
+                Text(
+                    text = "Tienda: ${uiState.tiendaNombre}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            if (uiState.buscandoEnApi) {
+                Text(
+                    text = "Buscando en Walmart SV...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            uiState.fuenteApi?.let {
+                Text(
+                    text = "Datos de: $it",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -109,25 +138,11 @@ fun ProductoRegistroScreen(
                 error = uiState.fieldErrors["precio"]
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (uiState.tiendasDisponibles.isNotEmpty()) {
-                val selectedTienda = uiState.tiendasDisponibles.find { it.id == uiState.tiendaSeleccionadaId }
-                CosteoDropdown(
-                    selectedValue = selectedTienda,
-                    options = uiState.tiendasDisponibles,
-                    onOptionSelected = { tienda -> tienda?.let { viewModel.onTiendaSelected(it.id) } },
-                    label = "Tienda *",
-                    displayText = { it?.nombre ?: "Seleccionar tienda" },
-                    error = uiState.fieldErrors["tienda"]
-                )
-            }
-
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = viewModel::save,
-                enabled = !uiState.isSaving,
+                enabled = !uiState.isSaving && !uiState.buscandoEnApi,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(if (uiState.isSaving) "Guardando..." else "Registrar producto")

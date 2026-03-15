@@ -117,6 +117,12 @@ dependencies {
     // Core AndroidX
     implementation(libs.androidx.core.ktx)
 
+    // Retrofit + OkHttp
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.kotlinx.serialization)
+    implementation(libs.okhttp.core)
+    implementation(libs.okhttp.logging)
+
     // CameraX + ML Kit Barcode
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)

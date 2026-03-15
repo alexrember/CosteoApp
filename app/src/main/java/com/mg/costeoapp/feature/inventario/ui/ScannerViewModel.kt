@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
+import com.mg.costeoapp.core.domain.model.StoreSearchResult
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.feature.inventario.data.CompraManager
+import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,12 +16,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @HiltViewModel
 class ScannerViewModel @Inject constructor(
     private val productoDao: ProductoDao,
     private val productoTiendaDao: ProductoTiendaDao,
+    private val walmartRepository: WalmartStoreRepository,
     val compraManager: CompraManager
 ) : ViewModel() {
 
@@ -53,10 +57,10 @@ class ScannerViewModel @Inject constructor(
                 )
             }
 
+            // 1. Buscar en DB local
             val productoLocal = productoDao.getByCodigoBarras(barcode)
 
             if (productoLocal != null) {
-                // Producto existe → agregar al carrito con ultimo precio conocido
                 val tienda = compraManager.getTienda()
                 var precio = 0L
                 if (tienda != null) {
@@ -76,10 +80,25 @@ class ScannerViewModel @Inject constructor(
                 }
                 _events.send(UiEvent.ShowError("${productoLocal.nombre} agregado al carrito"))
 
-                // Reset para seguir escaneando
                 kotlinx.coroutines.delay(1500)
                 lastNavigatedBarcode = null
                 _uiState.update { it.copy(lookupState = BarcodeLookupState.Idle) }
+                return@launch
+            }
+
+            // 2. No encontrado localmente → buscar en Walmart API (con timeout)
+            val walmartResults = withTimeoutOrNull(8000L) {
+                walmartRepository.searchByBarcode(barcode).getOrNull()
+            } ?: emptyList()
+
+            if (walmartResults.isNotEmpty()) {
+                lastNavigatedBarcode = barcode
+                _uiState.update {
+                    it.copy(
+                        isProcessing = false,
+                        lookupState = BarcodeLookupState.EncontradoApi(barcode, walmartResults)
+                    )
+                }
             } else {
                 lastNavigatedBarcode = barcode
                 _uiState.update {

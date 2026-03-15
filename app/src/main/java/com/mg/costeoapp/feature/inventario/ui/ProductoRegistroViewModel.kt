@@ -10,18 +10,19 @@ import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.CurrencyFormatter
 import com.mg.costeoapp.core.util.UnidadMedida
 import com.mg.costeoapp.core.util.ValidationUtils
+import com.mg.costeoapp.feature.inventario.data.CompraManager
 import com.mg.costeoapp.feature.inventario.data.InventarioRepository
+import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
-import com.mg.costeoapp.feature.tiendas.data.TiendaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 data class ProductoRegistroUiState(
@@ -30,8 +31,9 @@ data class ProductoRegistroUiState(
     val unidadMedida: UnidadMedida = UnidadMedida.LIBRA,
     val cantidadPorEmpaque: String = "",
     val precio: String = "",
-    val tiendaSeleccionadaId: Long? = null,
-    val tiendasDisponibles: List<Tienda> = emptyList(),
+    val tiendaNombre: String = "",
+    val buscandoEnApi: Boolean = false,
+    val fuenteApi: String? = null,
     val fieldErrors: Map<String, String> = emptyMap(),
     val isSaving: Boolean = false
 )
@@ -40,7 +42,8 @@ data class ProductoRegistroUiState(
 class ProductoRegistroViewModel @Inject constructor(
     private val productoRepository: ProductoRepository,
     private val inventarioRepository: InventarioRepository,
-    private val tiendaRepository: TiendaRepository,
+    private val walmartRepository: WalmartStoreRepository,
+    private val compraManager: CompraManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -52,11 +55,43 @@ class ProductoRegistroViewModel @Inject constructor(
 
     init {
         val codigoBarras = savedStateHandle.get<String>("codigoBarras") ?: ""
-        _uiState.update { it.copy(codigoBarras = codigoBarras) }
+        val tienda = compraManager.getTienda()
+
+        _uiState.update {
+            it.copy(
+                codigoBarras = codigoBarras,
+                tiendaNombre = tienda?.nombre ?: ""
+            )
+        }
+
+        // Buscar en Walmart si tenemos codigo de barras
+        if (codigoBarras.isNotBlank()) {
+            buscarEnApi(codigoBarras)
+        }
+    }
+
+    private fun buscarEnApi(barcode: String) {
+        _uiState.update { it.copy(buscandoEnApi = true) }
 
         viewModelScope.launch {
-            val tiendas = tiendaRepository.getAll().first()
-            _uiState.update { it.copy(tiendasDisponibles = tiendas) }
+            val results = withTimeoutOrNull(8000L) {
+                walmartRepository.searchByBarcode(barcode).getOrNull()
+            }
+
+            val best = results?.firstOrNull { it.isAvailable }
+
+            if (best != null) {
+                _uiState.update {
+                    it.copy(
+                        buscandoEnApi = false,
+                        nombre = best.productName,
+                        precio = best.price?.let { p -> CurrencyFormatter.fromCents(p).replace("$", "") } ?: "",
+                        fuenteApi = "Walmart SV"
+                    )
+                }
+            } else {
+                _uiState.update { it.copy(buscandoEnApi = false) }
+            }
         }
     }
 
@@ -76,10 +111,6 @@ class ProductoRegistroViewModel @Inject constructor(
         _uiState.update { it.copy(precio = value, fieldErrors = it.fieldErrors - "precio") }
     }
 
-    fun onTiendaSelected(tiendaId: Long) {
-        _uiState.update { it.copy(tiendaSeleccionadaId = tiendaId, fieldErrors = it.fieldErrors - "tienda") }
-    }
-
     fun save() {
         if (!validate()) return
         if (_uiState.value.isSaving) return
@@ -89,6 +120,7 @@ class ProductoRegistroViewModel @Inject constructor(
         viewModelScope.launch {
             val state = _uiState.value
             val precioCents = CurrencyFormatter.toCents(state.precio)!!
+            val tienda = compraManager.getTienda()
             val now = System.currentTimeMillis()
 
             // 1. Crear producto
@@ -107,26 +139,15 @@ class ProductoRegistroViewModel @Inject constructor(
             }
 
             val productoId = productoResult.getOrThrow()
+            val productoCreado = producto.copy(id = productoId)
 
-            // 2. Registrar en inventario
-            val inventario = Inventario(
-                productoId = productoId,
-                tiendaId = state.tiendaSeleccionadaId!!,
-                cantidad = state.cantidadPorEmpaque.toDouble(),
-                precioCompra = precioCents,
-                fechaCompra = now
-            )
+            // 2. Agregar al carrito si estamos en flujo de compras
+            if (tienda != null) {
+                compraManager.agregarProducto(productoCreado, state.cantidadPorEmpaque.toDouble(), precioCents)
+            }
 
-            inventarioRepository.insert(inventario).fold(
-                onSuccess = {
-                    _uiState.update { it.copy(isSaving = false) }
-                    _events.send(UiEvent.SaveSuccess)
-                },
-                onFailure = { e ->
-                    _uiState.update { it.copy(isSaving = false) }
-                    _events.send(UiEvent.ShowError(e.message ?: "Error al registrar"))
-                }
-            )
+            _uiState.update { it.copy(isSaving = false) }
+            _events.send(UiEvent.SaveSuccess)
         }
     }
 
@@ -143,9 +164,6 @@ class ProductoRegistroViewModel @Inject constructor(
         val cents = CurrencyFormatter.toCents(state.precio)
         if (cents == null || cents <= 0) {
             errors["precio"] = "Ingresa un precio valido"
-        }
-        if (state.tiendaSeleccionadaId == null) {
-            errors["tienda"] = "Selecciona una tienda"
         }
 
         _uiState.update { it.copy(fieldErrors = errors) }

@@ -4,6 +4,7 @@ import com.mg.costeoapp.core.database.dao.InventarioConDetalles
 import com.mg.costeoapp.core.database.dao.ResumenInventarioTienda
 import com.mg.costeoapp.core.database.entity.Producto
 import com.mg.costeoapp.core.database.entity.Tienda
+import com.mg.costeoapp.core.domain.model.StoreSearchResult
 
 data class InventarioListUiState(
     val items: List<InventarioConDetalles> = emptyList(),
@@ -27,6 +28,7 @@ sealed class BarcodeLookupState {
     data object Idle : BarcodeLookupState()
     data object Buscando : BarcodeLookupState()
     data class EncontradoLocal(val producto: Producto) : BarcodeLookupState()
+    data class EncontradoApi(val barcode: String, val resultados: List<StoreSearchResult>) : BarcodeLookupState()
     data class NoEncontrado(val barcode: String) : BarcodeLookupState()
 }
 

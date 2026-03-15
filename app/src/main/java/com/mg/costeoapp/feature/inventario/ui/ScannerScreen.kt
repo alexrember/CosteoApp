@@ -96,6 +96,11 @@ fun ScannerScreen(
 
     LaunchedEffect(uiState.lookupState) {
         when (val state = uiState.lookupState) {
+            is BarcodeLookupState.EncontradoApi -> {
+                // Pre-llenar el registro con datos de Walmart
+                onNavigateToRegistro(state.barcode)
+                viewModel.resetScanner()
+            }
             is BarcodeLookupState.NoEncontrado -> {
                 onNavigateToRegistro(state.barcode)
                 viewModel.resetScanner()
