@@ -2,8 +2,11 @@ package com.mg.costeoapp.feature.inventario.di
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.mg.costeoapp.BuildConfig
+import com.mg.costeoapp.feature.inventario.data.remote.OpenFoodFactsApi
 import com.mg.costeoapp.feature.inventario.data.remote.WalmartVtexApi
+import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
 import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
+import javax.inject.Named
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -65,5 +68,24 @@ object NetworkModule {
     @Singleton
     fun provideWalmartStoreRepository(api: WalmartVtexApi): WalmartStoreRepository {
         return WalmartStoreRepository(api)
+    }
+
+    // --- Open Food Facts ---
+
+    @Provides
+    @Singleton
+    fun provideOpenFoodFactsApi(client: OkHttpClient, json: Json): OpenFoodFactsApi {
+        return Retrofit.Builder()
+            .baseUrl(OpenFoodFactsApi.BASE_URL)
+            .client(client)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(OpenFoodFactsApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNutritionRepository(api: OpenFoodFactsApi): NutritionRepository {
+        return NutritionRepository(api)
     }
 }

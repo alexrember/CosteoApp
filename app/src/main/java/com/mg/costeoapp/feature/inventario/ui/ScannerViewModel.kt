@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
-import com.mg.costeoapp.core.domain.model.StoreSearchResult
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.feature.inventario.data.CompraManager
+import com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna
+import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
 import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +26,7 @@ class ScannerViewModel @Inject constructor(
     private val productoDao: ProductoDao,
     private val productoTiendaDao: ProductoTiendaDao,
     private val walmartRepository: WalmartStoreRepository,
+    private val nutritionRepository: NutritionRepository,
     val compraManager: CompraManager
 ) : ViewModel() {
 
@@ -34,6 +37,10 @@ class ScannerViewModel @Inject constructor(
     val events = _events.receiveAsFlow()
 
     private var lastNavigatedBarcode: String? = null
+
+    // Guardar nutricion del ultimo escaneo para pasarla al registro
+    var lastNutricion: NutricionExterna? = null
+        private set
 
     init {
         _uiState.update {
@@ -86,10 +93,21 @@ class ScannerViewModel @Inject constructor(
                 return@launch
             }
 
-            // 2. No encontrado localmente → buscar en Walmart API (con timeout)
-            val walmartResults = withTimeoutOrNull(8000L) {
-                walmartRepository.searchByBarcode(barcode).getOrNull()
-            } ?: emptyList()
+            // 2. No encontrado → llamadas PARALELAS a Walmart + Open Food Facts
+            val deferredWalmart = async {
+                withTimeoutOrNull(8000L) {
+                    walmartRepository.searchByBarcode(barcode).getOrNull()
+                } ?: emptyList()
+            }
+
+            val deferredNutricion = async {
+                withTimeoutOrNull(8000L) {
+                    nutritionRepository.searchByBarcode(barcode)
+                }
+            }
+
+            val walmartResults = deferredWalmart.await()
+            lastNutricion = deferredNutricion.await()
 
             if (walmartResults.isNotEmpty()) {
                 lastNavigatedBarcode = barcode
@@ -125,6 +143,7 @@ class ScannerViewModel @Inject constructor(
 
     fun readyForNewScan() {
         lastNavigatedBarcode = null
+        lastNutricion = null
         resetScanner()
     }
 }

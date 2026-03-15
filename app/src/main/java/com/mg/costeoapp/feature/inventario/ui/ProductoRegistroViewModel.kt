@@ -12,10 +12,13 @@ import com.mg.costeoapp.core.util.UnidadMedida
 import com.mg.costeoapp.core.util.ValidationUtils
 import com.mg.costeoapp.feature.inventario.data.CompraManager
 import com.mg.costeoapp.feature.inventario.data.InventarioRepository
+import com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna
 import com.mg.costeoapp.feature.inventario.data.mapper.parseContenidoFromName
+import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
 import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +38,7 @@ data class ProductoRegistroUiState(
     val tiendaNombre: String = "",
     val buscandoEnApi: Boolean = false,
     val fuenteApi: String? = null,
+    val fuenteNutricion: String? = null,
     val fieldErrors: Map<String, String> = emptyMap(),
     val isSaving: Boolean = false
 )
@@ -44,6 +48,7 @@ class ProductoRegistroViewModel @Inject constructor(
     private val productoRepository: ProductoRepository,
     private val inventarioRepository: InventarioRepository,
     private val walmartRepository: WalmartStoreRepository,
+    private val nutritionRepository: NutritionRepository,
     private val compraManager: CompraManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -53,6 +58,8 @@ class ProductoRegistroViewModel @Inject constructor(
 
     private val _events = Channel<UiEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
+
+    private var nutricionExterna: NutricionExterna? = null
 
     init {
         val codigoBarras = savedStateHandle.get<String>("codigoBarras") ?: ""
@@ -65,44 +72,109 @@ class ProductoRegistroViewModel @Inject constructor(
             )
         }
 
-        // Buscar en Walmart si tenemos codigo de barras
         if (codigoBarras.isNotBlank()) {
-            buscarEnApi(codigoBarras)
+            buscarEnApis(codigoBarras)
         }
     }
 
-    private fun buscarEnApi(barcode: String) {
+    private fun buscarEnApis(barcode: String) {
         _uiState.update { it.copy(buscandoEnApi = true) }
 
         viewModelScope.launch {
-            val results = withTimeoutOrNull(8000L) {
-                walmartRepository.searchByBarcode(barcode).getOrNull()
+            // Llamadas PARALELAS: Walmart (precios) + Open Food Facts (nutricion + contenido)
+            val deferredWalmart = async {
+                withTimeoutOrNull(8000L) {
+                    walmartRepository.searchByBarcode(barcode).getOrNull()
+                }
             }
 
-            val best = results?.firstOrNull { it.isAvailable }
+            val deferredNutricion = async {
+                withTimeoutOrNull(8000L) {
+                    nutritionRepository.searchByBarcode(barcode)
+                }
+            }
 
+            val walmartResults = deferredWalmart.await()
+            nutricionExterna = deferredNutricion.await()
+
+            val best = walmartResults?.firstOrNull { it.isAvailable }
+            val fuentes = mutableListOf<String>()
+
+            // Pre-llenar desde Walmart (nombre, precio)
             if (best != null) {
-                // Intentar parsear contenido del nombre (ej: "946ml", "1L", "500g")
-                val contenido = parseContenidoFromName(best.productName)
-
-                val unidad = contenido?.unidad ?: mapVtexUnit(best.measurementUnit)
-                val cantidad = contenido?.cantidad?.let {
-                    if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
-                } ?: best.unitMultiplier?.toString() ?: "1"
-
+                fuentes.add("Walmart SV")
                 _uiState.update {
                     it.copy(
-                        buscandoEnApi = false,
                         nombre = best.productName,
-                        precio = best.price?.let { p -> CurrencyFormatter.fromCents(p).replace("$", "") } ?: "",
-                        unidadMedida = unidad,
-                        cantidadPorEmpaque = cantidad,
-                        fuenteApi = "Walmart SV"
+                        precio = best.price?.let { p -> CurrencyFormatter.fromCents(p).replace("$", "") } ?: ""
                     )
                 }
-            } else {
-                _uiState.update { it.copy(buscandoEnApi = false) }
             }
+
+            // Pre-llenar contenido: Open Food Facts quantity > nombre parser > VTEX unit
+            var contenidoLlenado = false
+
+            // 1. Open Food Facts quantity (ej: "946 ml", "1 L")
+            nutricionExterna?.cantidad?.let { qty ->
+                val contenido = parseContenidoFromName(qty)
+                if (contenido != null) {
+                    fuentes.add("Open Food Facts")
+                    _uiState.update {
+                        it.copy(
+                            unidadMedida = contenido.unidad,
+                            cantidadPorEmpaque = formatCantidad(contenido.cantidad)
+                        )
+                    }
+                    contenidoLlenado = true
+                }
+            }
+
+            // 2. Parsear del nombre del producto
+            if (!contenidoLlenado && best != null) {
+                val contenido = parseContenidoFromName(best.productName)
+                if (contenido != null) {
+                    _uiState.update {
+                        it.copy(
+                            unidadMedida = contenido.unidad,
+                            cantidadPorEmpaque = formatCantidad(contenido.cantidad)
+                        )
+                    }
+                    contenidoLlenado = true
+                }
+            }
+
+            // 3. VTEX measurementUnit como fallback
+            if (!contenidoLlenado && best != null) {
+                _uiState.update {
+                    it.copy(
+                        unidadMedida = mapVtexUnit(best.measurementUnit),
+                        cantidadPorEmpaque = best.unitMultiplier?.let { formatCantidad(it) } ?: "1"
+                    )
+                }
+            }
+
+            _uiState.update {
+                it.copy(
+                    buscandoEnApi = false,
+                    fuenteApi = if (fuentes.isNotEmpty()) fuentes.joinToString(" + ") else null,
+                    fuenteNutricion = if (nutricionExterna != null) "Open Food Facts" else null
+                )
+            }
+        }
+    }
+
+    private fun formatCantidad(value: Double): String =
+        if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
+
+    private fun mapVtexUnit(vtexUnit: String?): UnidadMedida {
+        return when (vtexUnit?.lowercase()) {
+            "kg" -> UnidadMedida.KILOGRAMO
+            "g" -> UnidadMedida.GRAMO
+            "l" -> UnidadMedida.LITRO
+            "ml" -> UnidadMedida.MILILITRO
+            "lb" -> UnidadMedida.LIBRA
+            "oz" -> UnidadMedida.ONZA
+            else -> UnidadMedida.UNIDAD
         }
     }
 
@@ -132,14 +204,21 @@ class ProductoRegistroViewModel @Inject constructor(
             val state = _uiState.value
             val precioCents = CurrencyFormatter.toCents(state.precio)!!
             val tienda = compraManager.getTienda()
-            val now = System.currentTimeMillis()
 
-            // 1. Crear producto
             val producto = Producto(
                 nombre = state.nombre.trim(),
                 codigoBarras = state.codigoBarras.ifBlank { null },
                 unidadMedida = state.unidadMedida.codigo,
-                cantidadPorEmpaque = state.cantidadPorEmpaque.toDouble()
+                cantidadPorEmpaque = state.cantidadPorEmpaque.toDouble(),
+                // Nutricion desde Open Food Facts si disponible
+                nutricionPorcionG = nutricionExterna?.porcionG,
+                nutricionCalorias = nutricionExterna?.calorias,
+                nutricionProteinasG = nutricionExterna?.proteinas,
+                nutricionCarbohidratosG = nutricionExterna?.carbohidratos,
+                nutricionGrasasG = nutricionExterna?.grasas,
+                nutricionFibraG = nutricionExterna?.fibra,
+                nutricionSodioMg = nutricionExterna?.sodioMg,
+                nutricionFuente = nutricionExterna?.fuente
             )
 
             val productoResult = productoRepository.insert(producto)
@@ -152,25 +231,12 @@ class ProductoRegistroViewModel @Inject constructor(
             val productoId = productoResult.getOrThrow()
             val productoCreado = producto.copy(id = productoId)
 
-            // 2. Agregar al carrito si estamos en flujo de compras
             if (tienda != null) {
                 compraManager.agregarProducto(productoCreado, state.cantidadPorEmpaque.toDouble(), precioCents)
             }
 
             _uiState.update { it.copy(isSaving = false) }
             _events.send(UiEvent.SaveSuccess)
-        }
-    }
-
-    private fun mapVtexUnit(vtexUnit: String?): UnidadMedida {
-        return when (vtexUnit?.lowercase()) {
-            "kg" -> UnidadMedida.KILOGRAMO
-            "g" -> UnidadMedida.GRAMO
-            "l" -> UnidadMedida.LITRO
-            "ml" -> UnidadMedida.MILILITRO
-            "lb" -> UnidadMedida.LIBRA
-            "oz" -> UnidadMedida.ONZA
-            else -> UnidadMedida.UNIDAD
         }
     }
 
