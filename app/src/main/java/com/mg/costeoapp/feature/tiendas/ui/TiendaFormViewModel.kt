@@ -37,12 +37,7 @@ class TiendaFormViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         tienda = tienda,
-                        nombre = tienda.nombre,
-                        direccion = tienda.direccion ?: "",
-                        notas = tienda.notas ?: "",
-                        tipo = tienda.tipo,
-                        telefono = tienda.telefono ?: "",
-                        diasCredito = tienda.diasCredito?.toString() ?: ""
+                        nombre = tienda.nombre
                     )
                 }
             }
@@ -51,26 +46,6 @@ class TiendaFormViewModel @Inject constructor(
 
     fun onNombreChanged(value: String) {
         _uiState.update { it.copy(nombre = value, fieldErrors = it.fieldErrors - "nombre") }
-    }
-
-    fun onDireccionChanged(value: String) {
-        _uiState.update { it.copy(direccion = value) }
-    }
-
-    fun onNotasChanged(value: String) {
-        _uiState.update { it.copy(notas = value) }
-    }
-
-    fun onTipoChanged(value: String) {
-        _uiState.update { it.copy(tipo = value) }
-    }
-
-    fun onTelefonoChanged(value: String) {
-        _uiState.update { it.copy(telefono = value) }
-    }
-
-    fun onDiasCreditoChanged(value: String) {
-        _uiState.update { it.copy(diasCredito = value) }
     }
 
     fun save() {
@@ -83,11 +58,6 @@ class TiendaFormViewModel @Inject constructor(
             val tienda = Tienda(
                 id = state.tienda?.id ?: 0,
                 nombre = state.nombre.trim(),
-                direccion = state.direccion.trim().ifBlank { null },
-                notas = state.notas.trim().ifBlank { null },
-                tipo = state.tipo,
-                telefono = state.telefono.trim().ifBlank { null },
-                diasCredito = state.diasCredito.toIntOrNull(),
                 createdAt = state.tienda?.createdAt ?: System.currentTimeMillis()
             )
 
@@ -118,17 +88,9 @@ class TiendaFormViewModel @Inject constructor(
 
     private fun validate(): Boolean {
         val errors = mutableMapOf<String, String>()
-        val state = _uiState.value
 
-        if (!ValidationUtils.isValidName(state.nombre)) {
+        if (!ValidationUtils.isValidName(_uiState.value.nombre)) {
             errors["nombre"] = "El nombre debe tener al menos 2 caracteres"
-        }
-
-        if (state.diasCredito.isNotBlank()) {
-            val dias = state.diasCredito.toIntOrNull()
-            if (dias == null || dias < 0) {
-                errors["diasCredito"] = "Debe ser un numero positivo"
-            }
         }
 
         _uiState.update { it.copy(fieldErrors = errors) }

@@ -23,8 +23,7 @@ interface TiendaDao {
     @Query("""
         SELECT * FROM tiendas
         WHERE activo = 1
-        AND (LOWER(nombre) LIKE '%' || LOWER(:query) || '%'
-             OR LOWER(direccion) LIKE '%' || LOWER(:query) || '%')
+        AND LOWER(nombre) LIKE '%' || LOWER(:query) || '%'
         ORDER BY nombre ASC
     """)
     fun search(query: String): Flow<List<Tienda>>

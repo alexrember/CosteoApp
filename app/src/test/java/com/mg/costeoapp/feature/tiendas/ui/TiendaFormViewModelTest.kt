@@ -49,12 +49,11 @@ class TiendaFormViewModelTest {
         val state = viewModel.uiState.value
         assertFalse(state.isEditMode)
         assertEquals("", state.nombre)
-        assertEquals("supermercado", state.tipo)
     }
 
     @Test
     fun `modo editar carga tienda`() = runTest {
-        val tienda = Tienda(id = 1, nombre = "Test", tipo = "mercado", direccion = "Dir")
+        val tienda = Tienda(id = 1, nombre = "Test")
         val repo = FakeTiendaRepository(tiendas = mutableListOf(tienda))
 
         val viewModel = createViewModel(tiendaId = 1L, repository = repo)
@@ -62,7 +61,6 @@ class TiendaFormViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state.isEditMode)
         assertEquals("Test", state.nombre)
-        assertEquals("mercado", state.tipo)
     }
 
     @Test
@@ -75,17 +73,7 @@ class TiendaFormViewModelTest {
     }
 
     @Test
-    fun `validacion falla con diasCredito negativo`() = runTest {
-        val viewModel = createViewModel()
-        viewModel.onNombreChanged("Tienda Valida")
-        viewModel.onDiasCreditoChanged("-5")
-        viewModel.save()
-
-        assertTrue(viewModel.uiState.value.fieldErrors.containsKey("diasCredito"))
-    }
-
-    @Test
-    fun `save exitoso en modo crear`() = runTest {
+    fun `save exitoso en modo crear`() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         viewModel.onNombreChanged("Nueva Tienda")
         viewModel.save()
@@ -94,7 +82,7 @@ class TiendaFormViewModelTest {
     }
 
     @Test
-    fun `save muestra error de nombre duplicado`() = runTest {
+    fun `save muestra error de nombre duplicado`() = runTest(testDispatcher) {
         val repo = FakeTiendaRepository(
             tiendas = mutableListOf(Tienda(id = 1, nombre = "Duplicada"))
         )

@@ -16,21 +16,6 @@ data class Tienda(
     @ColumnInfo(name = "nombre")
     val nombre: String,
 
-    @ColumnInfo(name = "direccion")
-    val direccion: String? = null,
-
-    @ColumnInfo(name = "notas")
-    val notas: String? = null,
-
-    @ColumnInfo(name = "tipo")
-    val tipo: String = "supermercado",
-
-    @ColumnInfo(name = "telefono")
-    val telefono: String? = null,
-
-    @ColumnInfo(name = "dias_credito")
-    val diasCredito: Int? = null,
-
     @ColumnInfo(name = "activo")
     val activo: Boolean = true,
 

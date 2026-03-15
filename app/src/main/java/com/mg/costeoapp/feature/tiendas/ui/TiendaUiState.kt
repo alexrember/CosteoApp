@@ -12,11 +12,6 @@ data class TiendaListUiState(
 data class TiendaFormUiState(
     val tienda: Tienda? = null,
     val nombre: String = "",
-    val direccion: String = "",
-    val notas: String = "",
-    val tipo: String = "supermercado",
-    val telefono: String = "",
-    val diasCredito: String = "",
     val fieldErrors: Map<String, String> = emptyMap(),
     val isSaving: Boolean = false,
     val saveSuccess: Boolean = false,

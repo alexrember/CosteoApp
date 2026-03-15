@@ -40,7 +40,6 @@ import com.mg.costeoapp.core.ui.components.ConfirmDeleteDialog
 import com.mg.costeoapp.core.ui.components.CosteoSearchBar
 import com.mg.costeoapp.core.ui.components.EmptyStateMessage
 import com.mg.costeoapp.core.ui.components.LoadingIndicator
-import com.mg.costeoapp.core.util.DateFormatter
 
 @Composable
 fun TiendaListScreen(
@@ -133,28 +132,13 @@ private fun TiendaItem(
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = tienda.nombre,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (!tienda.direccion.isNullOrBlank()) {
-                    Text(
-                        text = tienda.direccion,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Text(
-                    text = DateFormatter.formatDate(tienda.createdAt),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = tienda.nombre,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
             IconButton(onClick = onDelete) {
                 Icon(
                     Icons.Filled.Delete,

@@ -93,16 +93,6 @@ class TiendaDaoTest {
 	}
 
 	@Test
-	fun search_por_direccion() = runTest {
-		tiendaDao.insert(Tienda(nombre = "Tienda A", direccion = "Col. Escalon"))
-		tiendaDao.insert(Tienda(nombre = "Tienda B", direccion = "San Salvador"))
-
-		val results = tiendaDao.search("escalon").first()
-		assertEquals(1, results.size)
-		assertEquals("Tienda A", results[0].nombre)
-	}
-
-	@Test
 	fun getAll_ordenado_por_nombre() = runTest {
 		tiendaDao.insert(Tienda(nombre = "Zapata"))
 		tiendaDao.insert(Tienda(nombre = "Alpha"))
@@ -131,7 +121,6 @@ class TiendaDaoTest {
 			tiendaDao.insert(Tienda(nombre = "Unica"))
 			assertTrue("Deberia lanzar excepcion", false)
 		} catch (_: Exception) {
-			// Esperado: SQLiteConstraintException por UNIQUE index
 			assertTrue(true)
 		}
 	}

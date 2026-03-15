@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "5b962b5db723a34a2c8d9985e910ba05",
+    "identityHash": "59b262ab5dc1594bf24991c7894016de",
     "entities": [
       {
         "tableName": "tiendas",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nombre` TEXT NOT NULL, `direccion` TEXT, `notas` TEXT, `tipo` TEXT NOT NULL, `telefono` TEXT, `dias_credito` INTEGER, `activo` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nombre` TEXT NOT NULL, `activo` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -19,32 +19,6 @@
             "columnName": "nombre",
             "affinity": "TEXT",
             "notNull": true
-          },
-          {
-            "fieldPath": "direccion",
-            "columnName": "direccion",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "notas",
-            "columnName": "notas",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "tipo",
-            "columnName": "tipo",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "telefono",
-            "columnName": "telefono",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "diasCredito",
-            "columnName": "dias_credito",
-            "affinity": "INTEGER"
           },
           {
             "fieldPath": "activo",
@@ -328,7 +302,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5b962b5db723a34a2c8d9985e910ba05')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '59b262ab5dc1594bf24991c7894016de')"
     ]
   }
 }

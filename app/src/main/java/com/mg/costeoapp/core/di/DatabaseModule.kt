@@ -2,6 +2,8 @@ package com.mg.costeoapp.core.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mg.costeoapp.core.database.CosteoDatabase
 import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
@@ -24,7 +26,14 @@ object DatabaseModule {
             context,
             CosteoDatabase::class.java,
             "costeo_database"
-        ).build()
+        )
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    super.onCreate(db)
+                    com.mg.costeoapp.core.database.DatabaseSeeder.seed(db)
+                }
+            })
+            .build()
 
     @Provides
     fun provideTiendaDao(database: CosteoDatabase): TiendaDao =

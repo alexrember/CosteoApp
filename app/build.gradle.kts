@@ -25,7 +25,7 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.mg.costeoapp.HiltTestRunner"
 
         // Room - Exportar esquemas para migraciones futuras
         ksp {
