@@ -9,5 +9,7 @@ data class StoreSearchResult(
     val listPrice: Long?,
     val isAvailable: Boolean,
     val imageUrl: String?,
+    val measurementUnit: String?,
+    val unitMultiplier: Double?,
     val source: String
 )

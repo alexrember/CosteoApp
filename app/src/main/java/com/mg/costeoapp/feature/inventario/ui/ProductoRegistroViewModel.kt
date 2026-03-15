@@ -12,6 +12,7 @@ import com.mg.costeoapp.core.util.UnidadMedida
 import com.mg.costeoapp.core.util.ValidationUtils
 import com.mg.costeoapp.feature.inventario.data.CompraManager
 import com.mg.costeoapp.feature.inventario.data.InventarioRepository
+import com.mg.costeoapp.feature.inventario.data.mapper.parseContenidoFromName
 import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -81,11 +82,21 @@ class ProductoRegistroViewModel @Inject constructor(
             val best = results?.firstOrNull { it.isAvailable }
 
             if (best != null) {
+                // Intentar parsear contenido del nombre (ej: "946ml", "1L", "500g")
+                val contenido = parseContenidoFromName(best.productName)
+
+                val unidad = contenido?.unidad ?: mapVtexUnit(best.measurementUnit)
+                val cantidad = contenido?.cantidad?.let {
+                    if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
+                } ?: best.unitMultiplier?.toString() ?: "1"
+
                 _uiState.update {
                     it.copy(
                         buscandoEnApi = false,
                         nombre = best.productName,
                         precio = best.price?.let { p -> CurrencyFormatter.fromCents(p).replace("$", "") } ?: "",
+                        unidadMedida = unidad,
+                        cantidadPorEmpaque = cantidad,
                         fuenteApi = "Walmart SV"
                     )
                 }
@@ -148,6 +159,18 @@ class ProductoRegistroViewModel @Inject constructor(
 
             _uiState.update { it.copy(isSaving = false) }
             _events.send(UiEvent.SaveSuccess)
+        }
+    }
+
+    private fun mapVtexUnit(vtexUnit: String?): UnidadMedida {
+        return when (vtexUnit?.lowercase()) {
+            "kg" -> UnidadMedida.KILOGRAMO
+            "g" -> UnidadMedida.GRAMO
+            "l" -> UnidadMedida.LITRO
+            "ml" -> UnidadMedida.MILILITRO
+            "lb" -> UnidadMedida.LIBRA
+            "oz" -> UnidadMedida.ONZA
+            else -> UnidadMedida.UNIDAD
         }
     }
 

@@ -21,6 +21,8 @@ fun VtexProduct.toStoreSearchResults(): List<StoreSearchResult> {
                         listPrice = offer.listPrice?.let { (it * 100).roundToLong() },
                         isAvailable = offer.isAvailable ?: false,
                         imageUrl = item.images?.firstOrNull()?.imageUrl,
+                        measurementUnit = item.measurementUnit,
+                        unitMultiplier = item.unitMultiplier,
                         source = "walmart_vtex"
                     )
                 )
