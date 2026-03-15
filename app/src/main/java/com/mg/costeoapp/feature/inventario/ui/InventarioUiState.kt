@@ -18,6 +18,8 @@ data class ScannerUiState(
     val isProcessing: Boolean = false,
     val scannedBarcode: String? = null,
     val lookupState: BarcodeLookupState = BarcodeLookupState.Idle,
+    val carritoCount: Int = 0,
+    val tiendaNombre: String = "",
     val error: String? = null
 )
 
@@ -30,7 +32,6 @@ sealed class BarcodeLookupState {
 
 data class CarritoItem(
     val producto: Producto,
-    val tienda: Tienda,
     val cantidad: Double,
     val precioUnitario: Long
 ) {
@@ -38,11 +39,16 @@ data class CarritoItem(
 }
 
 data class CarritoUiState(
-    val tiendaSeleccionada: Tienda? = null,
-    val tiendasDisponibles: List<Tienda> = emptyList(),
+    val tienda: Tienda? = null,
     val items: List<CarritoItem> = emptyList(),
     val isConfirming: Boolean = false
 ) {
     val total: Long get() = items.sumOf { it.subtotal }
     val isEmpty: Boolean get() = items.isEmpty()
+    val itemCount: Int get() = items.size
 }
+
+data class SeleccionTiendaUiState(
+    val tiendas: List<Tienda> = emptyList(),
+    val isLoading: Boolean = true
+)

@@ -15,14 +15,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -46,17 +53,19 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
+import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import java.util.concurrent.Executors
 
 @Composable
 fun ScannerScreen(
     onNavigateBack: () -> Unit,
     onNavigateToRegistro: (String?) -> Unit,
-    onProductoEncontrado: (Long) -> Unit,
+    onNavigateToCarrito: () -> Unit,
     viewModel: ScannerViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var cameraPermissionGranted by remember {
         mutableStateOf(
@@ -76,12 +85,17 @@ fun ScannerScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                is UiEvent.SaveSuccess -> {}
+            }
+        }
+    }
+
     LaunchedEffect(uiState.lookupState) {
         when (val state = uiState.lookupState) {
-            is BarcodeLookupState.EncontradoLocal -> {
-                onProductoEncontrado(state.producto.id)
-                viewModel.resetScanner()
-            }
             is BarcodeLookupState.NoEncontrado -> {
                 onNavigateToRegistro(state.barcode)
                 viewModel.resetScanner()
@@ -93,10 +107,24 @@ fun ScannerScreen(
     Scaffold(
         topBar = {
             CosteoTopAppBar(
-                title = "Escanear producto",
-                onNavigateBack = onNavigateBack
+                title = "Comprando en ${uiState.tiendaNombre}",
+                onNavigateBack = onNavigateBack,
+                actions = {
+                    IconButton(onClick = onNavigateToCarrito) {
+                        BadgedBox(
+                            badge = {
+                                if (uiState.carritoCount > 0) {
+                                    Badge { Text("${uiState.carritoCount}") }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Filled.ShoppingCart, contentDescription = "Ver carrito")
+                        }
+                    }
+                }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -126,7 +154,6 @@ fun ScannerScreen(
                     }
                 }
             } else {
-                // Sin permiso de camara
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -146,7 +173,6 @@ fun ScannerScreen(
                 }
             }
 
-            // Boton registro manual siempre visible abajo
             Button(
                 onClick = { onNavigateToRegistro(null) },
                 modifier = Modifier

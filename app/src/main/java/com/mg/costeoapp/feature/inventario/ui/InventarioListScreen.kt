@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
@@ -44,7 +44,7 @@ fun InventarioListScreen(
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = onNavigateToScanner) {
-                Icon(Icons.Filled.CameraAlt, contentDescription = "Escanear producto")
+                Icon(Icons.Filled.AddShoppingCart, contentDescription = "Ir de compras")
             }
         }
     ) { padding ->
@@ -65,8 +65,8 @@ fun InventarioListScreen(
                     message = "No se encontraron resultados para \"${uiState.searchQuery}\""
                 )
                 uiState.items.isEmpty() -> EmptyStateMessage(
-                    message = "No hay inventario registrado.\nEscanea un producto para empezar.",
-                    actionLabel = "Escanear",
+                    message = "No hay inventario registrado.\nHaz tu primera compra para empezar.",
+                    actionLabel = "Ir de compras",
                     onAction = onNavigateToScanner
                 )
                 else -> LazyColumn(modifier = Modifier.fillMaxSize()) {

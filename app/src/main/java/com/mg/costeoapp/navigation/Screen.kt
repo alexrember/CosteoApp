@@ -16,8 +16,9 @@ import kotlinx.serialization.Serializable
 @Serializable data class ProductoFormRoute(val productoId: Long? = null)
 @Serializable data class ProductoPrecioFormRoute(val productoId: Long)
 
-// --- Fase 2+ (placeholders) ---
+// --- Fase 2 ---
 @Serializable object InventarioListRoute
+@Serializable object SeleccionTiendaCompraRoute
 @Serializable object ScannerRoute
 @Serializable object CarritoRoute
 @Serializable data class ProductoRegistroRoute(val codigoBarras: String? = null)

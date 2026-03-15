@@ -80,7 +80,7 @@ fun CarritoScreen(
                 )
             } else {
                 // Tienda seleccionada
-                uiState.tiendaSeleccionada?.let { tienda ->
+                uiState.tienda?.let { tienda ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

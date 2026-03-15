@@ -18,7 +18,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.mg.costeoapp.core.ui.components.BottomNavItem
 import com.mg.costeoapp.core.ui.components.CosteoBottomNavBar
 import com.mg.costeoapp.feature.dashboard.ui.DashboardScreen
@@ -26,6 +25,7 @@ import com.mg.costeoapp.feature.inventario.ui.CarritoScreen
 import com.mg.costeoapp.feature.inventario.ui.InventarioListScreen
 import com.mg.costeoapp.feature.inventario.ui.ProductoRegistroScreen
 import com.mg.costeoapp.feature.inventario.ui.ScannerScreen
+import com.mg.costeoapp.feature.inventario.ui.SeleccionTiendaScreen
 import com.mg.costeoapp.feature.onboarding.ui.OnboardingScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoDetailScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoFormScreen
@@ -172,12 +172,23 @@ fun CosteoNavGraph(
                 )
             }
 
-            // --- Fase 2: Inventario ---
+            // --- Fase 2: Inventario + Compras ---
 
             composable<InventarioListRoute> {
                 InventarioListScreen(
                     onNavigateToScanner = {
-                        navController.navigate(ScannerRoute)
+                        navController.navigate(SeleccionTiendaCompraRoute)
+                    }
+                )
+            }
+
+            composable<SeleccionTiendaCompraRoute> {
+                SeleccionTiendaScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onTiendaSeleccionada = {
+                        navController.navigate(ScannerRoute) {
+                            popUpTo(SeleccionTiendaCompraRoute) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -188,8 +199,8 @@ fun CosteoNavGraph(
                     onNavigateToRegistro = { barcode ->
                         navController.navigate(ProductoRegistroRoute(codigoBarras = barcode))
                     },
-                    onProductoEncontrado = { productoId ->
-                        navController.navigate(ProductoDetailRoute(productoId = productoId))
+                    onNavigateToCarrito = {
+                        navController.navigate(CarritoRoute)
                     }
                 )
             }
@@ -198,7 +209,8 @@ fun CosteoNavGraph(
                 ProductoRegistroScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onRegistroExitoso = {
-                        navController.popBackStack(InventarioListRoute, inclusive = false)
+                        // Volver al scanner para seguir escaneando
+                        navController.popBackStack()
                     }
                 )
             }
@@ -206,14 +218,9 @@ fun CosteoNavGraph(
             composable<CarritoRoute> {
                 CarritoScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToScanner = {
-                        navController.navigate(ScannerRoute)
-                    },
+                    onNavigateToScanner = { navController.popBackStack() },
                     onCompraConfirmada = {
-                        navController.navigate(InventarioListRoute) {
-                            popUpTo(DashboardRoute) { saveState = true }
-                            launchSingleTop = true
-                        }
+                        navController.popBackStack(InventarioListRoute, inclusive = false)
                     }
                 )
             }
