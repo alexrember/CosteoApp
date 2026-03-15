@@ -5,7 +5,6 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Plato / Bowl exterior -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M54,32
@@ -16,27 +15,24 @@
             L86,48
             C86,39.2 71.7,32 54,32z" />
 
-    <!-- Sombra interior del plato -->
     <path
-        android:fillColor="#B8E8D6"
+        android:fillColor="#D1C4E9"
         android:pathData="M54,36
             C39.1,36 27,41.9 27,49
             C27,56.1 39.1,62 54,62
             C68.9,62 81,56.1 81,49
             C81,41.9 68.9,36 54,36z" />
 
-    <!-- Interior del plato -->
     <path
-        android:fillColor="#E8F5E9"
+        android:fillColor="#EDE7F6"
         android:pathData="M54,39
             C41.3,39 31,43.9 31,50
             C31,56.1 41.3,61 54,61
             C66.7,61 77,56.1 77,50
             C77,43.9 66.7,39 54,39z" />
 
-    <!-- Signo $ -->
     <path
-        android:fillColor="#0D7C66"
+        android:fillColor="#5E35B1"
         android:pathData="M56,42L56,44.5
             C59.5,45 62,46.5 62,48.5
             C62,49.5 61.2,50.4 60,51
@@ -61,35 +57,30 @@
             C57.5,51.7 58.5,51 58.5,50
             C58.5,49 57.5,48.2 56,47.8z" />
 
-    <!-- Vapor linea 1 -->
     <path
         android:fillColor="#00000000"
         android:strokeWidth="1.5"
-        android:strokeColor="#B8E8D6"
+        android:strokeColor="#D1C4E9"
         android:pathData="M46,28 Q47,25 46,22 Q45,19 46,16" />
 
-    <!-- Vapor linea 2 -->
     <path
         android:fillColor="#00000000"
         android:strokeWidth="1.5"
-        android:strokeColor="#B8E8D6"
+        android:strokeColor="#D1C4E9"
         android:pathData="M54,26 Q55,23 54,20 Q53,17 54,14" />
 
-    <!-- Vapor linea 3 -->
     <path
         android:fillColor="#00000000"
         android:strokeWidth="1.5"
-        android:strokeColor="#B8E8D6"
+        android:strokeColor="#D1C4E9"
         android:pathData="M62,28 Q63,25 62,22 Q61,19 62,16" />
 
-    <!-- Base del plato -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M44,68L64,68L60,74L48,74z" />
 
-    <!-- Linea base -->
     <path
-        android:fillColor="#E0E0E0"
+        android:fillColor="#B39DDB"
         android:pathData="M42,74L66,74L66,76L42,76z" />
 
 </vector>
