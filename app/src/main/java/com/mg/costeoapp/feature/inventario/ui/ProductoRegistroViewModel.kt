@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mg.costeoapp.core.database.entity.Producto
+import com.mg.costeoapp.core.database.entity.ProductoTienda
 import com.mg.costeoapp.core.domain.model.FieldResolution
 import com.mg.costeoapp.core.domain.model.MergedProductData
 import com.mg.costeoapp.core.domain.model.ProductDataMerger
@@ -240,7 +241,15 @@ class ProductoRegistroViewModel @Inject constructor(
             val productoId = productoResult.getOrThrow()
             val productoCreado = producto.copy(id = productoId)
 
+            // Guardar precio en producto_tienda para futuras consultas
             if (tienda != null) {
+                productoRepository.insertPrecio(
+                    ProductoTienda(
+                        productoId = productoId,
+                        tiendaId = tienda.id,
+                        precio = precioCents
+                    )
+                )
                 compraManager.agregarProducto(productoCreado, 1.0, precioCents)
             }
 
