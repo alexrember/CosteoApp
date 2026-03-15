@@ -44,10 +44,13 @@ class ScannerViewModel @Inject constructor(
 
     init {
         _uiState.update {
-            it.copy(
-                tiendaNombre = compraManager.getTienda()?.nombre ?: "",
-                carritoCount = compraManager.itemCount
-            )
+            it.copy(tiendaNombre = compraManager.getTienda()?.nombre ?: "")
+        }
+        // Observar cambios en el carrito para actualizar el badge reactivamente
+        viewModelScope.launch {
+            compraManager.items.collect { items ->
+                _uiState.update { it.copy(carritoCount = items.size) }
+            }
         }
     }
 

@@ -100,65 +100,56 @@ class ProductoRegistroViewModel @Inject constructor(
 
             val best = walmartResults?.firstOrNull { it.isAvailable }
             val fuentes = mutableListOf<String>()
+            var nombre = ""
+            var precio = ""
+            var unidad: UnidadMedida? = null
+            var cantidad: String? = null
 
-            // Pre-llenar desde Walmart (nombre, precio)
+            // 1. Walmart: nombre + precio (fuente primaria)
             if (best != null) {
                 fuentes.add("Walmart SV")
-                _uiState.update {
-                    it.copy(
-                        nombre = best.productName,
-                        precio = best.price?.let { p -> CurrencyFormatter.fromCents(p).replace("$", "") } ?: ""
-                    )
+                nombre = best.productName
+                precio = best.price?.let { p -> CurrencyFormatter.fromCents(p).replace("$", "") } ?: ""
+
+                // Contenido del nombre de Walmart (ej: "946ml")
+                val contenidoNombre = parseContenidoFromName(best.productName)
+                if (contenidoNombre != null) {
+                    unidad = contenidoNombre.unidad
+                    cantidad = formatCantidad(contenidoNombre.cantidad)
+                } else {
+                    // Fallback a VTEX measurementUnit
+                    unidad = mapVtexUnit(best.measurementUnit)
+                    cantidad = best.unitMultiplier?.let { formatCantidad(it) } ?: "1"
                 }
             }
 
-            // Pre-llenar contenido: Open Food Facts quantity > nombre parser > VTEX unit
-            var contenidoLlenado = false
-
-            // 1. Open Food Facts quantity (ej: "946 ml", "1 L")
-            nutricionExterna?.cantidad?.let { qty ->
-                val contenido = parseContenidoFromName(qty)
-                if (contenido != null) {
+            // 2. Open Food Facts: contenido + nutricion (complementa)
+            if (nutricionExterna != null) {
+                // Nombre de OFF solo si Walmart no dio nombre
+                if (nombre.isBlank() && !nutricionExterna!!.nombreProducto.isNullOrBlank()) {
+                    nombre = nutricionExterna!!.nombreProducto!!
                     fuentes.add("Open Food Facts")
-                    _uiState.update {
-                        it.copy(
-                            unidadMedida = contenido.unidad,
-                            cantidadPorEmpaque = formatCantidad(contenido.cantidad)
-                        )
-                    }
-                    contenidoLlenado = true
                 }
-            }
 
-            // 2. Parsear del nombre del producto
-            if (!contenidoLlenado && best != null) {
-                val contenido = parseContenidoFromName(best.productName)
-                if (contenido != null) {
-                    _uiState.update {
-                        it.copy(
-                            unidadMedida = contenido.unidad,
-                            cantidadPorEmpaque = formatCantidad(contenido.cantidad)
-                        )
+                // Contenido de OFF quantity (mas confiable que parsear nombre)
+                nutricionExterna!!.cantidad?.let { qty ->
+                    val contenidoOff = parseContenidoFromName(qty)
+                    if (contenidoOff != null) {
+                        unidad = contenidoOff.unidad
+                        cantidad = formatCantidad(contenidoOff.cantidad)
+                        if ("Open Food Facts" !in fuentes) fuentes.add("Open Food Facts")
                     }
-                    contenidoLlenado = true
-                }
-            }
-
-            // 3. VTEX measurementUnit como fallback
-            if (!contenidoLlenado && best != null) {
-                _uiState.update {
-                    it.copy(
-                        unidadMedida = mapVtexUnit(best.measurementUnit),
-                        cantidadPorEmpaque = best.unitMultiplier?.let { formatCantidad(it) } ?: "1"
-                    )
                 }
             }
 
             _uiState.update {
                 it.copy(
                     buscandoEnApi = false,
-                    fuenteApi = if (fuentes.isNotEmpty()) fuentes.joinToString(" + ") else null,
-                    fuenteNutricion = if (nutricionExterna != null) "Open Food Facts" else null
+                    nombre = nombre,
+                    precio = precio,
+                    unidadMedida = unidad ?: UnidadMedida.LIBRA,
+                    cantidadPorEmpaque = cantidad ?: "",
+                    fuenteApi = if (fuentes.isNotEmpty()) fuentes.joinToString(" + ") else null
                 )
             }
         }
@@ -237,7 +228,7 @@ class ProductoRegistroViewModel @Inject constructor(
             val productoCreado = producto.copy(id = productoId)
 
             if (tienda != null) {
-                compraManager.agregarProducto(productoCreado, state.cantidadPorEmpaque.toDouble(), precioCents)
+                compraManager.agregarProducto(productoCreado, 1.0, precioCents)
             }
 
             _uiState.update { it.copy(isSaving = false) }

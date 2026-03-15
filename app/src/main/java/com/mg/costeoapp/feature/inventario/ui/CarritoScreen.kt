@@ -36,7 +36,6 @@ import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
 import com.mg.costeoapp.core.ui.components.EmptyStateMessage
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.CurrencyFormatter
-import com.mg.costeoapp.core.util.UnidadMedida
 
 @Composable
 fun CarritoScreen(
@@ -111,9 +110,8 @@ fun CarritoScreen(
                                     text = item.producto.nombre,
                                     style = MaterialTheme.typography.bodyLarge
                                 )
-                                val unidad = UnidadMedida.fromCodigo(item.producto.unidadMedida)
                                 Text(
-                                    text = "${item.cantidad} ${unidad?.nombreDisplay ?: ""} x ${CurrencyFormatter.fromCents(item.precioUnitario)}",
+                                    text = "${item.cantidad.toInt()} x ${CurrencyFormatter.fromCents(item.precioUnitario)}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
