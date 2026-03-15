@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -129,5 +130,22 @@ class ProductoFlowTest {
 		composeRule.waitForIdle()
 
 		composeRule.onNodeWithText("Producto Editado").assertIsDisplayed()
+	}
+
+	@Test
+	fun t5_soft_delete_producto() {
+		crearProducto("Para Borrar Prod")
+
+		composeRule.onNodeWithText("Para Borrar Prod").performClick()
+		composeRule.waitForIdle()
+
+		composeRule.onNodeWithContentDescription("Eliminar").performClick()
+		composeRule.waitForIdle()
+
+		// Confirmar en dialogo
+		composeRule.onAllNodes(hasText("Eliminar")).onLast().performClick()
+		composeRule.waitForIdle()
+
+		composeRule.onNodeWithText("Para Borrar Prod").assertDoesNotExist()
 	}
 }
