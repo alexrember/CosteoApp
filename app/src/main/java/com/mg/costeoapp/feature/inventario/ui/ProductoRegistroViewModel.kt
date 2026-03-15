@@ -3,9 +3,11 @@ package com.mg.costeoapp.feature.inventario.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mg.costeoapp.core.database.entity.Inventario
 import com.mg.costeoapp.core.database.entity.Producto
-import com.mg.costeoapp.core.database.entity.Tienda
+import com.mg.costeoapp.core.domain.model.FieldResolution
+import com.mg.costeoapp.core.domain.model.MergedProductData
+import com.mg.costeoapp.core.domain.model.ProductDataMerger
+import com.mg.costeoapp.core.domain.model.ProductDataSource
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.CurrencyFormatter
 import com.mg.costeoapp.core.util.UnidadMedida
@@ -38,8 +40,7 @@ data class ProductoRegistroUiState(
     val precio: String = "",
     val tiendaNombre: String = "",
     val buscandoEnApi: Boolean = false,
-    val fuenteApi: String? = null,
-    val fuenteNutricion: String? = null,
+    val mergedData: MergedProductData? = null,
     val fieldErrors: Map<String, String> = emptyMap(),
     val isSaving: Boolean = false
 )
@@ -82,7 +83,6 @@ class ProductoRegistroViewModel @Inject constructor(
         _uiState.update { it.copy(buscandoEnApi = true) }
 
         viewModelScope.launch {
-            // Llamadas PARALELAS: Walmart (precios) + Open Food Facts (nutricion + contenido)
             val deferredWalmart = async {
                 withTimeoutOrNull(8000L) {
                     walmartRepository.searchByBarcode(barcode).getOrNull()
@@ -98,60 +98,69 @@ class ProductoRegistroViewModel @Inject constructor(
             val walmartResults = deferredWalmart.await()
             nutricionExterna = deferredNutricion.await()
 
+            // Construir fuentes de datos
+            val dataSources = mutableListOf<ProductDataSource>()
+
             val best = walmartResults?.firstOrNull { it.isAvailable }
-            val fuentes = mutableListOf<String>()
-            var nombre = ""
-            var precio = ""
-            var unidad: UnidadMedida? = null
-            var cantidad: String? = null
-
-            // 1. Walmart: nombre + precio (fuente primaria)
             if (best != null) {
-                fuentes.add("Walmart SV")
-                nombre = best.productName
-                precio = best.price?.let { p -> CurrencyFormatter.fromCents(p).replace("$", "") } ?: ""
-
-                // Contenido del nombre de Walmart (ej: "946ml")
-                val contenidoNombre = parseContenidoFromName(best.productName)
-                if (contenidoNombre != null) {
-                    unidad = contenidoNombre.unidad
-                    cantidad = formatCantidad(contenidoNombre.cantidad)
-                } else {
-                    // Fallback a VTEX measurementUnit
-                    unidad = mapVtexUnit(best.measurementUnit)
-                    cantidad = best.unitMultiplier?.let { formatCantidad(it) } ?: "1"
-                }
+                val contenido = parseContenidoFromName(best.productName)
+                dataSources.add(
+                    ProductDataSource(
+                        sourceName = "Walmart SV",
+                        nombre = best.productName,
+                        precio = best.price,
+                        unidadMedida = contenido?.unidad ?: mapVtexUnit(best.measurementUnit),
+                        cantidadPorEmpaque = contenido?.cantidad ?: best.unitMultiplier ?: 1.0
+                    )
+                )
             }
 
-            // 2. Open Food Facts: contenido + nutricion (complementa)
             if (nutricionExterna != null) {
-                // Nombre de OFF solo si Walmart no dio nombre
-                if (nombre.isBlank() && !nutricionExterna!!.nombreProducto.isNullOrBlank()) {
-                    nombre = nutricionExterna!!.nombreProducto!!
-                    fuentes.add("Open Food Facts")
-                }
-
-                // Contenido de OFF quantity (mas confiable que parsear nombre)
-                nutricionExterna!!.cantidad?.let { qty ->
-                    val contenidoOff = parseContenidoFromName(qty)
-                    if (contenidoOff != null) {
-                        unidad = contenidoOff.unidad
-                        cantidad = formatCantidad(contenidoOff.cantidad)
-                        if ("Open Food Facts" !in fuentes) fuentes.add("Open Food Facts")
-                    }
+                val offContenido = nutricionExterna!!.cantidad?.let { parseContenidoFromName(it) }
+                val hasData = !nutricionExterna!!.nombreProducto.isNullOrBlank() || offContenido != null
+                if (hasData) {
+                    dataSources.add(
+                        ProductDataSource(
+                            sourceName = "Open Food Facts",
+                            nombre = nutricionExterna!!.nombreProducto,
+                            unidadMedida = offContenido?.unidad,
+                            cantidadPorEmpaque = offContenido?.cantidad
+                        )
+                    )
                 }
             }
+
+            val merged = ProductDataMerger.merge(dataSources)
 
             _uiState.update {
                 it.copy(
                     buscandoEnApi = false,
-                    nombre = nombre,
-                    precio = precio,
-                    unidadMedida = unidad ?: UnidadMedida.LIBRA,
-                    cantidadPorEmpaque = cantidad ?: "",
-                    fuenteApi = if (fuentes.isNotEmpty()) fuentes.joinToString(" + ") else null
+                    mergedData = merged,
+                    nombre = autoFill(merged.nombre, it.nombre),
+                    precio = when (val p = merged.precio) {
+                        is FieldResolution.Resolved -> CurrencyFormatter.fromCents(p.value).replace("$", "")
+                        else -> it.precio
+                    },
+                    unidadMedida = when (val u = merged.unidadMedida) {
+                        is FieldResolution.Resolved -> u.value
+                        is FieldResolution.Conflict -> u.options[0].value
+                        else -> it.unidadMedida
+                    },
+                    cantidadPorEmpaque = when (val c = merged.cantidadPorEmpaque) {
+                        is FieldResolution.Resolved -> formatCantidad(c.value)
+                        is FieldResolution.Conflict -> formatCantidad(c.options[0].value)
+                        else -> it.cantidadPorEmpaque
+                    }
                 )
             }
+        }
+    }
+
+    private fun <T> autoFill(resolution: FieldResolution<T>, current: String): String {
+        return when (resolution) {
+            is FieldResolution.Resolved -> resolution.value.toString()
+            is FieldResolution.Conflict -> resolution.options[0].value.toString()
+            is FieldResolution.Empty -> current
         }
     }
 
@@ -168,6 +177,10 @@ class ProductoRegistroViewModel @Inject constructor(
             "oz" -> UnidadMedida.ONZA
             else -> UnidadMedida.UNIDAD
         }
+    }
+
+    fun onNombreSelected(value: String) {
+        _uiState.update { it.copy(nombre = value, fieldErrors = it.fieldErrors - "nombre") }
     }
 
     fun onNombreChanged(value: String) {

@@ -24,9 +24,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mg.costeoapp.core.domain.model.FieldResolution
 import com.mg.costeoapp.core.ui.components.CosteoDropdown
 import com.mg.costeoapp.core.ui.components.CosteoTextField
 import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
+import com.mg.costeoapp.core.ui.components.FieldConflictChooser
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.UnidadMedida
 
@@ -70,7 +72,6 @@ fun ProductoRegistroScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(4.dp))
             }
 
             if (uiState.tiendaNombre.isNotBlank()) {
@@ -79,12 +80,21 @@ fun ProductoRegistroScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(8.dp))
             }
+
+            if (uiState.mergedData?.sources?.isNotEmpty() == true) {
+                Text(
+                    text = "Fuentes: ${uiState.mergedData!!.sources.joinToString(", ")}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             if (uiState.buscandoEnApi) {
                 Text(
-                    text = "Buscando en Walmart SV...",
+                    text = "Buscando producto...",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -92,13 +102,17 @@ fun ProductoRegistroScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            uiState.fuenteApi?.let {
-                Text(
-                    text = "Datos de: $it",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary
+            // Nombre: si hay conflicto, mostrar opciones
+            val nombreResolution = uiState.mergedData?.nombre
+            if (nombreResolution is FieldResolution.Conflict) {
+                FieldConflictChooser(
+                    label = "Nombre — elige una opcion:",
+                    options = nombreResolution.options,
+                    selectedValue = uiState.nombre,
+                    displayText = { it },
+                    onOptionSelected = viewModel::onNombreSelected
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
             }
 
             CosteoTextField(
