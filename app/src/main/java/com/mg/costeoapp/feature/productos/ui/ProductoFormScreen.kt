@@ -23,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mg.costeoapp.core.ui.components.CosteoDropdown
 import com.mg.costeoapp.core.ui.components.CosteoTextField
 import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
+import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.UnidadMedida
 
 @Composable
@@ -33,17 +34,12 @@ fun ProductoFormScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.saveSuccess) {
-        if (uiState.saveSuccess) {
-            viewModel.resetSaveSuccess()
-            onNavigateBack()
-        }
-    }
-
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearError()
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is UiEvent.SaveSuccess -> onNavigateBack()
+                is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+            }
         }
     }
 

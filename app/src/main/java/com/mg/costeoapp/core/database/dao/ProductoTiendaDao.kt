@@ -8,6 +8,18 @@ import androidx.room.Update
 import com.mg.costeoapp.core.database.entity.ProductoTienda
 import kotlinx.coroutines.flow.Flow
 
+data class PrecioConTiendaTuple(
+    val id: Long,
+    val productoId: Long,
+    val tiendaId: Long,
+    val precio: Long,
+    val fechaRegistro: Long,
+    val activo: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val tiendaNombre: String
+)
+
 @Dao
 interface ProductoTiendaDao {
 
@@ -35,12 +47,16 @@ interface ProductoTiendaDao {
     suspend fun getPrecioMasReciente(productoId: Long): ProductoTienda?
 
     @Query("""
-        SELECT pt.* FROM producto_tienda pt
+        SELECT pt.id, pt.producto_id AS productoId, pt.tienda_id AS tiendaId,
+               pt.precio, pt.fecha_registro AS fechaRegistro, pt.activo,
+               pt.created_at AS createdAt, pt.updated_at AS updatedAt,
+               t.nombre AS tiendaNombre
+        FROM producto_tienda pt
         INNER JOIN tiendas t ON pt.tienda_id = t.id
         WHERE pt.producto_id = :productoId AND pt.activo = 1 AND t.activo = 1
         ORDER BY pt.fecha_registro DESC
     """)
-    fun getPreciosActivosConTiendaActiva(productoId: Long): Flow<List<ProductoTienda>>
+    fun getPreciosConTiendaNombre(productoId: Long): Flow<List<PrecioConTiendaTuple>>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(productoTienda: ProductoTienda): Long
@@ -50,8 +66,8 @@ interface ProductoTiendaDao {
 
     @Query("""
         UPDATE producto_tienda
-        SET activo = 0
+        SET activo = 0, updated_at = :timestamp
         WHERE producto_id = :productoId AND tienda_id = :tiendaId
     """)
-    suspend fun desactivarPrecios(productoId: Long, tiendaId: Long)
+    suspend fun desactivarPrecios(productoId: Long, tiendaId: Long, timestamp: Long = System.currentTimeMillis())
 }

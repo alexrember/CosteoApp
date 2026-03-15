@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.mg.costeoapp.feature.tiendas.data.TiendaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,9 +27,10 @@ class TiendaListViewModel @Inject constructor(
         loadTiendas()
     }
 
-    private fun loadTiendas() {
+    private fun loadTiendas(debounce: Boolean = false) {
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
+            if (debounce) delay(300)
             val flow = if (_uiState.value.searchQuery.isBlank()) {
                 repository.getAll()
             } else {
@@ -42,7 +44,7 @@ class TiendaListViewModel @Inject constructor(
 
     fun onSearchQueryChanged(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
-        loadTiendas()
+        loadTiendas(debounce = true)
     }
 
     fun softDelete(id: Long) {

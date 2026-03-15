@@ -4,13 +4,16 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mg.costeoapp.core.database.entity.Producto
+import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.UnidadMedida
 import com.mg.costeoapp.core.util.ValidationUtils
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,6 +26,9 @@ class ProductoFormViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(ProductoFormUiState())
     val uiState: StateFlow<ProductoFormUiState> = _uiState.asStateFlow()
+
+    private val _events = Channel<UiEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
 
     init {
         val productoId = savedStateHandle.get<Long>("productoId")
@@ -40,7 +46,7 @@ class ProductoFormViewModel @Inject constructor(
                         producto = producto,
                         nombre = producto.nombre,
                         codigoBarras = producto.codigoBarras ?: "",
-                        unidadMedida = UnidadMedida.fromCodigo(producto.unidadMedida) ?: UnidadMedida.UNIDAD,
+                        unidadMedida = UnidadMedida.fromCodigo(producto.unidadMedida) ?: UnidadMedida.LIBRA,
                         cantidadPorEmpaque = producto.cantidadPorEmpaque.toString(),
                         esServicio = producto.esServicio,
                         notas = producto.notas ?: "",
@@ -63,10 +69,6 @@ class ProductoFormViewModel @Inject constructor(
         _uiState.update { it.copy(nombre = value, fieldErrors = it.fieldErrors - "nombre") }
     }
 
-    fun onCodigoBarrasChanged(value: String) {
-        _uiState.update { it.copy(codigoBarras = value) }
-    }
-
     fun onUnidadMedidaChanged(value: UnidadMedida) {
         _uiState.update { it.copy(unidadMedida = value) }
     }
@@ -75,31 +77,11 @@ class ProductoFormViewModel @Inject constructor(
         _uiState.update { it.copy(cantidadPorEmpaque = value, fieldErrors = it.fieldErrors - "cantidadPorEmpaque") }
     }
 
-    fun onEsServicioChanged(value: Boolean) {
-        _uiState.update { it.copy(esServicio = value) }
-    }
-
-    fun onNotasChanged(value: String) {
-        _uiState.update { it.copy(notas = value) }
-    }
-
-    fun onFactorMermaChanged(value: String) {
-        _uiState.update { it.copy(factorMerma = value, fieldErrors = it.fieldErrors - "factorMerma") }
-    }
-
-    fun onNutricionPorcionGChanged(value: String) { _uiState.update { it.copy(nutricionPorcionG = value) } }
-    fun onNutricionCaloriasChanged(value: String) { _uiState.update { it.copy(nutricionCalorias = value) } }
-    fun onNutricionProteinasGChanged(value: String) { _uiState.update { it.copy(nutricionProteinasG = value) } }
-    fun onNutricionCarbohidratosGChanged(value: String) { _uiState.update { it.copy(nutricionCarbohidratosG = value) } }
-    fun onNutricionGrasasGChanged(value: String) { _uiState.update { it.copy(nutricionGrasasG = value) } }
-    fun onNutricionFibraGChanged(value: String) { _uiState.update { it.copy(nutricionFibraG = value) } }
-    fun onNutricionSodioMgChanged(value: String) { _uiState.update { it.copy(nutricionSodioMg = value) } }
-    fun onNutricionFuenteChanged(value: String) { _uiState.update { it.copy(nutricionFuente = value) } }
-
     fun save() {
         if (!validate()) return
+        if (_uiState.value.isSaving) return
 
-        _uiState.update { it.copy(isSaving = true, error = null) }
+        _uiState.update { it.copy(isSaving = true) }
 
         viewModelScope.launch {
             val state = _uiState.value
@@ -131,17 +113,16 @@ class ProductoFormViewModel @Inject constructor(
 
             result.fold(
                 onSuccess = {
-                    _uiState.update { it.copy(isSaving = false, saveSuccess = true) }
+                    _uiState.update { it.copy(isSaving = false) }
+                    _events.send(UiEvent.SaveSuccess)
                 },
                 onFailure = { e ->
-                    _uiState.update { it.copy(isSaving = false, error = e.message) }
+                    _uiState.update { it.copy(isSaving = false) }
+                    _events.send(UiEvent.ShowError(e.message ?: "Error al guardar"))
                 }
             )
         }
     }
-
-    fun clearError() { _uiState.update { it.copy(error = null) } }
-    fun resetSaveSuccess() { _uiState.update { it.copy(saveSuccess = false) } }
 
     private fun validate(): Boolean {
         val errors = mutableMapOf<String, String>()
@@ -152,26 +133,6 @@ class ProductoFormViewModel @Inject constructor(
         }
         if (!ValidationUtils.isPositiveNumber(state.cantidadPorEmpaque)) {
             errors["cantidadPorEmpaque"] = "Debe ser un numero mayor a 0"
-        }
-        val merma = state.factorMerma.toIntOrNull()
-        if (merma != null && !ValidationUtils.isValidPercentage(merma)) {
-            errors["factorMerma"] = "Debe ser entre 0 y 100"
-        }
-
-        // Validar campos nutricionales opcionales
-        val nutriFields = mapOf(
-            "nutricionPorcionG" to state.nutricionPorcionG,
-            "nutricionCalorias" to state.nutricionCalorias,
-            "nutricionProteinasG" to state.nutricionProteinasG,
-            "nutricionCarbohidratosG" to state.nutricionCarbohidratosG,
-            "nutricionGrasasG" to state.nutricionGrasasG,
-            "nutricionFibraG" to state.nutricionFibraG,
-            "nutricionSodioMg" to state.nutricionSodioMg
-        )
-        nutriFields.forEach { (key, value) ->
-            if (value.isNotBlank() && !ValidationUtils.isNonNegativeNumber(value)) {
-                errors[key] = "Debe ser un numero >= 0"
-            }
         }
 
         _uiState.update { it.copy(fieldErrors = errors) }

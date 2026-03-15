@@ -13,7 +13,8 @@ object DatabaseSeeder {
         val tiendas = listOf("Super Selectos", "PriceSmart", "Walmart")
         tiendas.forEach { nombre ->
             db.execSQL(
-                "INSERT INTO tiendas (nombre, activo, created_at, updated_at) VALUES ('$nombre', 1, $now, $now)"
+                "INSERT INTO tiendas (nombre, activo, created_at, updated_at) VALUES (?, 1, ?, ?)",
+                arrayOf<Any>(nombre, now, now)
             )
         }
     }

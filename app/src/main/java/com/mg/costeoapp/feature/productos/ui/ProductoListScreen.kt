@@ -61,6 +61,9 @@ fun ProductoListScreen(
 
             when {
                 uiState.isLoading -> LoadingIndicator()
+                uiState.productos.isEmpty() && uiState.searchQuery.isNotBlank() -> EmptyStateMessage(
+                    message = "No se encontraron resultados para \"${uiState.searchQuery}\""
+                )
                 uiState.productos.isEmpty() -> EmptyStateMessage(
                     message = "No hay productos registrados.\nAgrega tu primer producto.",
                     actionLabel = "Agregar producto",

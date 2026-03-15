@@ -16,7 +16,7 @@ data class ProductoFormUiState(
     val producto: Producto? = null,
     val nombre: String = "",
     val codigoBarras: String = "",
-    val unidadMedida: UnidadMedida = UnidadMedida.UNIDAD,
+    val unidadMedida: UnidadMedida = UnidadMedida.LIBRA,
     val cantidadPorEmpaque: String = "",
     val esServicio: Boolean = false,
     val notas: String = "",
@@ -30,9 +30,7 @@ data class ProductoFormUiState(
     val nutricionSodioMg: String = "",
     val nutricionFuente: String = "",
     val fieldErrors: Map<String, String> = emptyMap(),
-    val isSaving: Boolean = false,
-    val saveSuccess: Boolean = false,
-    val error: String? = null
+    val isSaving: Boolean = false
 ) {
     val isEditMode: Boolean get() = producto != null
 }
@@ -52,7 +50,5 @@ data class ProductoPrecioFormUiState(
     val tiendaSeleccionadaId: Long? = null,
     val precio: String = "",
     val fieldErrors: Map<String, String> = emptyMap(),
-    val isSaving: Boolean = false,
-    val saveSuccess: Boolean = false,
-    val error: String? = null
+    val isSaving: Boolean = false
 )

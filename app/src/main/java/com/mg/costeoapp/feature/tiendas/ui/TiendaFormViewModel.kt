@@ -4,12 +4,15 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mg.costeoapp.core.database.entity.Tienda
+import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.ValidationUtils
 import com.mg.costeoapp.feature.tiendas.data.TiendaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,6 +26,9 @@ class TiendaFormViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TiendaFormUiState())
     val uiState: StateFlow<TiendaFormUiState> = _uiState.asStateFlow()
 
+    private val _events = Channel<UiEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
+
     init {
         val tiendaId = savedStateHandle.get<Long>("tiendaId")
         if (tiendaId != null && tiendaId != 0L) {
@@ -35,10 +41,7 @@ class TiendaFormViewModel @Inject constructor(
             val tienda = repository.getById(id)
             if (tienda != null) {
                 _uiState.update {
-                    it.copy(
-                        tienda = tienda,
-                        nombre = tienda.nombre
-                    )
+                    it.copy(tienda = tienda, nombre = tienda.nombre)
                 }
             }
         }
@@ -50,8 +53,9 @@ class TiendaFormViewModel @Inject constructor(
 
     fun save() {
         if (!validate()) return
+        if (_uiState.value.isSaving) return
 
-        _uiState.update { it.copy(isSaving = true, error = null) }
+        _uiState.update { it.copy(isSaving = true) }
 
         viewModelScope.launch {
             val state = _uiState.value
@@ -69,21 +73,15 @@ class TiendaFormViewModel @Inject constructor(
 
             result.fold(
                 onSuccess = {
-                    _uiState.update { it.copy(isSaving = false, saveSuccess = true) }
+                    _uiState.update { it.copy(isSaving = false) }
+                    _events.send(UiEvent.SaveSuccess)
                 },
                 onFailure = { e ->
-                    _uiState.update { it.copy(isSaving = false, error = e.message) }
+                    _uiState.update { it.copy(isSaving = false) }
+                    _events.send(UiEvent.ShowError(e.message ?: "Error al guardar"))
                 }
             )
         }
-    }
-
-    fun clearError() {
-        _uiState.update { it.copy(error = null) }
-    }
-
-    fun resetSaveSuccess() {
-        _uiState.update { it.copy(saveSuccess = false) }
     }
 
     private fun validate(): Boolean {

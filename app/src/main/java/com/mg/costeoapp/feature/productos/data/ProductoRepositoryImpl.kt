@@ -2,7 +2,6 @@ package com.mg.costeoapp.feature.productos.data
 
 import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
-import com.mg.costeoapp.core.database.dao.TiendaDao
 import com.mg.costeoapp.core.database.entity.Producto
 import com.mg.costeoapp.core.database.entity.ProductoTienda
 import com.mg.costeoapp.core.database.relation.PrecioConTienda
@@ -15,8 +14,7 @@ import javax.inject.Singleton
 @Singleton
 class ProductoRepositoryImpl @Inject constructor(
     private val productoDao: ProductoDao,
-    private val productoTiendaDao: ProductoTiendaDao,
-    private val tiendaDao: TiendaDao
+    private val productoTiendaDao: ProductoTiendaDao
 ) : ProductoRepository {
 
     override fun getAll(): Flow<List<Producto>> = productoDao.getAll()
@@ -32,12 +30,20 @@ class ProductoRepositoryImpl @Inject constructor(
         productoDao.getProductoConPrecios(id)
 
     override fun getPreciosConTienda(productoId: Long): Flow<List<PrecioConTienda>> =
-        productoTiendaDao.getPreciosActivosConTiendaActiva(productoId).map { precios ->
-            precios.map { pt ->
-                val tienda = tiendaDao.getById(pt.tiendaId)
+        productoTiendaDao.getPreciosConTiendaNombre(productoId).map { tuples ->
+            tuples.map { t ->
                 PrecioConTienda(
-                    productoTienda = pt,
-                    tiendaNombre = tienda?.nombre ?: "Tienda eliminada"
+                    productoTienda = ProductoTienda(
+                        id = t.id,
+                        productoId = t.productoId,
+                        tiendaId = t.tiendaId,
+                        precio = t.precio,
+                        fechaRegistro = t.fechaRegistro,
+                        activo = t.activo,
+                        createdAt = t.createdAt,
+                        updatedAt = t.updatedAt
+                    ),
+                    tiendaNombre = t.tiendaNombre
                 )
             }
         }

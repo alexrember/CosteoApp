@@ -78,6 +78,9 @@ fun TiendaListScreen(
 
             when {
                 uiState.isLoading -> LoadingIndicator()
+                uiState.tiendas.isEmpty() && uiState.searchQuery.isNotBlank() -> EmptyStateMessage(
+                    message = "No se encontraron resultados para \"${uiState.searchQuery}\""
+                )
                 uiState.tiendas.isEmpty() -> EmptyStateMessage(
                     message = "Todavia no tienes tiendas registradas.\nAgrega donde compras para empezar.",
                     actionLabel = "Agregar tienda",

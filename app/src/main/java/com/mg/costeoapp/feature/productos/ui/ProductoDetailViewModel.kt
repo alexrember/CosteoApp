@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +23,7 @@ class ProductoDetailViewModel @Inject constructor(
     val uiState: StateFlow<ProductoDetailUiState> = _uiState.asStateFlow()
 
     private val productoId: Long = savedStateHandle.get<Long>("productoId") ?: 0L
+    private var preciosJob: Job? = null
 
     init {
         if (productoId != 0L) {
@@ -30,13 +32,9 @@ class ProductoDetailViewModel @Inject constructor(
     }
 
     fun refresh() {
-        loadProducto(productoId)
-    }
-
-    private fun loadProducto(id: Long) {
         viewModelScope.launch {
-            val producto = repository.getById(id)
-            val precioReciente = repository.getPrecioMasReciente(id)
+            val producto = repository.getById(productoId)
+            val precioReciente = repository.getPrecioMasReciente(productoId)
             _uiState.update {
                 it.copy(
                     producto = producto,
@@ -45,8 +43,9 @@ class ProductoDetailViewModel @Inject constructor(
                 )
             }
         }
-        viewModelScope.launch {
-            repository.getPreciosConTienda(id).collect { precios ->
+        preciosJob?.cancel()
+        preciosJob = viewModelScope.launch {
+            repository.getPreciosConTienda(productoId).collect { precios ->
                 _uiState.update { it.copy(preciosConTienda = precios) }
             }
         }

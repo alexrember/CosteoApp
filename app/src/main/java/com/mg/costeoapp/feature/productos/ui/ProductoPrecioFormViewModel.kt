@@ -4,14 +4,17 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mg.costeoapp.core.database.entity.ProductoTienda
+import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.CurrencyFormatter
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
 import com.mg.costeoapp.feature.tiendas.data.TiendaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,6 +28,9 @@ class ProductoPrecioFormViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(ProductoPrecioFormUiState())
     val uiState: StateFlow<ProductoPrecioFormUiState> = _uiState.asStateFlow()
+
+    private val _events = Channel<UiEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
 
     init {
         val productoId = savedStateHandle.get<Long>("productoId")
@@ -57,15 +63,17 @@ class ProductoPrecioFormViewModel @Inject constructor(
 
     fun save() {
         if (!validate()) return
+        if (_uiState.value.isSaving) return
 
-        _uiState.update { it.copy(isSaving = true, error = null) }
+        _uiState.update { it.copy(isSaving = true) }
 
         viewModelScope.launch {
             val state = _uiState.value
             val precioCents = CurrencyFormatter.toCents(state.precio)
 
             if (precioCents == null) {
-                _uiState.update { it.copy(isSaving = false, error = "Precio invalido") }
+                _uiState.update { it.copy(isSaving = false) }
+                _events.send(UiEvent.ShowError("Precio invalido"))
                 return@launch
             }
 
@@ -77,17 +85,16 @@ class ProductoPrecioFormViewModel @Inject constructor(
 
             productoRepository.insertPrecio(productoTienda).fold(
                 onSuccess = {
-                    _uiState.update { it.copy(isSaving = false, saveSuccess = true) }
+                    _uiState.update { it.copy(isSaving = false) }
+                    _events.send(UiEvent.SaveSuccess)
                 },
                 onFailure = { e ->
-                    _uiState.update { it.copy(isSaving = false, error = e.message) }
+                    _uiState.update { it.copy(isSaving = false) }
+                    _events.send(UiEvent.ShowError(e.message ?: "Error al guardar"))
                 }
             )
         }
     }
-
-    fun clearError() { _uiState.update { it.copy(error = null) } }
-    fun resetSaveSuccess() { _uiState.update { it.copy(saveSuccess = false) } }
 
     private fun validate(): Boolean {
         val errors = mutableMapOf<String, String>()
@@ -97,7 +104,7 @@ class ProductoPrecioFormViewModel @Inject constructor(
             errors["tienda"] = "Selecciona una tienda"
         }
         val cents = CurrencyFormatter.toCents(state.precio)
-        if (cents == null || cents < 0) {
+        if (cents == null || cents <= 0) {
             errors["precio"] = "Ingresa un precio valido"
         }
 

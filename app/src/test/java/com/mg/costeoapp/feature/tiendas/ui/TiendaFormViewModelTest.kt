@@ -2,11 +2,13 @@ package com.mg.costeoapp.feature.tiendas.ui
 
 import androidx.lifecycle.SavedStateHandle
 import com.mg.costeoapp.core.database.entity.Tienda
+import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.feature.tiendas.data.TiendaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -73,26 +75,35 @@ class TiendaFormViewModelTest {
     }
 
     @Test
-    fun `save exitoso en modo crear`() = runTest(testDispatcher) {
+    fun `save exitoso emite SaveSuccess`() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         viewModel.onNombreChanged("Nueva Tienda")
+
+        val events = mutableListOf<UiEvent>()
+        val job = launch { viewModel.events.collect { events.add(it) } }
+
         viewModel.save()
 
-        assertTrue(viewModel.uiState.value.saveSuccess)
+        assertTrue(events.any { it is UiEvent.SaveSuccess })
+        job.cancel()
     }
 
     @Test
-    fun `save muestra error de nombre duplicado`() = runTest(testDispatcher) {
+    fun `save duplicado emite ShowError`() = runTest(testDispatcher) {
         val repo = FakeTiendaRepository(
             tiendas = mutableListOf(Tienda(id = 1, nombre = "Duplicada"))
         )
         val viewModel = createViewModel(repository = repo)
         viewModel.onNombreChanged("Duplicada")
+
+        val events = mutableListOf<UiEvent>()
+        val job = launch { viewModel.events.collect { events.add(it) } }
+
         viewModel.save()
 
-        val state = viewModel.uiState.value
-        assertFalse(state.saveSuccess)
-        assertEquals("Ya existe una tienda con ese nombre", state.error)
+        val errorEvent = events.filterIsInstance<UiEvent.ShowError>().firstOrNull()
+        assertEquals("Ya existe una tienda con ese nombre", errorEvent?.message)
+        job.cancel()
     }
 
     @Test

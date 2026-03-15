@@ -13,9 +13,7 @@ data class TiendaFormUiState(
     val tienda: Tienda? = null,
     val nombre: String = "",
     val fieldErrors: Map<String, String> = emptyMap(),
-    val isSaving: Boolean = false,
-    val saveSuccess: Boolean = false,
-    val error: String? = null
+    val isSaving: Boolean = false
 ) {
     val isEditMode: Boolean get() = tienda != null
 }
