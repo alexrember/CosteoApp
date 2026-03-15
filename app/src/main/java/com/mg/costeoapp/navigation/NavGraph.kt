@@ -61,7 +61,8 @@ private fun DashboardPlaceholder() {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "El proyecto base esta configurado correctamente.\nLas funcionalidades se agregaran en las siguientes fases.",
+            text = "El proyecto base esta configurado correctamente.\n" +
+                "Las funcionalidades se agregaran en las siguientes fases.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
