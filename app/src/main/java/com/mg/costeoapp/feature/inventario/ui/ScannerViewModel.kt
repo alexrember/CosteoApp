@@ -19,8 +19,12 @@ class ScannerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ScannerUiState())
     val uiState: StateFlow<ScannerUiState> = _uiState.asStateFlow()
 
+    private var lastNavigatedBarcode: String? = null
+
     fun onBarcodeDetected(barcode: String) {
-        if (barcode == _uiState.value.scannedBarcode && _uiState.value.isProcessing) return
+        // Ignorar si ya estamos procesando o si acabamos de navegar con este codigo
+        if (_uiState.value.isProcessing) return
+        if (barcode == lastNavigatedBarcode) return
 
         viewModelScope.launch {
             _uiState.update {
@@ -34,6 +38,7 @@ class ScannerViewModel @Inject constructor(
             val productoLocal = productoDao.getByCodigoBarras(barcode)
 
             if (productoLocal != null) {
+                lastNavigatedBarcode = barcode
                 _uiState.update {
                     it.copy(
                         isProcessing = false,
@@ -41,6 +46,7 @@ class ScannerViewModel @Inject constructor(
                     )
                 }
             } else {
+                lastNavigatedBarcode = barcode
                 _uiState.update {
                     it.copy(
                         isProcessing = false,
@@ -60,6 +66,12 @@ class ScannerViewModel @Inject constructor(
                 error = null
             )
         }
+        // No limpiamos lastNavigatedBarcode para evitar re-navegacion al volver
+    }
+
+    fun readyForNewScan() {
+        lastNavigatedBarcode = null
+        resetScanner()
     }
 
     fun toggleCamera(active: Boolean) {

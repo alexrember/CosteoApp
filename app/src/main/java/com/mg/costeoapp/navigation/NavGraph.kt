@@ -196,7 +196,10 @@ fun CosteoNavGraph(
 
             composable<ProductoRegistroRoute> {
                 ProductoRegistroScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onRegistroExitoso = {
+                        navController.popBackStack(InventarioListRoute, inclusive = false)
+                    }
                 )
             }
 

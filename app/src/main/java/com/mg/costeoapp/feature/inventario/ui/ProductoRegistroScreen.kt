@@ -32,6 +32,7 @@ import com.mg.costeoapp.core.util.UnidadMedida
 @Composable
 fun ProductoRegistroScreen(
     onNavigateBack: () -> Unit,
+    onRegistroExitoso: () -> Unit = onNavigateBack,
     viewModel: ProductoRegistroViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -40,7 +41,7 @@ fun ProductoRegistroScreen(
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is UiEvent.SaveSuccess -> onNavigateBack()
+                is UiEvent.SaveSuccess -> onRegistroExitoso()
                 is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
             }
         }
