@@ -1,12 +1,16 @@
 package com.mg.costeoapp.feature.inventario.ui
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.util.Size
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -24,10 +28,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -39,7 +46,6 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
-import com.mg.costeoapp.core.ui.components.LoadingIndicator
 import java.util.concurrent.Executors
 
 @Composable
@@ -49,7 +55,26 @@ fun ScannerScreen(
     onProductoEncontrado: (Long) -> Unit,
     viewModel: ScannerViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    var cameraPermissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        cameraPermissionGranted = granted
+    }
+
+    LaunchedEffect(Unit) {
+        if (!cameraPermissionGranted) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
 
     LaunchedEffect(uiState.lookupState) {
         when (val state = uiState.lookupState) {
@@ -78,33 +103,50 @@ fun ScannerScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            CameraPreview(
-                onBarcodeDetected = viewModel::onBarcodeDetected,
-                modifier = Modifier.fillMaxSize()
-            )
+            if (cameraPermissionGranted) {
+                CameraPreview(
+                    onBarcodeDetected = viewModel::onBarcodeDetected,
+                    modifier = Modifier.fillMaxSize()
+                )
 
-            if (uiState.isProcessing) {
-                Card(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                if (uiState.isProcessing) {
+                    Card(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(32.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
+                        )
                     ) {
-                        Text("Buscando producto...")
-                        Spacer(modifier = Modifier.height(8.dp))
-                        LoadingIndicator()
+                        Text(
+                            text = "Buscando producto...",
+                            modifier = Modifier.padding(24.dp),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            } else {
+                // Sin permiso de camara
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Se necesita permiso de camara para escanear codigos de barras",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                        Text("Dar permiso")
                     }
                 }
             }
 
-            // Boton para registro manual (sin escaneo)
+            // Boton registro manual siempre visible abajo
             Button(
                 onClick = { onNavigateToRegistro(null) },
                 modifier = Modifier
@@ -184,9 +226,7 @@ private fun CameraPreview(
                     preview,
                     imageAnalysis
                 )
-            } catch (_: Exception) {
-                // Camera not available
-            }
+            } catch (_: Exception) {}
         }, ContextCompat.getMainExecutor(context))
 
         onDispose {
