@@ -28,8 +28,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -61,12 +64,15 @@ fun CarritoScreen(
     }
 
     var itemToRemoveIndex by remember { mutableIntStateOf(-1) }
+    var showExitDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             CosteoTopAppBar(
                 title = "Carrito de compras",
-                onNavigateBack = onNavigateBack
+                onNavigateBack = {
+                    if (!uiState.isEmpty) showExitDialog = true else onNavigateBack()
+                }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -196,6 +202,24 @@ fun CarritoScreen(
                 itemToRemoveIndex = -1
             },
             onDismiss = { itemToRemoveIndex = -1 }
+        )
+    }
+
+    // Dialogo de confirmacion para salir del carrito
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("Salir del carrito") },
+            text = { Text("Tu carrito se guardara. Puedes continuar tu compra despues.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExitDialog = false
+                    onNavigateBack()
+                }) { Text("Salir") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) { Text("Quedarme") }
+            }
         )
     }
 }

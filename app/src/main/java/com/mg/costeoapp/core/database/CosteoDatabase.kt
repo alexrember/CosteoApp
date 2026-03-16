@@ -4,10 +4,12 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.mg.costeoapp.core.database.dao.CarritoTemporalDao
 import com.mg.costeoapp.core.database.dao.InventarioDao
 import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
 import com.mg.costeoapp.core.database.dao.TiendaDao
+import com.mg.costeoapp.core.database.entity.CarritoTemporal
 import com.mg.costeoapp.core.database.entity.Inventario
 import com.mg.costeoapp.core.database.entity.Producto
 import com.mg.costeoapp.core.database.entity.ProductoTienda
@@ -18,9 +20,10 @@ import com.mg.costeoapp.core.database.entity.Tienda
         Tienda::class,
         Producto::class,
         ProductoTienda::class,
-        Inventario::class
+        Inventario::class,
+        CarritoTemporal::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class CosteoDatabase : RoomDatabase() {
@@ -28,6 +31,7 @@ abstract class CosteoDatabase : RoomDatabase() {
     abstract fun productoDao(): ProductoDao
     abstract fun productoTiendaDao(): ProductoTiendaDao
     abstract fun inventarioDao(): InventarioDao
+    abstract fun carritoTemporalDao(): CarritoTemporalDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -56,6 +60,20 @@ abstract class CosteoDatabase : RoomDatabase() {
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE productos ADD COLUMN unidades_por_empaque INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS carrito_temporal (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        producto_id INTEGER NOT NULL,
+                        tienda_id INTEGER NOT NULL,
+                        cantidad REAL NOT NULL,
+                        precio_unitario INTEGER NOT NULL
+                    )
+                """)
             }
         }
     }
