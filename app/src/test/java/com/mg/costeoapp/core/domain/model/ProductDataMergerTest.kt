@@ -112,6 +112,56 @@ class ProductDataMergerTest {
     }
 
     @Test
+    fun `fuentes con todos los campos null resulta todo Empty`() {
+        val sources = listOf(
+            ProductDataSource(sourceName = "Walmart"),
+            ProductDataSource(sourceName = "OFF")
+        )
+        val merged = ProductDataMerger.merge(sources)
+
+        assertTrue("nombre → Empty", merged.nombre is FieldResolution.Empty)
+        assertTrue("precio → Empty", merged.precio is FieldResolution.Empty)
+        assertTrue("unidadMedida → Empty", merged.unidadMedida is FieldResolution.Empty)
+        assertTrue("cantidadPorEmpaque → Empty", merged.cantidadPorEmpaque is FieldResolution.Empty)
+        assertTrue("unidadesPorEmpaque → Empty", merged.unidadesPorEmpaque is FieldResolution.Empty)
+        assertEquals(listOf("Walmart", "OFF"), merged.sources)
+    }
+
+    @Test
+    fun `una fuente con todos los campos null resulta todo Empty`() {
+        val sources = listOf(ProductDataSource(sourceName = "Solo"))
+        val merged = ProductDataMerger.merge(sources)
+
+        assertTrue(merged.nombre is FieldResolution.Empty)
+        assertTrue(merged.precio is FieldResolution.Empty)
+        assertTrue(merged.unidadMedida is FieldResolution.Empty)
+        assertTrue(merged.cantidadPorEmpaque is FieldResolution.Empty)
+        assertTrue(merged.unidadesPorEmpaque is FieldResolution.Empty)
+        assertEquals(listOf("Solo"), merged.sources)
+    }
+
+    @Test
+    fun `unidadesPorEmpaque iguales se resuelve`() {
+        val sources = listOf(
+            ProductDataSource(sourceName = "A", unidadesPorEmpaque = 6),
+            ProductDataSource(sourceName = "B", unidadesPorEmpaque = 6)
+        )
+        val merged = ProductDataMerger.merge(sources)
+        val field = merged.unidadesPorEmpaque as FieldResolution.Resolved
+        assertEquals(6, field.value)
+    }
+
+    @Test
+    fun `unidadesPorEmpaque diferentes genera conflicto`() {
+        val sources = listOf(
+            ProductDataSource(sourceName = "A", unidadesPorEmpaque = 6),
+            ProductDataSource(sourceName = "B", unidadesPorEmpaque = 12)
+        )
+        val merged = ProductDataMerger.merge(sources)
+        assertTrue(merged.unidadesPorEmpaque is FieldResolution.Conflict)
+    }
+
+    @Test
     fun `futuro - tres fuentes con conflicto parcial`() {
         val sources = listOf(
             ProductDataSource(sourceName = "Walmart", nombre = "Leche A", precio = 199),

@@ -91,4 +91,75 @@ class NutritionLabelParserTest {
         assertNull(result.proteinas)
         assertEquals(0.0f, result.confidence, 0.01f)
     }
+
+    @Test
+    fun `texto vacio retorna todo null`() {
+        val result = parser.parseFromText("")
+        assertNull(result.porcionG)
+        assertNull(result.calorias)
+        assertNull(result.proteinas)
+        assertNull(result.carbohidratos)
+        assertNull(result.grasas)
+        assertNull(result.fibra)
+        assertNull(result.sodioMg)
+        assertEquals(0.0f, result.confidence, 0.01f)
+    }
+
+    @Test
+    fun `parsea con dos puntos como separador`() {
+        val text = "Calorías: 250 Proteína: 12g"
+        val result = parser.parseFromText(text)
+        assertEquals(250.0, result.calorias!!, 0.01)
+        assertEquals(12.0, result.proteinas!!, 0.01)
+    }
+
+    @Test
+    fun `parsea porcion con acento`() {
+        val text = "Porción 40g"
+        val result = parser.parseFromText(text)
+        assertEquals(40.0, result.porcionG!!, 0.01)
+    }
+
+    @Test
+    fun `parsea carbohidratos variante carbs`() {
+        val text = "Carbs 25g"
+        val result = parser.parseFromText(text)
+        assertEquals(25.0, result.carbohidratos!!, 0.01)
+    }
+
+    @Test
+    fun `sodio en mg no se multiplica`() {
+        val text = "Sodio 300mg"
+        val result = parser.parseFromText(text)
+        assertEquals(300.0, result.sodioMg!!, 0.01)
+    }
+
+    @Test
+    fun `etiqueta completa tiene confianza 1`() {
+        val text = """
+            Porción 30g
+            Calorías 120
+            Proteína 3g
+            Carbohidratos 22g
+            Grasa total 4g
+            Fibra 1g
+            Sodio 200mg
+        """.trimIndent()
+        val result = parser.parseFromText(text)
+        assertEquals(1.0f, result.confidence, 0.01f)
+    }
+
+    @Test
+    fun `parsea energia como alias de calorias`() {
+        val text = "Energía 180"
+        val result = parser.parseFromText(text)
+        assertEquals(180.0, result.calorias!!, 0.01)
+    }
+
+    @Test
+    fun `rawText se preserva`() {
+        val text = "Calorías 100"
+        val result = parser.parseFromText(text)
+        assertEquals(text, result.rawText)
+    }
 }

@@ -78,4 +78,56 @@ class ContentParserTest {
         assertNotNull(result)
         assertEquals(UnidadMedida.MILILITRO, result!!.unidad)
     }
+
+    @Test
+    fun `parsea decimal con coma`() {
+        val result = parseContenidoFromName("Azucar 2,5kg")
+        assertNotNull(result)
+        assertEquals(2.5, result!!.cantidad, 0.01)
+        assertEquals(UnidadMedida.KILOGRAMO, result.unidad)
+    }
+
+    @Test
+    fun `multiples unidades en nombre usa la de mayor prioridad`() {
+        // Patterns se evaluan en orden: ml, l, kg, g, lb, oz
+        // "1kg" matchea kg antes de que "500g" matchee g
+        val result = parseContenidoFromName("Cereal 500g caja 1kg")
+        assertNotNull(result)
+        assertEquals(1.0, result!!.cantidad, 0.01)
+        assertEquals(UnidadMedida.KILOGRAMO, result.unidad)
+    }
+
+    @Test
+    fun `cantidad cero retorna null`() {
+        val result = parseContenidoFromName("Producto 0g")
+        assertNull(result)
+    }
+
+    @Test
+    fun `cantidad cero con decimales retorna null`() {
+        val result = parseContenidoFromName("Producto 0.0ml")
+        assertNull(result)
+    }
+
+    @Test
+    fun `parsea decimal con coma y ml`() {
+        val result = parseContenidoFromName("Jarabe 2,5ml")
+        assertNotNull(result)
+        assertEquals(2.5, result!!.cantidad, 0.01)
+        assertEquals(UnidadMedida.MILILITRO, result.unidad)
+    }
+
+    @Test
+    fun `nombre vacio retorna null`() {
+        val result = parseContenidoFromName("")
+        assertNull(result)
+    }
+
+    @Test
+    fun `unidad en mayusculas`() {
+        val result = parseContenidoFromName("Leche 946ML")
+        assertNotNull(result)
+        assertEquals(946.0, result!!.cantidad, 0.01)
+        assertEquals(UnidadMedida.MILILITRO, result.unidad)
+    }
 }
