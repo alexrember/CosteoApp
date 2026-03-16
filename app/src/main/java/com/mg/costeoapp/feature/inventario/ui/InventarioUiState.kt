@@ -27,7 +27,10 @@ data class ScannerUiState(
 sealed class BarcodeLookupState {
     data object Idle : BarcodeLookupState()
     data object Buscando : BarcodeLookupState()
-    data class EncontradoLocal(val producto: Producto) : BarcodeLookupState()
+    data class EncontradoLocal(
+        val producto: Producto,
+        val preciosComparados: List<PrecioComparado> = emptyList()
+    ) : BarcodeLookupState()
     data class EncontradoApi(val barcode: String, val resultados: List<StoreSearchResult>) : BarcodeLookupState()
     data class NoEncontrado(val barcode: String) : BarcodeLookupState()
 }

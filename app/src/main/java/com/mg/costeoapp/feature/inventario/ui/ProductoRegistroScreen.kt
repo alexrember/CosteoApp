@@ -1,5 +1,8 @@
 package com.mg.costeoapp.feature.inventario.ui
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +34,15 @@ import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
 import com.mg.costeoapp.core.ui.components.FieldConflictChooser
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.UnidadMedida
+import com.mg.costeoapp.feature.inventario.data.ocr.OcrNutritionProcessor
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material3.Icon
+import androidx.core.content.FileProvider
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import java.io.File
 
 @Composable
 fun ProductoRegistroScreen(
@@ -40,6 +52,30 @@ fun ProductoRegistroScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    val ocrProcessor = remember { OcrNutritionProcessor(context) }
+
+    // Crear archivo temporal para foto
+    val photoUri = remember {
+        val file = File(context.cacheDir, "ocr_nutrition_${System.currentTimeMillis()}.jpg")
+        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            scope.launch {
+                val result = ocrProcessor.processImage(photoUri)
+                if (result != null) {
+                    viewModel.onOcrResult(result)
+                } else {
+                    snackbarHostState.showSnackbar("No se pudo leer la etiqueta. Intenta con mejor luz.")
+                }
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -162,6 +198,17 @@ fun ProductoRegistroScreen(
                 keyboardType = KeyboardType.Decimal,
                 error = uiState.fieldErrors["precio"]
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = { cameraLauncher.launch(photoUri) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.CameraAlt, contentDescription = null,
+                    modifier = androidx.compose.ui.Modifier.padding(end = 8.dp))
+                Text("Escanear etiqueta nutricional")
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

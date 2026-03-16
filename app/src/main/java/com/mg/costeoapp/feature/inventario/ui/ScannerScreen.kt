@@ -188,6 +188,16 @@ fun ScannerScreen(
             }
         }
     }
+
+    // Bottom sheet de comparacion de precios
+    val lookupState = uiState.lookupState
+    if (lookupState is BarcodeLookupState.EncontradoLocal && lookupState.preciosComparados.size > 1) {
+        PriceComparisonSheet(
+            productoNombre = lookupState.producto.nombre,
+            precios = lookupState.preciosComparados,
+            onDismiss = { /* Se cierra solo con el cooldown */ }
+        )
+    }
 }
 
 @Composable

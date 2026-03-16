@@ -194,6 +194,15 @@ class ProductoRegistroViewModel @Inject constructor(
         }
     }
 
+    fun onOcrResult(result: com.mg.costeoapp.feature.inventario.data.ocr.NutricionOcrResult) {
+        nutricionExterna = result.toNutricionExterna()
+        viewModelScope.launch {
+            _events.send(UiEvent.ShowError(
+                "Nutricion escaneada (${(result.confidence * 100).toInt()}% confianza)"
+            ))
+        }
+    }
+
     fun onNombreSelected(value: String) {
         _uiState.update { it.copy(nombre = value, fieldErrors = it.fieldErrors - "nombre") }
     }

@@ -94,7 +94,6 @@ class ScannerViewModel @Inject constructor(
                 val tienda = compraManager.getTienda()
                 var precio = 0L
                 if (tienda != null) {
-                    // Buscar precio para esta tienda, si no hay buscar el más reciente de cualquier tienda
                     val precioTienda = productoTiendaDao.getPrecioActivo(productoLocal.id, tienda.id)
                     val precioReciente = precioTienda ?: productoTiendaDao.getPrecioMasReciente(productoLocal.id)
                     precio = precioReciente?.precio ?: 0L
@@ -102,10 +101,40 @@ class ScannerViewModel @Inject constructor(
 
                 compraManager.agregarProducto(productoLocal, 1.0, precio)
 
+                // Buscar precios de comparacion en paralelo
+                val preciosComparados = mutableListOf<PrecioComparado>()
+
+                // Precio local registrado
+                if (precio > 0 && tienda != null) {
+                    preciosComparados.add(PrecioComparado(
+                        tiendaNombre = tienda.nombre,
+                        precio = precio,
+                        fecha = null,
+                        fuente = "local"
+                    ))
+                }
+
+                // Buscar precio actual en Walmart (no bloquea)
+                if (productoLocal.codigoBarras != null) {
+                    val walmartResults = withTimeoutOrNull(3000L) {
+                        walmartRepository.searchByBarcode(productoLocal.codigoBarras).getOrNull()
+                    }
+                    walmartResults?.filter { it.isAvailable && it.price != null }?.forEach { result ->
+                        preciosComparados.add(PrecioComparado(
+                            tiendaNombre = result.storeName,
+                            precio = result.price!!,
+                            fecha = null,
+                            fuente = result.source
+                        ))
+                    }
+                }
+
                 _uiState.update {
                     it.copy(
                         isProcessing = false,
-                        lookupState = BarcodeLookupState.EncontradoLocal(productoLocal)
+                        lookupState = BarcodeLookupState.EncontradoLocal(
+                            productoLocal, preciosComparados
+                        )
                     )
                 }
                 _events.send(UiEvent.ShowError("${productoLocal.nombre} agregado al carrito"))
