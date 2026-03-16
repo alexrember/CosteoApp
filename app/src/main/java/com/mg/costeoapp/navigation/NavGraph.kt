@@ -178,6 +178,9 @@ fun CosteoNavGraph(
                 InventarioListScreen(
                     onNavigateToScanner = {
                         navController.navigate(SeleccionTiendaCompraRoute)
+                    },
+                    onContinuarCompra = {
+                        navController.navigate(ScannerRoute)
                     }
                 )
             }
@@ -195,7 +198,10 @@ fun CosteoNavGraph(
 
             composable<ScannerRoute> {
                 ScannerScreen(
-                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateBack = {
+                        // Volver al inventario — el carrito se mantiene en Room
+                        navController.popBackStack(InventarioListRoute, inclusive = false)
+                    },
                     onNavigateToRegistro = { barcode ->
                         navController.navigate(ProductoRegistroRoute(codigoBarras = barcode))
                     },

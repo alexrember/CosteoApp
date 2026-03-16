@@ -37,14 +37,19 @@ import com.mg.costeoapp.core.util.UnidadMedida
 @Composable
 fun InventarioListScreen(
     onNavigateToScanner: () -> Unit,
+    onContinuarCompra: () -> Unit,
     viewModel: InventarioListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val hayCompraEnCurso = viewModel.compraManager.hayCompraEnCurso()
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToScanner) {
-                Icon(Icons.Filled.AddShoppingCart, contentDescription = "Ir de compras")
+            FloatingActionButton(onClick = {
+                if (hayCompraEnCurso) onContinuarCompra() else onNavigateToScanner()
+            }) {
+                Icon(Icons.Filled.AddShoppingCart,
+                    contentDescription = if (hayCompraEnCurso) "Continuar compra" else "Ir de compras")
             }
         }
     ) { padding ->

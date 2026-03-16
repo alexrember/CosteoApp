@@ -76,9 +76,7 @@ fun CarritoScreen(
         topBar = {
             CosteoTopAppBar(
                 title = "Carrito de compras",
-                onNavigateBack = {
-                    if (!uiState.isEmpty) showExitDialog = true else onNavigateBack()
-                }
+                onNavigateBack = onNavigateBack
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -208,21 +206,4 @@ fun CarritoScreen(
         )
     }
 
-    // Dialogo de confirmacion para salir del carrito
-    if (showExitDialog) {
-        AlertDialog(
-            onDismissRequest = { showExitDialog = false },
-            title = { Text("Salir del carrito") },
-            text = { Text("Tu carrito se guardara. Puedes continuar tu compra despues.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showExitDialog = false
-                    onNavigateBack()
-                }) { Text("Salir") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExitDialog = false }) { Text("Quedarme") }
-            }
-        )
-    }
 }

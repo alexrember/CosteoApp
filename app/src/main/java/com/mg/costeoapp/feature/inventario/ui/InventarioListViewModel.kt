@@ -2,6 +2,7 @@ package com.mg.costeoapp.feature.inventario.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mg.costeoapp.feature.inventario.data.CompraManager
 import com.mg.costeoapp.feature.inventario.data.InventarioRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -15,7 +16,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class InventarioListViewModel @Inject constructor(
-    private val repository: InventarioRepository
+    private val repository: InventarioRepository,
+    val compraManager: CompraManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(InventarioListUiState())
