@@ -90,8 +90,10 @@ class ScannerViewModel @Inject constructor(
                 val tienda = compraManager.getTienda()
                 var precio = 0L
                 if (tienda != null) {
-                    val ultimoPrecio = productoTiendaDao.getPrecioActivo(productoLocal.id, tienda.id)
-                    precio = ultimoPrecio?.precio ?: 0L
+                    // Buscar precio para esta tienda, si no hay buscar el más reciente de cualquier tienda
+                    val precioTienda = productoTiendaDao.getPrecioActivo(productoLocal.id, tienda.id)
+                    val precioReciente = precioTienda ?: productoTiendaDao.getPrecioMasReciente(productoLocal.id)
+                    precio = precioReciente?.precio ?: 0L
                 }
 
                 compraManager.agregarProducto(productoLocal, 1.0, precio)
