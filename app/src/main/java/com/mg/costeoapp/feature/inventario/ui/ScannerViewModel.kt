@@ -39,12 +39,9 @@ class ScannerViewModel @Inject constructor(
     var lastNutricion: NutricionExterna? = null
         private set
 
-    // Estabilizacion: requiere N detecciones consecutivas del mismo codigo
     private var candidateBarcode: String? = null
     private var candidateCount = 0
     private val requiredDetections = 3
-
-    // Cooldown: despues de procesar, ignorar por un tiempo
     private var processingBarcode: String? = null
 
     init {
@@ -61,7 +58,6 @@ class ScannerViewModel @Inject constructor(
     fun onBarcodeDetected(barcode: String) {
         if (_uiState.value.isProcessing) return
 
-        // Estabilizacion: contar detecciones consecutivas del mismo codigo
         if (barcode == candidateBarcode) {
             candidateCount++
         } else {
@@ -69,13 +65,9 @@ class ScannerViewModel @Inject constructor(
             candidateCount = 1
         }
 
-        // No procesar hasta tener suficientes detecciones consecutivas
         if (candidateCount < requiredDetections) return
-
-        // Cooldown: si acabamos de procesar este codigo, ignorar
         if (barcode == processingBarcode) return
 
-        // Reset candidate para la siguiente deteccion
         candidateCount = 0
         processBarcode(barcode)
     }
@@ -92,7 +84,6 @@ class ScannerViewModel @Inject constructor(
                 )
             }
 
-            // 1. Buscar en DB local
             val productoLocal = productoDao.getByCodigoBarras(barcode)
 
             if (productoLocal != null) {
@@ -113,14 +104,12 @@ class ScannerViewModel @Inject constructor(
                 }
                 _events.send(UiEvent.ShowError("${productoLocal.nombre} agregado al carrito"))
 
-                // Cooldown: permitir re-escanear despues de 2 segundos
                 kotlinx.coroutines.delay(2000)
                 processingBarcode = null
                 _uiState.update { it.copy(lookupState = BarcodeLookupState.Idle) }
                 return@launch
             }
 
-            // 2. No encontrado → llamadas PARALELAS a Walmart + Open Food Facts
             val deferredWalmart = async {
                 withTimeoutOrNull(8000L) {
                     walmartRepository.searchByBarcode(barcode).getOrNull()
@@ -151,13 +140,24 @@ class ScannerViewModel @Inject constructor(
                     )
                 }
             }
+            // NO resetear processingBarcode aqui — se resetea cuando el usuario vuelve
         }
     }
 
+    /** Llamar al volver del registro. Permite escanear otros codigos pero no el mismo. */
+    fun onReturnFromRegistro() {
+        _uiState.update {
+            it.copy(lookupState = BarcodeLookupState.Idle, isProcessing = false)
+        }
+        // processingBarcode se mantiene para no re-procesar el mismo codigo
+    }
+
+    /** Reset completo para empezar de nuevo */
     fun resetScanner() {
         processingBarcode = null
         candidateBarcode = null
         candidateCount = 0
+        lastNutricion = null
         _uiState.update {
             it.copy(
                 scannedBarcode = null,
@@ -166,10 +166,5 @@ class ScannerViewModel @Inject constructor(
                 error = null
             )
         }
-    }
-
-    fun readyForNewScan() {
-        lastNutricion = null
-        resetScanner()
     }
 }

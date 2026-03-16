@@ -39,15 +39,20 @@ class CarritoViewModel @Inject constructor(
     }
 
     fun aumentarCantidad(index: Int) {
-        compraManager.aumentarCantidad(index)
+        viewModelScope.launch { compraManager.aumentarCantidad(index) }
     }
 
-    fun disminuirCantidad(index: Int): Boolean {
-        return compraManager.disminuirCantidad(index)
+    fun disminuirCantidad(index: Int) {
+        viewModelScope.launch {
+            val needsConfirm = compraManager.disminuirCantidad(index)
+            if (needsConfirm) {
+                _events.send(UiEvent.ShowError("CONFIRM_REMOVE:$index"))
+            }
+        }
     }
 
     fun removerItem(index: Int) {
-        compraManager.removerItem(index)
+        viewModelScope.launch { compraManager.removerItem(index) }
     }
 
     fun confirmarCompra() {

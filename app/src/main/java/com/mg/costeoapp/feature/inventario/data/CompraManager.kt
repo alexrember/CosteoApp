@@ -7,13 +7,9 @@ import com.mg.costeoapp.core.database.entity.CarritoTemporal
 import com.mg.costeoapp.core.database.entity.Producto
 import com.mg.costeoapp.core.database.entity.Tienda
 import com.mg.costeoapp.feature.inventario.ui.CarritoItem
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,8 +19,6 @@ class CompraManager @Inject constructor(
     private val productoDao: ProductoDao,
     private val tiendaDao: TiendaDao
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     private val _tienda = MutableStateFlow<Tienda?>(null)
     val tienda: StateFlow<Tienda?> = _tienda.asStateFlow()
 
@@ -33,11 +27,7 @@ class CompraManager @Inject constructor(
 
     val itemCount: Int get() = _items.value.size
 
-    init {
-        scope.launch { restaurarDesdeDb() }
-    }
-
-    private suspend fun restaurarDesdeDb() {
+    suspend fun restaurarDesdeDb() {
         val tiendaId = carritoDao.getTiendaId()
         if (tiendaId != null) {
             _tienda.value = tiendaDao.getById(tiendaId)
@@ -53,13 +43,13 @@ class CompraManager @Inject constructor(
         }
     }
 
-    fun iniciarCompra(tienda: Tienda) {
+    suspend fun iniciarCompra(tienda: Tienda) {
         _tienda.value = tienda
         _items.value = emptyList()
-        scope.launch { carritoDao.deleteAll() }
+        carritoDao.deleteAll()
     }
 
-    fun agregarProducto(producto: Producto, cantidad: Double, precioUnitario: Long) {
+    suspend fun agregarProducto(producto: Producto, cantidad: Double, precioUnitario: Long) {
         val currentItems = _items.value.toMutableList()
         val existingIndex = currentItems.indexOfFirst { it.producto.id == producto.id }
 
@@ -68,31 +58,35 @@ class CompraManager @Inject constructor(
             val newCantidad = existing.cantidad + cantidad
             currentItems[existingIndex] = existing.copy(cantidad = newCantidad)
             _items.value = currentItems
-            scope.launch { syncItemToDb(producto.id, newCantidad) }
+            val dbItems = carritoDao.getAll()
+            dbItems.find { it.productoId == producto.id }?.let {
+                carritoDao.updateCantidad(it.id, newCantidad)
+            }
         } else {
             currentItems.add(CarritoItem(producto = producto, cantidad = cantidad, precioUnitario = precioUnitario))
             _items.value = currentItems
-            scope.launch {
-                carritoDao.insert(CarritoTemporal(
-                    productoId = producto.id,
-                    tiendaId = _tienda.value?.id ?: 0,
-                    cantidad = cantidad,
-                    precioUnitario = precioUnitario
-                ))
-            }
+            carritoDao.insert(CarritoTemporal(
+                productoId = producto.id,
+                tiendaId = _tienda.value?.id ?: 0,
+                cantidad = cantidad,
+                precioUnitario = precioUnitario
+            ))
         }
     }
 
-    fun aumentarCantidad(index: Int) {
+    suspend fun aumentarCantidad(index: Int) {
         val currentItems = _items.value.toMutableList()
         val item = currentItems[index]
         val newCantidad = item.cantidad + 1
         currentItems[index] = item.copy(cantidad = newCantidad)
         _items.value = currentItems
-        scope.launch { syncItemToDb(item.producto.id, newCantidad) }
+        val dbItems = carritoDao.getAll()
+        dbItems.find { it.productoId == item.producto.id }?.let {
+            carritoDao.updateCantidad(it.id, newCantidad)
+        }
     }
 
-    fun disminuirCantidad(index: Int): Boolean {
+    suspend fun disminuirCantidad(index: Int): Boolean {
         val item = _items.value[index]
         if (item.cantidad <= 1) return true
 
@@ -100,35 +94,29 @@ class CompraManager @Inject constructor(
         val newCantidad = item.cantidad - 1
         currentItems[index] = item.copy(cantidad = newCantidad)
         _items.value = currentItems
-        scope.launch { syncItemToDb(item.producto.id, newCantidad) }
+        val dbItems = carritoDao.getAll()
+        dbItems.find { it.productoId == item.producto.id }?.let {
+            carritoDao.updateCantidad(it.id, newCantidad)
+        }
         return false
     }
 
-    fun removerItem(index: Int) {
+    suspend fun removerItem(index: Int) {
         val productoId = _items.value[index].producto.id
         _items.value = _items.value.toMutableList().apply { removeAt(index) }
-        scope.launch { deleteItemFromDb(productoId) }
+        val dbItems = carritoDao.getAll()
+        dbItems.find { it.productoId == productoId }?.let {
+            carritoDao.delete(it.id)
+        }
     }
 
-    fun limpiar() {
+    suspend fun limpiar() {
         _tienda.value = null
         _items.value = emptyList()
-        scope.launch { carritoDao.deleteAll() }
+        carritoDao.deleteAll()
     }
 
     fun getItems(): List<CarritoItem> = _items.value
     fun getTienda(): Tienda? = _tienda.value
-    fun hayCompraEnCurso(): Boolean = _items.value.isNotEmpty()
-
-    private suspend fun syncItemToDb(productoId: Long, cantidad: Double) {
-        val dbItems = carritoDao.getAll()
-        val dbItem = dbItems.find { it.productoId == productoId }
-        dbItem?.let { carritoDao.updateCantidad(it.id, cantidad) }
-    }
-
-    private suspend fun deleteItemFromDb(productoId: Long) {
-        val dbItems = carritoDao.getAll()
-        val dbItem = dbItems.find { it.productoId == productoId }
-        dbItem?.let { carritoDao.delete(it.id) }
-    }
+    fun hayCompraEnCurso(): Boolean = _items.value.isNotEmpty() || _tienda.value != null
 }

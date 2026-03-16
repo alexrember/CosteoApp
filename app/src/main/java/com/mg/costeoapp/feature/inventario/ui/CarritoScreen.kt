@@ -53,18 +53,24 @@ fun CarritoScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var itemToRemoveIndex by remember { mutableIntStateOf(-1) }
+    var showExitDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is UiEvent.SaveSuccess -> onCompraConfirmada()
-                is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                is UiEvent.ShowError -> {
+                    if (event.message.startsWith("CONFIRM_REMOVE:")) {
+                        val idx = event.message.substringAfter(":").toIntOrNull() ?: -1
+                        if (idx >= 0) itemToRemoveIndex = idx
+                    } else {
+                        snackbarHostState.showSnackbar(event.message)
+                    }
+                }
             }
         }
     }
-
-    var itemToRemoveIndex by remember { mutableIntStateOf(-1) }
-    var showExitDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -130,10 +136,7 @@ fun CarritoScreen(
                                 )
                             }
                             // Controles de cantidad: - [N] +
-                            IconButton(onClick = {
-                                val needsConfirm = viewModel.disminuirCantidad(index)
-                                if (needsConfirm) itemToRemoveIndex = index
-                            }) {
+                            IconButton(onClick = { viewModel.disminuirCantidad(index) }) {
                                 Icon(Icons.Filled.Remove, contentDescription = "Menos")
                             }
                             Text(

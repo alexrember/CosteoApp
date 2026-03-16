@@ -31,6 +31,6 @@ class SeleccionTiendaViewModel @Inject constructor(
     }
 
     fun seleccionarTienda(tienda: Tienda) {
-        compraManager.iniciarCompra(tienda)
+        viewModelScope.launch { compraManager.iniciarCompra(tienda) }
     }
 }
