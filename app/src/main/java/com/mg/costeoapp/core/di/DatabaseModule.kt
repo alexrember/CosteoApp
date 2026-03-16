@@ -8,6 +8,8 @@ import com.mg.costeoapp.core.database.CosteoDatabase
 import com.mg.costeoapp.core.database.DatabaseSeeder
 import com.mg.costeoapp.core.database.dao.CarritoTemporalDao
 import com.mg.costeoapp.core.database.dao.InventarioDao
+import com.mg.costeoapp.core.database.dao.PrefabricadoDao
+import com.mg.costeoapp.core.database.dao.PrefabricadoIngredienteDao
 import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
 import com.mg.costeoapp.core.database.dao.TiendaDao
@@ -30,7 +32,7 @@ object DatabaseModule {
             CosteoDatabase::class.java,
             "costeo_database"
         )
-            .addMigrations(CosteoDatabase.MIGRATION_1_2, CosteoDatabase.MIGRATION_2_3, CosteoDatabase.MIGRATION_3_4, CosteoDatabase.MIGRATION_4_5)
+            .addMigrations(CosteoDatabase.MIGRATION_1_2, CosteoDatabase.MIGRATION_2_3, CosteoDatabase.MIGRATION_3_4, CosteoDatabase.MIGRATION_4_5, CosteoDatabase.MIGRATION_5_6)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
@@ -58,4 +60,12 @@ object DatabaseModule {
     @Provides
     fun provideCarritoTemporalDao(database: CosteoDatabase): CarritoTemporalDao =
         database.carritoTemporalDao()
+
+    @Provides
+    fun providePrefabricadoDao(database: CosteoDatabase): PrefabricadoDao =
+        database.prefabricadoDao()
+
+    @Provides
+    fun providePrefabricadoIngredienteDao(database: CosteoDatabase): PrefabricadoIngredienteDao =
+        database.prefabricadoIngredienteDao()
 }

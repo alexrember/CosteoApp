@@ -6,11 +6,16 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mg.costeoapp.core.database.dao.CarritoTemporalDao
 import com.mg.costeoapp.core.database.dao.InventarioDao
+import com.mg.costeoapp.core.database.dao.PrefabricadoDao
+import com.mg.costeoapp.core.database.dao.PrefabricadoIngredienteDao
 import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
 import com.mg.costeoapp.core.database.dao.TiendaDao
 import com.mg.costeoapp.core.database.entity.CarritoTemporal
+import com.mg.costeoapp.core.database.entity.CostoIndirecto
 import com.mg.costeoapp.core.database.entity.Inventario
+import com.mg.costeoapp.core.database.entity.Prefabricado
+import com.mg.costeoapp.core.database.entity.PrefabricadoIngrediente
 import com.mg.costeoapp.core.database.entity.Producto
 import com.mg.costeoapp.core.database.entity.ProductoTienda
 import com.mg.costeoapp.core.database.entity.Tienda
@@ -21,9 +26,12 @@ import com.mg.costeoapp.core.database.entity.Tienda
         Producto::class,
         ProductoTienda::class,
         Inventario::class,
-        CarritoTemporal::class
+        CarritoTemporal::class,
+        Prefabricado::class,
+        PrefabricadoIngrediente::class,
+        CostoIndirecto::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class CosteoDatabase : RoomDatabase() {
@@ -32,6 +40,8 @@ abstract class CosteoDatabase : RoomDatabase() {
     abstract fun productoTiendaDao(): ProductoTiendaDao
     abstract fun inventarioDao(): InventarioDao
     abstract fun carritoTemporalDao(): CarritoTemporalDao
+    abstract fun prefabricadoDao(): PrefabricadoDao
+    abstract fun prefabricadoIngredienteDao(): PrefabricadoIngredienteDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -74,6 +84,54 @@ abstract class CosteoDatabase : RoomDatabase() {
                         precio_unitario INTEGER NOT NULL
                     )
                 """)
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS prefabricados (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        nombre TEXT NOT NULL,
+                        descripcion TEXT,
+                        duplicado_de INTEGER,
+                        costo_fijo INTEGER NOT NULL DEFAULT 0,
+                        rendimiento_porciones REAL NOT NULL,
+                        activo INTEGER NOT NULL DEFAULT 1,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL,
+                        FOREIGN KEY (duplicado_de) REFERENCES prefabricados(id) ON DELETE SET NULL
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_prefabricados_duplicado_de ON prefabricados(duplicado_de)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_prefabricados_activo ON prefabricados(activo)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_prefabricados_nombre ON prefabricados(nombre)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS prefabricado_ingrediente (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        prefabricado_id INTEGER NOT NULL,
+                        producto_id INTEGER NOT NULL,
+                        cantidad_usada REAL NOT NULL,
+                        unidad_usada TEXT NOT NULL,
+                        FOREIGN KEY (prefabricado_id) REFERENCES prefabricados(id) ON DELETE CASCADE,
+                        FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE RESTRICT
+                    )
+                """)
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_prefabricado_ingrediente_prefabricado_id_producto_id ON prefabricado_ingrediente(prefabricado_id, producto_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_prefabricado_ingrediente_producto_id ON prefabricado_ingrediente(producto_id)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS costos_indirectos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        prefabricado_id INTEGER NOT NULL,
+                        nombre TEXT NOT NULL,
+                        monto INTEGER NOT NULL,
+                        activo INTEGER NOT NULL DEFAULT 1,
+                        FOREIGN KEY (prefabricado_id) REFERENCES prefabricados(id) ON DELETE CASCADE
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_costos_indirectos_prefabricado_id ON costos_indirectos(prefabricado_id)")
             }
         }
 
