@@ -60,14 +60,8 @@ fun CarritoScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is UiEvent.SaveSuccess -> onCompraConfirmada()
-                is UiEvent.ShowError -> {
-                    if (event.message.startsWith("CONFIRM_REMOVE:")) {
-                        val idx = event.message.substringAfter(":").toIntOrNull() ?: -1
-                        if (idx >= 0) itemToRemoveIndex = idx
-                    } else {
-                        snackbarHostState.showSnackbar(event.message)
-                    }
-                }
+                is UiEvent.ConfirmRemoval -> itemToRemoveIndex = event.index
+                is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
             }
         }
     }

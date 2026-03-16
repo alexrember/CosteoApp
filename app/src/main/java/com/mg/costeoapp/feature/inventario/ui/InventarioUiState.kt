@@ -37,7 +37,7 @@ data class CarritoItem(
     val cantidad: Double,
     val precioUnitario: Long
 ) {
-    val subtotal: Long get() = (precioUnitario * cantidad).toLong()
+    val subtotal: Long get() = Math.round(precioUnitario * cantidad)
 }
 
 data class CarritoUiState(

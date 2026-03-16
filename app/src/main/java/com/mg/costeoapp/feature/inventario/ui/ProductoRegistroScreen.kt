@@ -46,6 +46,7 @@ fun ProductoRegistroScreen(
             when (event) {
                 is UiEvent.SaveSuccess -> onRegistroExitoso()
                 is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                else -> {}
             }
         }
     }

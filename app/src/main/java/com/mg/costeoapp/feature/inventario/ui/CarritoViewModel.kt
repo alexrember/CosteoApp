@@ -46,7 +46,7 @@ class CarritoViewModel @Inject constructor(
         viewModelScope.launch {
             val needsConfirm = compraManager.disminuirCantidad(index)
             if (needsConfirm) {
-                _events.send(UiEvent.ShowError("CONFIRM_REMOVE:$index"))
+                _events.send(UiEvent.ConfirmRemoval(index))
             }
         }
     }

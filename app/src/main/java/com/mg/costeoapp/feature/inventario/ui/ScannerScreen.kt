@@ -90,6 +90,7 @@ fun ScannerScreen(
             when (event) {
                 is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
                 is UiEvent.SaveSuccess -> {}
+                is UiEvent.ConfirmRemoval -> {}
             }
         }
     }
@@ -206,8 +207,7 @@ private fun CameraPreview(
                 Barcode.FORMAT_EAN_13,
                 Barcode.FORMAT_EAN_8,
                 Barcode.FORMAT_UPC_A,
-                Barcode.FORMAT_UPC_E,
-                Barcode.FORMAT_QR_CODE
+                Barcode.FORMAT_UPC_E
             )
             .build()
         BarcodeScanning.getClient(options)
@@ -262,6 +262,7 @@ private fun CameraPreview(
         onDispose {
             cameraProviderFuture.get().unbindAll()
             scanner.close()
+            executor.shutdown()
         }
     }
 

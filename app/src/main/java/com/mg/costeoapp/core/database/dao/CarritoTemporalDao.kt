@@ -48,6 +48,9 @@ interface CarritoTemporalDao {
     @Query("DELETE FROM carrito_temporal")
     suspend fun deleteAll()
 
+    @Query("SELECT * FROM carrito_temporal WHERE producto_id = :productoId LIMIT 1")
+    suspend fun getByProductoId(productoId: Long): CarritoTemporal?
+
     @Query("SELECT tienda_id FROM carrito_temporal LIMIT 1")
     suspend fun getTiendaId(): Long?
 }

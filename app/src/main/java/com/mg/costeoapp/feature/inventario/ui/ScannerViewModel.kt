@@ -39,10 +39,11 @@ class ScannerViewModel @Inject constructor(
     var lastNutricion: NutricionExterna? = null
         private set
 
-    private var candidateBarcode: String? = null
-    private var candidateCount = 0
+    @Volatile private var candidateBarcode: String? = null
+    @Volatile private var candidateCount = 0
     private val requiredDetections = 3
-    private var processingBarcode: String? = null
+    @Volatile private var processingBarcode: String? = null
+    private val scanLock = Any()
 
     init {
         _uiState.update {
@@ -56,23 +57,26 @@ class ScannerViewModel @Inject constructor(
     }
 
     fun onBarcodeDetected(barcode: String) {
-        if (_uiState.value.isProcessing) return
-
-        if (barcode == candidateBarcode) {
-            candidateCount++
-        } else {
-            candidateBarcode = barcode
-            candidateCount = 1
+        synchronized(scanLock) {
+            if (_uiState.value.isProcessing) return
+            if (barcode == candidateBarcode) {
+                candidateCount++
+            } else {
+                candidateBarcode = barcode
+                candidateCount = 1
+            }
+            if (candidateCount < requiredDetections) return
+            if (barcode == processingBarcode) return
+            candidateCount = 0
         }
-
-        if (candidateCount < requiredDetections) return
-        if (barcode == processingBarcode) return
-
-        candidateCount = 0
         processBarcode(barcode)
     }
 
+    private fun isValidBarcode(barcode: String): Boolean =
+        barcode.matches(Regex("^\\d{8,14}$"))
+
     private fun processBarcode(barcode: String) {
+        if (!isValidBarcode(barcode)) return
         processingBarcode = barcode
 
         viewModelScope.launch {

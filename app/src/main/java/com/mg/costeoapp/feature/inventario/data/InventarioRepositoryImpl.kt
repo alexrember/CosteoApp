@@ -2,6 +2,7 @@ package com.mg.costeoapp.feature.inventario.data
 
 import androidx.room.withTransaction
 import com.mg.costeoapp.core.database.CosteoDatabase
+import com.mg.costeoapp.core.database.dao.CarritoTemporalDao
 import com.mg.costeoapp.core.database.dao.InventarioConDetalles
 import com.mg.costeoapp.core.database.dao.InventarioDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
@@ -16,7 +17,8 @@ import javax.inject.Singleton
 class InventarioRepositoryImpl @Inject constructor(
     private val db: CosteoDatabase,
     private val inventarioDao: InventarioDao,
-    private val productoTiendaDao: ProductoTiendaDao
+    private val productoTiendaDao: ProductoTiendaDao,
+    private val carritoDao: CarritoTemporalDao
 ) : InventarioRepository {
 
     override fun getInventarioDisponible(): Flow<List<InventarioConDetalles>> =
@@ -56,6 +58,7 @@ class InventarioRepositoryImpl @Inject constructor(
                         )
                     )
                 }
+                carritoDao.deleteAll()
                 insertedIds
             }
             Result.success(ids)

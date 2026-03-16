@@ -39,6 +39,7 @@ fun ProductoFormScreen(
             when (event) {
                 is UiEvent.SaveSuccess -> onNavigateBack()
                 is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                else -> {}
             }
         }
     }
