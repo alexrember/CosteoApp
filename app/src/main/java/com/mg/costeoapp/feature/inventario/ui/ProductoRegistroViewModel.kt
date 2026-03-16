@@ -76,7 +76,15 @@ class ProductoRegistroViewModel @Inject constructor(
         }
 
         if (codigoBarras.isNotBlank()) {
-            buscarEnApis(codigoBarras)
+            // Usar cache del scanner si disponible (evita doble llamada API)
+            val cachedResults = compraManager.lastSearchResults
+            val cachedNutricion = compraManager.lastNutricion
+            if (cachedResults != null) {
+                aplicarResultados(cachedResults, cachedNutricion)
+                compraManager.clearSearchCache()
+            } else {
+                buscarEnApis(codigoBarras)
+            }
         }
     }
 
@@ -87,7 +95,7 @@ class ProductoRegistroViewModel @Inject constructor(
             val deferredWalmart = async {
                 withTimeoutOrNull(8000L) {
                     walmartRepository.searchByBarcode(barcode).getOrNull()
-                }
+                } ?: emptyList()
             }
 
             val deferredNutricion = async {
@@ -97,63 +105,69 @@ class ProductoRegistroViewModel @Inject constructor(
             }
 
             val walmartResults = deferredWalmart.await()
-            nutricionExterna = deferredNutricion.await()
+            val nutricion = deferredNutricion.await()
+            aplicarResultados(walmartResults, nutricion)
+        }
+    }
 
-            // Construir fuentes de datos
-            val dataSources = mutableListOf<ProductDataSource>()
+    private fun aplicarResultados(
+        walmartResults: List<com.mg.costeoapp.core.domain.model.StoreSearchResult>,
+        nutricion: NutricionExterna?
+    ) {
+        nutricionExterna = nutricion
+        val dataSources = mutableListOf<ProductDataSource>()
 
-            val best = walmartResults?.firstOrNull { it.isAvailable }
-            if (best != null) {
-                val contenido = parseContenidoFromName(best.productName)
+        val best = walmartResults.firstOrNull { it.isAvailable }
+        if (best != null) {
+            val contenido = parseContenidoFromName(best.productName)
+            dataSources.add(
+                ProductDataSource(
+                    sourceName = "Walmart SV",
+                    nombre = best.productName,
+                    precio = best.price,
+                    unidadMedida = contenido?.unidad ?: mapVtexUnit(best.measurementUnit),
+                    cantidadPorEmpaque = contenido?.cantidad ?: best.unitMultiplier ?: 1.0
+                )
+            )
+        }
+
+        if (nutricionExterna != null) {
+            val offContenido = nutricionExterna!!.cantidad?.let { parseContenidoFromName(it) }
+            val hasData = !nutricionExterna!!.nombreProducto.isNullOrBlank() || offContenido != null
+            if (hasData) {
                 dataSources.add(
                     ProductDataSource(
-                        sourceName = "Walmart SV",
-                        nombre = best.productName,
-                        precio = best.price,
-                        unidadMedida = contenido?.unidad ?: mapVtexUnit(best.measurementUnit),
-                        cantidadPorEmpaque = contenido?.cantidad ?: best.unitMultiplier ?: 1.0
+                        sourceName = "Open Food Facts",
+                        nombre = nutricionExterna!!.nombreProducto,
+                        unidadMedida = offContenido?.unidad,
+                        cantidadPorEmpaque = offContenido?.cantidad
                     )
                 )
             }
+        }
 
-            if (nutricionExterna != null) {
-                val offContenido = nutricionExterna!!.cantidad?.let { parseContenidoFromName(it) }
-                val hasData = !nutricionExterna!!.nombreProducto.isNullOrBlank() || offContenido != null
-                if (hasData) {
-                    dataSources.add(
-                        ProductDataSource(
-                            sourceName = "Open Food Facts",
-                            nombre = nutricionExterna!!.nombreProducto,
-                            unidadMedida = offContenido?.unidad,
-                            cantidadPorEmpaque = offContenido?.cantidad
-                        )
-                    )
+        val merged = ProductDataMerger.merge(dataSources)
+
+        _uiState.update {
+            it.copy(
+                buscandoEnApi = false,
+                mergedData = merged,
+                nombre = autoFill(merged.nombre, it.nombre),
+                precio = when (val p = merged.precio) {
+                    is FieldResolution.Resolved -> CurrencyFormatter.fromCents(p.value).replace("$", "")
+                    else -> it.precio
+                },
+                unidadMedida = when (val u = merged.unidadMedida) {
+                    is FieldResolution.Resolved -> u.value
+                    is FieldResolution.Conflict -> u.options[0].value
+                    else -> it.unidadMedida
+                },
+                cantidadPorEmpaque = when (val c = merged.cantidadPorEmpaque) {
+                    is FieldResolution.Resolved -> formatCantidad(c.value)
+                    is FieldResolution.Conflict -> formatCantidad(c.options[0].value)
+                    else -> it.cantidadPorEmpaque
                 }
-            }
-
-            val merged = ProductDataMerger.merge(dataSources)
-
-            _uiState.update {
-                it.copy(
-                    buscandoEnApi = false,
-                    mergedData = merged,
-                    nombre = autoFill(merged.nombre, it.nombre),
-                    precio = when (val p = merged.precio) {
-                        is FieldResolution.Resolved -> CurrencyFormatter.fromCents(p.value).replace("$", "")
-                        else -> it.precio
-                    },
-                    unidadMedida = when (val u = merged.unidadMedida) {
-                        is FieldResolution.Resolved -> u.value
-                        is FieldResolution.Conflict -> u.options[0].value
-                        else -> it.unidadMedida
-                    },
-                    cantidadPorEmpaque = when (val c = merged.cantidadPorEmpaque) {
-                        is FieldResolution.Resolved -> formatCantidad(c.value)
-                        is FieldResolution.Conflict -> formatCantidad(c.options[0].value)
-                        else -> it.cantidadPorEmpaque
-                    }
-                )
-            }
+            )
         }
     }
 

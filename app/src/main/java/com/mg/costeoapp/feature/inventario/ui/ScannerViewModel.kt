@@ -131,6 +131,9 @@ class ScannerViewModel @Inject constructor(
             val walmartResults = deferredWalmart.await()
             lastNutricion = deferredNutricion.await()
 
+            // Cachear para que ProductoRegistroViewModel no tenga que buscar de nuevo
+            compraManager.cacheSearchResults(walmartResults, lastNutricion)
+
             if (walmartResults.isNotEmpty()) {
                 _uiState.update {
                     it.copy(

@@ -116,6 +116,23 @@ class CompraManager @Inject constructor(
         carritoDao.deleteAll()
     }
 
+    // Cache de resultados de busqueda para evitar doble llamada API
+    var lastSearchResults: List<com.mg.costeoapp.core.domain.model.StoreSearchResult>? = null
+    var lastNutricion: com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna? = null
+
+    fun cacheSearchResults(
+        results: List<com.mg.costeoapp.core.domain.model.StoreSearchResult>,
+        nutricion: com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna?
+    ) {
+        lastSearchResults = results
+        lastNutricion = nutricion
+    }
+
+    fun clearSearchCache() {
+        lastSearchResults = null
+        lastNutricion = null
+    }
+
     fun getItems(): List<CarritoItem> = _items.value
     fun getTienda(): Tienda? = _tienda.value
     fun hayCompraEnCurso(): Boolean = _items.value.isNotEmpty() || _tienda.value != null
