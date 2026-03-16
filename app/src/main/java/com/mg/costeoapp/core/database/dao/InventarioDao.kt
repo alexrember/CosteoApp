@@ -77,7 +77,7 @@ interface InventarioDao {
     @Query("""
         SELECT t.id AS tiendaId, t.nombre AS tiendaNombre,
                COUNT(i.id) AS totalItems,
-               SUM(i.precio_compra) AS valorTotal
+               SUM(i.precio_compra * i.cantidad) AS valorTotal
         FROM inventario i
         INNER JOIN tiendas t ON i.tienda_id = t.id
         WHERE i.agotado = 0 AND i.activo = 1

@@ -36,6 +36,12 @@ class ScannerViewModel @Inject constructor(
     private val _events = Channel<UiEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
+    sealed interface ScannerNavEvent {
+        data class GoToRegistro(val barcode: String?) : ScannerNavEvent
+    }
+    private val _navEvents = Channel<ScannerNavEvent>(Channel.BUFFERED)
+    val navEvents = _navEvents.receiveAsFlow()
+
     var lastNutricion: NutricionExterna? = null
         private set
 
@@ -163,31 +169,26 @@ class ScannerViewModel @Inject constructor(
             // Cachear para que ProductoRegistroViewModel no tenga que buscar de nuevo
             compraManager.cacheSearchResults(walmartResults, lastNutricion)
 
-            if (walmartResults.isNotEmpty()) {
-                _uiState.update {
-                    it.copy(
-                        isProcessing = false,
-                        lookupState = BarcodeLookupState.EncontradoApi(barcode, walmartResults)
-                    )
-                }
-            } else {
-                _uiState.update {
-                    it.copy(
-                        isProcessing = false,
-                        lookupState = BarcodeLookupState.NoEncontrado(barcode)
-                    )
-                }
+            _uiState.update {
+                it.copy(
+                    isProcessing = false,
+                    lookupState = if (walmartResults.isNotEmpty())
+                        BarcodeLookupState.EncontradoApi(barcode, walmartResults)
+                    else
+                        BarcodeLookupState.NoEncontrado(barcode)
+                )
             }
-            // NO resetear processingBarcode aqui — se resetea cuando el usuario vuelve
+            // Navegar al registro via channel one-shot
+            _navEvents.send(ScannerNavEvent.GoToRegistro(barcode))
         }
     }
 
-    /** Llamar al volver del registro. Permite escanear otros codigos pero no el mismo. */
+    /** Llamar al volver del registro. Permite re-escanear cualquier codigo. */
     fun onReturnFromRegistro() {
+        processingBarcode = null
         _uiState.update {
             it.copy(lookupState = BarcodeLookupState.Idle, isProcessing = false)
         }
-        // processingBarcode se mantiene para no re-procesar el mismo codigo
     }
 
     /** Reset completo para empezar de nuevo */

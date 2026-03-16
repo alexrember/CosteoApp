@@ -95,17 +95,14 @@ fun ScannerScreen(
         }
     }
 
-    LaunchedEffect(uiState.lookupState) {
-        when (val state = uiState.lookupState) {
-            is BarcodeLookupState.EncontradoApi -> {
-                onNavigateToRegistro(state.barcode)
-                viewModel.onReturnFromRegistro()
+    LaunchedEffect(Unit) {
+        viewModel.navEvents.collect { event ->
+            when (event) {
+                is ScannerViewModel.ScannerNavEvent.GoToRegistro -> {
+                    onNavigateToRegistro(event.barcode)
+                    viewModel.onReturnFromRegistro()
+                }
             }
-            is BarcodeLookupState.NoEncontrado -> {
-                onNavigateToRegistro(state.barcode)
-                viewModel.onReturnFromRegistro()
-            }
-            else -> {}
         }
     }
 

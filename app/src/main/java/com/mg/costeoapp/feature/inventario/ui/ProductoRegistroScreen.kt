@@ -21,7 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -56,18 +58,20 @@ fun ProductoRegistroScreen(
     val scope = rememberCoroutineScope()
     val ocrProcessor = remember { OcrNutritionProcessor(context) }
 
-    // Crear archivo temporal para foto
-    val photoUri = remember {
+    // Crear archivo temporal fresco para cada foto
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+
+    fun createPhotoUri(): Uri {
         val file = File(context.cacheDir, "ocr_nutrition_${System.currentTimeMillis()}.jpg")
-        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success) {
+        if (success && photoUri != null) {
             scope.launch {
-                val result = ocrProcessor.processImage(photoUri)
+                val result = ocrProcessor.processImage(photoUri!!)
                 if (result != null) {
                     viewModel.onOcrResult(result)
                 } else {
@@ -202,7 +206,11 @@ fun ProductoRegistroScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedButton(
-                onClick = { cameraLauncher.launch(photoUri) },
+                onClick = {
+                    val uri = createPhotoUri()
+                    photoUri = uri
+                    cameraLauncher.launch(uri)
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Filled.CameraAlt, contentDescription = null,

@@ -49,14 +49,22 @@ class InventarioRepositoryImpl @Inject constructor(
                 for (item in items) {
                     val id = inventarioDao.insert(item)
                     insertedIds.add(id)
-                    productoTiendaDao.insert(
-                        ProductoTienda(
-                            productoId = item.productoId,
-                            tiendaId = item.tiendaId,
-                            precio = item.precioCompra,
-                            fechaRegistro = item.fechaCompra
-                        )
-                    )
+                    // Solo insertar precio si no existe uno para esta compra
+                    val precioExistente = productoTiendaDao.getPrecioActivo(item.productoId, item.tiendaId)
+                    if (precioExistente == null || precioExistente.precio != item.precioCompra) {
+                        try {
+                            productoTiendaDao.insert(
+                                ProductoTienda(
+                                    productoId = item.productoId,
+                                    tiendaId = item.tiendaId,
+                                    precio = item.precioCompra,
+                                    fechaRegistro = item.fechaCompra
+                                )
+                            )
+                        } catch (_: Exception) {
+                            // Duplicate key — precio ya registrado, ignorar
+                        }
+                    }
                 }
                 carritoDao.deleteAll()
                 insertedIds
