@@ -120,7 +120,7 @@ class PlatoRepositoryImpl @Inject constructor(
     override suspend fun calculatePrecioVenta(plato: Plato, costoTotal: Long): Long? {
         if (plato.precioVentaManual != null) return plato.precioVentaManual
         val margen = plato.margenPorcentaje ?: return null
-        if (margen <= 0 || margen > 100) return null
+        if (margen <= 0 || margen >= 100) return null
         return (costoTotal.toDouble() / (1.0 - margen / 100.0)).roundToLong()
     }
 
