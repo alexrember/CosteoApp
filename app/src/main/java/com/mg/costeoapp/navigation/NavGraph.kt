@@ -39,6 +39,7 @@ import com.mg.costeoapp.feature.productos.ui.ProductoPrecioFormScreen
 import com.mg.costeoapp.feature.platos.ui.PlatoDetailScreen
 import com.mg.costeoapp.feature.platos.ui.PlatoFormScreen
 import com.mg.costeoapp.feature.platos.ui.PlatoListScreen
+import com.mg.costeoapp.feature.historial.HistorialPreciosScreen
 import com.mg.costeoapp.feature.platos.ui.SimuladorScreen
 import com.mg.costeoapp.feature.settings.ui.SettingsScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaFormScreen
@@ -179,6 +180,9 @@ fun CosteoNavGraph(
                     },
                     onNavigateToAddPrecio = { productoId ->
                         navController.navigate(ProductoPrecioFormRoute(productoId = productoId))
+                    },
+                    onNavigateToHistorial = { productoId ->
+                        navController.navigate(HistorialPreciosRoute(productoId = productoId))
                     }
                 )
             }
@@ -338,6 +342,12 @@ fun CosteoNavGraph(
 
             composable<SettingsRoute> {
                 SettingsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable<HistorialPreciosRoute> {
+                HistorialPreciosScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

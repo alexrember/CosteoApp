@@ -1,6 +1,7 @@
 package com.mg.costeoapp.feature.productos.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +51,7 @@ fun ProductoDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEdit: (Long) -> Unit,
     onNavigateToAddPrecio: (Long) -> Unit,
+    onNavigateToHistorial: (Long) -> Unit = {},
     viewModel: ProductoDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -107,10 +110,19 @@ fun ProductoDetailScreen(
             item { NutricionSection(producto) }
             item { Spacer(modifier = Modifier.height(16.dp)) }
             item {
-                Text(
-                    text = "Precios por tienda",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Precios por tienda",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    TextButton(onClick = { onNavigateToHistorial(producto.id) }) {
+                        Text("Ver historial")
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
             }
             if (uiState.preciosConTienda.isEmpty()) {

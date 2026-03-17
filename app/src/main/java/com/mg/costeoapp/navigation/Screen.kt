@@ -32,3 +32,4 @@ import kotlinx.serialization.Serializable
 
 // --- Fase 5 ---
 @Serializable object SettingsRoute
+@Serializable data class HistorialPreciosRoute(val productoId: Long)
