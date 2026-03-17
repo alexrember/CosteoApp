@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mg.costeoapp.core.database.entity.Inventario
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
+import com.mg.costeoapp.core.domain.engine.PricePropagationService
 import com.mg.costeoapp.feature.inventario.data.CompraManager
 import com.mg.costeoapp.feature.inventario.data.InventarioRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class CarritoViewModel @Inject constructor(
     private val inventarioRepository: InventarioRepository,
-    private val compraManager: CompraManager
+    private val compraManager: CompraManager,
+    private val propagationService: PricePropagationService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CarritoUiState())
@@ -76,6 +78,16 @@ class CarritoViewModel @Inject constructor(
 
             inventarioRepository.confirmarCompra(inventarioItems).fold(
                 onSuccess = {
+                    // Propagar cambios de precios a recetas y platos
+                    for (item in _uiState.value.items) {
+                        try {
+                            propagationService.onPriceChanged(
+                                productoId = item.producto.id,
+                                precioAnterior = 0,
+                                precioNuevo = item.precioUnitario
+                            )
+                        } catch (_: Exception) { }
+                    }
                     compraManager.limpiar()
                     _uiState.update { it.copy(isConfirming = false) }
                     _events.send(UiEvent.SaveSuccess)
