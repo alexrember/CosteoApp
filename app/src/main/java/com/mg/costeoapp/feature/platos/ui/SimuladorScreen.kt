@@ -33,12 +33,15 @@ fun SimuladorScreen(
     val showPicker by viewModel.showPicker.collectAsStateWithLifecycle()
     val prefabricados by viewModel.prefabricados.collectAsStateWithLifecycle()
     val productos by viewModel.productos.collectAsStateWithLifecycle()
+    val pickerSearchQuery by viewModel.pickerSearchQuery.collectAsStateWithLifecycle()
+    val pickerTab by viewModel.pickerTab.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                is UiEvent.SaveSuccess -> snackbarHostState.showSnackbar("Plato guardado")
                 else -> {}
             }
         }
@@ -174,10 +177,10 @@ fun SimuladorScreen(
         ComponentePickerDialog(
             prefabricados = prefabricados,
             productos = productos,
-            searchQuery = "",
-            selectedTab = 0,
-            onSearchChanged = {},
-            onTabChanged = {},
+            searchQuery = pickerSearchQuery,
+            selectedTab = pickerTab,
+            onSearchChanged = viewModel::onPickerSearchChanged,
+            onTabChanged = viewModel::onPickerTabChanged,
             onPrefabricadoSelected = viewModel::onAddPrefabricado,
             onProductoSelected = viewModel::onAddProducto,
             onDismiss = viewModel::onDismissPicker

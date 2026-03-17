@@ -11,6 +11,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -37,7 +38,7 @@ class PlatoListViewModel @Inject constructor(
                 } else {
                     repository.search(_uiState.value.searchQuery)
                 }
-                flow.collect { platos ->
+                flow.distinctUntilChanged().collect { platos ->
                     val items = platos.map { plato ->
                         async {
                             val costeo = repository.calculateCost(plato.id)

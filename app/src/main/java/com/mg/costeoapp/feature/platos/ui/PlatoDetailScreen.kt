@@ -10,6 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -18,6 +21,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mg.costeoapp.core.domain.model.Advertencia
+import com.mg.costeoapp.core.ui.components.ConfirmDeleteDialog
 import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
 import com.mg.costeoapp.core.ui.components.LoadingIndicator
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
@@ -32,6 +36,7 @@ fun PlatoDetailScreen(
     viewModel: PlatoDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LifecycleResumeEffect(Unit) {
         viewModel.refresh()
@@ -57,7 +62,7 @@ fun PlatoDetailScreen(
                         IconButton(onClick = { onNavigateToEdit(plato.id) }) {
                             Icon(Icons.Filled.Edit, contentDescription = "Editar")
                         }
-                        IconButton(onClick = { viewModel.softDelete() }) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
                         }
                     }
@@ -143,5 +148,16 @@ fun PlatoDetailScreen(
                 }
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        ConfirmDeleteDialog(
+            itemName = uiState.plato?.nombre ?: "",
+            onConfirm = {
+                showDeleteDialog = false
+                viewModel.softDelete()
+            },
+            onDismiss = { showDeleteDialog = false }
+        )
     }
 }

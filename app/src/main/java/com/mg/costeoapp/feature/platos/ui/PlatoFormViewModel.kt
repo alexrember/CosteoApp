@@ -154,14 +154,20 @@ class PlatoFormViewModel @Inject constructor(
                 createdAt = state.plato?.createdAt ?: System.currentTimeMillis()
             )
 
-            val componentes = state.componentes.map { item ->
-                PlatoComponente(
-                    platoId = 0,
-                    prefabricadoId = item.prefabricado?.id,
-                    productoId = item.producto?.id,
-                    cantidad = item.cantidad.toDoubleOrNull() ?: 1.0
-                )
-            }
+            val componentes = state.componentes
+                .filter { item ->
+                    val hasPref = item.prefabricado != null
+                    val hasProd = item.producto != null
+                    (hasPref xor hasProd) && (item.cantidad.toDoubleOrNull() ?: 0.0) > 0
+                }
+                .map { item ->
+                    PlatoComponente(
+                        platoId = 0,
+                        prefabricadoId = item.prefabricado?.id,
+                        productoId = item.producto?.id,
+                        cantidad = item.cantidad.toDoubleOrNull() ?: 1.0
+                    )
+                }
 
             if (state.isEditMode) {
                 platoRepository.updatePlato(plato, componentes).fold(
@@ -195,7 +201,18 @@ class PlatoFormViewModel @Inject constructor(
         if (!ValidationUtils.isValidName(state.nombre)) errors["nombre"] = "Nombre requerido (min 2 chars)"
         if (state.componentes.isEmpty()) errors["componentes"] = "Agrega al menos un componente"
         val margen = state.margenPorcentaje.toDoubleOrNull()
-        if (margen != null && (margen <= 0 || margen > 100)) errors["margen"] = "Margen debe ser 1-100%"
+        if (margen != null && (margen <= 0 || margen >= 100)) errors["margen"] = "Margen debe ser 1-99%"
+        val invalidXor = state.componentes.any { item ->
+            val hasPref = item.prefabricado != null
+            val hasProd = item.producto != null
+            (hasPref && hasProd) || (!hasPref && !hasProd)
+        }
+        if (invalidXor) errors["componentes"] = "Cada componente debe tener un prefabricado o un producto (no ambos)"
+        val invalidCantidad = state.componentes.any { item ->
+            val c = item.cantidad.toDoubleOrNull()
+            c == null || c <= 0
+        }
+        if (invalidCantidad) errors["cantidad"] = "Todas las cantidades deben ser mayores a 0"
         _uiState.update { it.copy(fieldErrors = errors) }
         return errors.isEmpty()
     }

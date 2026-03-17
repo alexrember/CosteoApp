@@ -289,6 +289,9 @@ fun CosteoNavGraph(
                     },
                     onNavigateToForm = {
                         navController.navigate(PlatoFormRoute())
+                    },
+                    onNavigateToSimulador = {
+                        navController.navigate(SimuladorRoute)
                     }
                 )
             }

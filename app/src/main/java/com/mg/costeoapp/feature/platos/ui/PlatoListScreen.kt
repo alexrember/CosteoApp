@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -26,14 +27,24 @@ import com.mg.costeoapp.core.util.CurrencyFormatter
 fun PlatoListScreen(
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToForm: () -> Unit,
+    onNavigateToSimulador: () -> Unit = {},
     viewModel: PlatoListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToForm) {
-                Icon(Icons.Filled.Add, contentDescription = "Nuevo plato")
+            Column(horizontalAlignment = Alignment.End) {
+                SmallFloatingActionButton(
+                    onClick = onNavigateToSimulador,
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                ) {
+                    Icon(Icons.Filled.Calculate, contentDescription = "Simulador")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                FloatingActionButton(onClick = onNavigateToForm) {
+                    Icon(Icons.Filled.Add, contentDescription = "Nuevo plato")
+                }
             }
         }
     ) { padding ->

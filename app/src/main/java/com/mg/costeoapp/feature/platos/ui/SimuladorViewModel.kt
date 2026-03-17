@@ -37,7 +37,6 @@ class SimuladorViewModel @Inject constructor(
     private val _events = Channel<UiEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
-    // Picker state
     private val _showPicker = MutableStateFlow(false)
     val showPicker: StateFlow<Boolean> = _showPicker.asStateFlow()
 
@@ -46,6 +45,12 @@ class SimuladorViewModel @Inject constructor(
 
     private val _productos = MutableStateFlow<List<Producto>>(emptyList())
     val productos: StateFlow<List<Producto>> = _productos.asStateFlow()
+
+    private val _pickerSearchQuery = MutableStateFlow("")
+    val pickerSearchQuery: StateFlow<String> = _pickerSearchQuery.asStateFlow()
+
+    private val _pickerTab = MutableStateFlow(0)
+    val pickerTab: StateFlow<Int> = _pickerTab.asStateFlow()
 
     fun onMargenChanged(v: String) {
         _uiState.update { it.copy(margenPorcentaje = v) }
@@ -56,11 +61,20 @@ class SimuladorViewModel @Inject constructor(
         viewModelScope.launch {
             _prefabricados.value = prefabricadoRepository.getAll().first()
             _productos.value = productoRepository.getAll().first()
+            _pickerSearchQuery.value = ""
+            _pickerTab.value = 0
             _showPicker.value = true
         }
     }
 
-    fun onDismissPicker() { _showPicker.value = false }
+    fun onDismissPicker() {
+        _showPicker.value = false
+        _pickerSearchQuery.value = ""
+        _pickerTab.value = 0
+    }
+
+    fun onPickerSearchChanged(q: String) { _pickerSearchQuery.value = q }
+    fun onPickerTabChanged(tab: Int) { _pickerTab.value = tab }
 
     fun onAddPrefabricado(pref: Prefabricado) {
         _uiState.update {
@@ -133,7 +147,7 @@ class SimuladorViewModel @Inject constructor(
             platoRepository.createPlato(plato, componentes).fold(
                 onSuccess = {
                     _uiState.update { it.copy(showGuardarDialog = false) }
-                    _events.send(UiEvent.ShowError("Plato guardado exitosamente"))
+                    _events.send(UiEvent.SaveSuccess)
                     onLimpiar()
                 },
                 onFailure = { e ->
@@ -149,6 +163,7 @@ class SimuladorViewModel @Inject constructor(
 
             for (item in _uiState.value.componentes) {
                 val cantidad = item.cantidad.toDoubleOrNull() ?: 0.0
+                if (cantidad <= 0) continue
                 when {
                     item.prefabricado != null -> {
                         val costeo = pricingEngine.calculatePrefabricadoCost(item.prefabricado.id)
