@@ -7,6 +7,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mg.costeoapp.core.database.dao.CarritoTemporalDao
 import com.mg.costeoapp.core.database.dao.InventarioDao
 import com.mg.costeoapp.core.database.dao.PrefabricadoDao
+import com.mg.costeoapp.core.database.dao.PlatoComponenteDao
+import com.mg.costeoapp.core.database.dao.PlatoDao
 import com.mg.costeoapp.core.database.dao.PrefabricadoIngredienteDao
 import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
@@ -14,6 +16,8 @@ import com.mg.costeoapp.core.database.dao.TiendaDao
 import com.mg.costeoapp.core.database.entity.CarritoTemporal
 import com.mg.costeoapp.core.database.entity.CostoIndirecto
 import com.mg.costeoapp.core.database.entity.Inventario
+import com.mg.costeoapp.core.database.entity.Plato
+import com.mg.costeoapp.core.database.entity.PlatoComponente
 import com.mg.costeoapp.core.database.entity.Prefabricado
 import com.mg.costeoapp.core.database.entity.PrefabricadoIngrediente
 import com.mg.costeoapp.core.database.entity.Producto
@@ -29,9 +33,11 @@ import com.mg.costeoapp.core.database.entity.Tienda
         CarritoTemporal::class,
         Prefabricado::class,
         PrefabricadoIngrediente::class,
-        CostoIndirecto::class
+        CostoIndirecto::class,
+        Plato::class,
+        PlatoComponente::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class CosteoDatabase : RoomDatabase() {
@@ -42,6 +48,8 @@ abstract class CosteoDatabase : RoomDatabase() {
     abstract fun carritoTemporalDao(): CarritoTemporalDao
     abstract fun prefabricadoDao(): PrefabricadoDao
     abstract fun prefabricadoIngredienteDao(): PrefabricadoIngredienteDao
+    abstract fun platoDao(): PlatoDao
+    abstract fun platoComponenteDao(): PlatoComponenteDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -132,6 +140,42 @@ abstract class CosteoDatabase : RoomDatabase() {
                     )
                 """)
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_costos_indirectos_prefabricado_id ON costos_indirectos(prefabricado_id)")
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS platos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        nombre TEXT NOT NULL,
+                        descripcion TEXT,
+                        margen_porcentaje REAL,
+                        precio_venta_manual INTEGER,
+                        activo INTEGER NOT NULL DEFAULT 1,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_platos_nombre ON platos(nombre)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_platos_activo ON platos(activo)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS plato_componente (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        plato_id INTEGER NOT NULL,
+                        prefabricado_id INTEGER,
+                        producto_id INTEGER,
+                        cantidad REAL NOT NULL,
+                        notas TEXT,
+                        FOREIGN KEY (plato_id) REFERENCES platos(id) ON DELETE CASCADE,
+                        FOREIGN KEY (prefabricado_id) REFERENCES prefabricados(id) ON DELETE RESTRICT,
+                        FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE RESTRICT
+                    )
+                """)
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_plato_componente_plato_id ON plato_componente(plato_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_plato_componente_prefabricado_id ON plato_componente(prefabricado_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_plato_componente_producto_id ON plato_componente(producto_id)")
             }
         }
 
