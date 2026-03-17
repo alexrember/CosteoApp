@@ -43,6 +43,7 @@ import com.mg.costeoapp.core.util.UnidadMedida
 @Composable
 fun PrefabricadoFormScreen(
     onNavigateBack: () -> Unit,
+    onCreated: (Long) -> Unit = { onNavigateBack() },
     viewModel: PrefabricadoFormViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -52,6 +53,7 @@ fun PrefabricadoFormScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is UiEvent.SaveSuccess -> onNavigateBack()
+                is UiEvent.SaveSuccessWithId -> onCreated(event.id)
                 is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
                 else -> {}
             }

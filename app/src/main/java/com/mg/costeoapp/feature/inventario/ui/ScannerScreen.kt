@@ -89,8 +89,7 @@ fun ScannerScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
-                is UiEvent.SaveSuccess -> {}
-                is UiEvent.ConfirmRemoval -> {}
+                else -> {}
             }
         }
     }

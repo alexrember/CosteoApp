@@ -128,34 +128,38 @@ fun PrefabricadoDetailScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            items(uiState.ingredientes) { item ->
-                val unidad = UnidadMedida.fromCodigo(item.ingrediente.unidadUsada)
-                val fuente = uiState.costeo?.fuentesPrecio?.get(item.producto.id)
+            items(uiState.ingredientesCosto) { item ->
+                val unidad = UnidadMedida.fromCodigo(item.unidadUsada)
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(item.producto.nombre, style = MaterialTheme.typography.bodyMedium)
-                        Text("${item.ingrediente.cantidadUsada.formatDisplay()} ${unidad?.nombreDisplay ?: ""}",
+                        Text(item.productoNombre, style = MaterialTheme.typography.bodyMedium)
+                        Text("${item.cantidadUsada.formatDisplay()} ${unidad?.nombreDisplay ?: ""}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            when (item.fuente) {
+                                FuentePrecio.INVENTARIO -> "Inventario"
+                                FuentePrecio.PRECIO_RECIENTE -> "Precio reciente"
+                                FuentePrecio.SIN_PRECIO -> "Sin precio"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = when (item.fuente) {
+                                FuentePrecio.INVENTARIO -> MaterialTheme.colorScheme.secondary
+                                FuentePrecio.PRECIO_RECIENTE -> MaterialTheme.colorScheme.tertiary
+                                FuentePrecio.SIN_PRECIO -> MaterialTheme.colorScheme.error
+                            }
+                        )
                     }
-                    Text(
-                        when (fuente) {
-                            FuentePrecio.INVENTARIO -> "Inventario"
-                            FuentePrecio.PRECIO_RECIENTE -> "Precio reciente"
-                            FuentePrecio.SIN_PRECIO -> "Sin precio"
-                            null -> ""
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = when (fuente) {
-                            FuentePrecio.INVENTARIO -> MaterialTheme.colorScheme.secondary
-                            FuentePrecio.PRECIO_RECIENTE -> MaterialTheme.colorScheme.tertiary
-                            FuentePrecio.SIN_PRECIO -> MaterialTheme.colorScheme.error
-                            null -> MaterialTheme.colorScheme.onSurface
-                        }
-                    )
+                    Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
+                        item.costoTotal?.let {
+                            Text(CurrencyFormatter.fromCents(it),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary)
+                        } ?: Text("—", style = MaterialTheme.typography.titleSmall)
+                    }
                 }
                 HorizontalDivider()
             }

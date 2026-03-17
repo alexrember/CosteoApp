@@ -162,22 +162,29 @@ class PrefabricadoFormViewModel @Inject constructor(
                 )
             }
 
-            val result = if (state.isEditMode) {
-                repository.update(prefabricado, ingredientes)
+            if (state.isEditMode) {
+                repository.update(prefabricado, ingredientes).fold(
+                    onSuccess = {
+                        _uiState.update { it.copy(isSaving = false) }
+                        _events.send(UiEvent.SaveSuccess)
+                    },
+                    onFailure = { e ->
+                        _uiState.update { it.copy(isSaving = false) }
+                        _events.send(UiEvent.ShowError(e.message ?: "Error al guardar"))
+                    }
+                )
             } else {
-                repository.create(prefabricado, ingredientes).map { }
+                repository.create(prefabricado, ingredientes).fold(
+                    onSuccess = { newId ->
+                        _uiState.update { it.copy(isSaving = false) }
+                        _events.send(UiEvent.SaveSuccessWithId(newId))
+                    },
+                    onFailure = { e ->
+                        _uiState.update { it.copy(isSaving = false) }
+                        _events.send(UiEvent.ShowError(e.message ?: "Error al guardar"))
+                    }
+                )
             }
-
-            result.fold(
-                onSuccess = {
-                    _uiState.update { it.copy(isSaving = false) }
-                    _events.send(UiEvent.SaveSuccess)
-                },
-                onFailure = { e ->
-                    _uiState.update { it.copy(isSaving = false) }
-                    _events.send(UiEvent.ShowError(e.message ?: "Error al guardar"))
-                }
-            )
         }
     }
 

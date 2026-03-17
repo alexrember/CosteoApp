@@ -264,7 +264,12 @@ fun CosteoNavGraph(
 
             composable<RecetaFormRoute> {
                 PrefabricadoFormScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onCreated = { newId ->
+                        navController.navigate(RecetaDetailRoute(recetaId = newId)) {
+                            popUpTo(RecetaListRoute) { inclusive = false }
+                        }
+                    }
                 )
             }
         }

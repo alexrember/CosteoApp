@@ -62,6 +62,7 @@ fun CarritoScreen(
                 is UiEvent.SaveSuccess -> onCompraConfirmada()
                 is UiEvent.ConfirmRemoval -> itemToRemoveIndex = event.index
                 is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                else -> {}
             }
         }
     }

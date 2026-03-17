@@ -3,8 +3,11 @@ package com.mg.costeoapp.feature.prefabricados.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mg.costeoapp.core.domain.engine.PricingEngine
+import com.mg.costeoapp.core.domain.model.FuentePrecio
 import com.mg.costeoapp.feature.prefabricados.data.PrefabricadoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlin.math.roundToLong
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class PrefabricadoDetailViewModel @Inject constructor(
     private val repository: PrefabricadoRepository,
+    private val pricingEngine: PricingEngine,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -43,10 +47,28 @@ class PrefabricadoDetailViewModel @Inject constructor(
                     val costeo = repository.calculateCost(prefabricadoId)
                     val nutricion = repository.calculateNutricion(prefabricadoId)
 
+                    val ingredientesCosto = data.ingredientes.map { item ->
+                        val precio = pricingEngine.resolvePrice(item.producto.id)
+                        val costoTotal = if (precio.precioUnitario != null) {
+                            val ppu = precio.precioUnitario.toDouble() / item.producto.cantidadPorEmpaque
+                            (ppu * item.ingrediente.cantidadUsada).roundToLong()
+                        } else null
+
+                        IngredienteCostoDetalle(
+                            productoNombre = item.producto.nombre,
+                            cantidadUsada = item.ingrediente.cantidadUsada,
+                            unidadUsada = item.ingrediente.unidadUsada,
+                            precioUnitario = precio.precioUnitario,
+                            costoTotal = costoTotal,
+                            fuente = precio.fuente
+                        )
+                    }
+
                     _uiState.update {
                         it.copy(
                             prefabricado = data.prefabricado,
                             ingredientes = data.ingredientes,
+                            ingredientesCosto = ingredientesCosto,
                             costeo = costeo,
                             nutricion = nutricion,
                             isLoading = false

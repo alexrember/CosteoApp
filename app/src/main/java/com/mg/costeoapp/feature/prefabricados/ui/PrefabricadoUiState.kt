@@ -22,9 +22,19 @@ data class PrefabricadoListUiState(
     val error: String? = null
 )
 
+data class IngredienteCostoDetalle(
+    val productoNombre: String,
+    val cantidadUsada: Double,
+    val unidadUsada: String,
+    val precioUnitario: Long?,
+    val costoTotal: Long?,
+    val fuente: FuentePrecio
+)
+
 data class PrefabricadoDetailUiState(
     val prefabricado: Prefabricado? = null,
     val ingredientes: List<IngredienteConProducto> = emptyList(),
+    val ingredientesCosto: List<IngredienteCostoDetalle> = emptyList(),
     val costeo: CosteoResult? = null,
     val nutricion: NutricionResumen? = null,
     val variantes: List<Prefabricado> = emptyList(),
