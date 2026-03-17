@@ -1,7 +1,7 @@
 ---
 name: costeo-audit-phase
-description: Auditoria multi-experto al completar cada fase de CosteoApp — compilacion, convenciones, rendimiento, seguridad, UI/UX
-version: 1.0.0
+description: Auditoria multi-experto al completar cada fase de CosteoApp — lanza 6 agentes en paralelo con diferentes perfiles
+version: 2.0.0
 metadata:
   domain: quality
   triggers: auditoria, audit, review, fase completa, revision, calidad, hallazgos
@@ -10,126 +10,62 @@ metadata:
   output-format: documentation
 ---
 
-# CosteoApp Auditoria por Fase
+# CosteoApp Auditoria Multi-Experto por Fase
 
-Checklist de auditoria multi-dimension para ejecutar al completar cada fase del proyecto.
+Al completar cada fase, lanzar 6 subagentes en paralelo con perfiles especializados.
+Cada agente revisa el codigo de la fase completada y reporta hallazgos priorizados.
 
 ## Cuando Ejecutar
 
-Al terminar cada fase (Fase 0-8) antes de hacer merge a main. Lanzar con: "auditar fase N".
+Al terminar cada fase (Fase 0-8) antes de pasar a la siguiente. Lanzar con: "auditar fase N" o "lanzar auditoria".
 
-## Core Workflow
+## Agentes a Lanzar (TODOS en paralelo)
 
-1. **Compilar** — Build limpio sin warnings
-2. **Convenciones** — Verificar adherencia a reglas del proyecto
-3. **Arquitectura** — Revisar capas, DI, separacion de concerns
-4. **Rendimiento** — Compose recomposition, queries N+1, memory leaks
-5. **Seguridad** — Input validation, SQL injection, data exposure
-6. **UI/UX** — Material Design 3, accesibilidad, textos espanol
-7. **Tests** — Cobertura de logica critica
-8. **Reporte** — Tabla de hallazgos con severidad
+### 1. QA Expert
+- Cobertura de tests, edge cases, regression risks, missing negative tests
+- Archivos: tests existentes + codigo fuente de la fase
 
-## 1. Compilacion y Build
+### 2. Security Expert
+- OWASP Mobile Top 10, SQL injection, data leakage, input sanitization
+- Archivos: codigo fuente + AndroidManifest.xml + build.gradle.kts
 
-```bash
-./gradlew assembleDebug 2>&1 | grep -E "(error|warning|FAILED)"
-./gradlew lintDebug
+### 3. Android Expert
+- Compose best practices, lifecycle, navigation, Hilt/DI, performance, memory leaks
+- Archivos: Screens, ViewModels, NavGraph
+
+### 4. Architecture Expert
+- Clean Architecture, SOLID, feature modularity, code duplication, scalability
+- Archivos: todo el codigo fuente de la fase
+
+### 5. SQL/Database Expert
+- Schema design, index strategy, query performance, migration, transaction safety
+- Archivos: entities, DAOs, migrations, repositories
+
+### 6. UX Expert
+- User flow friction, error handling UX, empty states, loading states, accessibility
+- Archivos: Screens, components, NavGraph
+
+## Instrucciones para cada agente
+
 ```
-
-- [ ] Build exitoso sin errores
-- [ ] Sin warnings de deprecacion
-- [ ] Lint sin errores criticos
-- [ ] Version catalog (libs.versions.toml) sin dependencias sin usar
-
-## 2. Convenciones del Proyecto
-
-- [ ] Tablas en snake_case plural
-- [ ] Propiedades Kotlin en camelCase
-- [ ] @ColumnInfo con name en snake_case en TODOS los campos
-- [ ] IDs tipo Long (no Int, no UUID)
-- [ ] Timestamps tipo Long (epoch millis)
-- [ ] Soft delete con activo = false (no @Delete fisico)
-- [ ] StateFlow (no LiveData)
-- [ ] Navegacion por callbacks (no navController en Screen)
-- [ ] Textos UI en espanol
-- [ ] Sin comentarios innecesarios
-
-## 3. Arquitectura
-
-- [ ] Entidades en `core.database.entity`
-- [ ] DAOs en `core.database.dao`
-- [ ] Repositories: interface en `feature.{x}.data`, impl con @Singleton
-- [ ] ViewModels con @HiltViewModel
-- [ ] Motores/engines en `core.domain.engine`
-- [ ] DI correctamente configurado (DatabaseModule, FeatureModules)
-- [ ] Sin logica de negocio en Composables
-- [ ] Sin acceso directo a DAOs desde ViewModels (usar Repository)
-
-## 4. Rendimiento
-
-- [ ] LazyColumn (no Column con forEach para listas)
-- [ ] key() en items de LazyColumn
-- [ ] Composables sin side effects no controlados
-- [ ] remember/derivedStateOf donde aplica
-- [ ] Flow collection con WhileSubscribed(5000)
-- [ ] Sin queries N+1 (usar JOINs o @Transaction)
-- [ ] Sin operaciones de DB en main thread
-
-## 5. Seguridad
-
-- [ ] Queries parametrizadas (no concatenacion de strings en SQL)
-- [ ] Input validation en Repository antes de DB
-- [ ] Sin datos sensibles en logs
-- [ ] Sin API keys hardcodeadas
-- [ ] ProGuard/R8 rules para release
-
-## 6. UI/UX
-
-- [ ] Material Design 3 consistente
-- [ ] Colores del tema (no hardcodeados)
-- [ ] Empty states para listas vacias
-- [ ] Loading indicators durante operaciones async
-- [ ] Error messages claros al usuario
-- [ ] Scaffold con TopAppBar en todas las pantallas
-- [ ] FAB para acciones principales de creacion
-- [ ] Padding consistente (16.dp horizontal, 8.dp entre items)
-
-## 7. Tests
-
-- [ ] Tests unitarios para motores/engines
-- [ ] Tests para validaciones de Repository
-- [ ] Tests para conversiones/mappers
-- [ ] Compilacion de tests exitosa
-
-## Formato del Reporte
-
-```markdown
-## Auditoria Fase N — [Fecha]
-
-### Resumen
-- Hallazgos criticos: X
-- Hallazgos medios: X
-- Hallazgos menores: X
-
-### Hallazgos
-
-| # | Severidad | Categoria | Archivo | Descripcion | Estado |
-|---|-----------|-----------|---------|-------------|--------|
-| 1 | CRITICO   | Convencion| Foo.kt:23 | ID tipo Int | Pendiente |
-| 2 | MEDIO     | Rendimiento| Bar.kt:45 | Column en vez de LazyColumn | Pendiente |
-| 3 | MENOR     | UI | Baz.kt:12 | Texto en ingles | Pendiente |
+You are a [ROLE] expert auditing Phase [N] of CosteoApp (Android Kotlin + Jetpack Compose + Room).
+Read ALL relevant files in the phase directories.
+Provide a SHORT prioritized list (max 10 items) with severity (HIGH/MEDIUM/LOW).
+Research only — do NOT edit files.
 ```
-
-## Severidades
-
-- **CRITICO** — Rompe convenciones fundamentales, bug potencial, seguridad
-- **MEDIO** — Rendimiento, arquitectura suboptima, inconsistencia
-- **MENOR** — Cosmetico, textos, padding, nombres
 
 ## Post-Auditoria
 
-1. Corregir todos los hallazgos CRITICOS antes de merge
-2. Corregir MEDIOS si es posible
-3. MENORES pueden quedar como deuda tecnica documentada
-4. Compilar y verificar despues de correcciones
-5. Instalar APK en telefono para prueba manual
+1. Consolidar hallazgos de los 6 agentes en una tabla unica
+2. Deduplicar (mismo hallazgo reportado por multiples agentes = mas urgente)
+3. Presentar resumen al usuario
+4. Corregir todos los HIGH antes de pasar a siguiente fase
+5. MEDIUM corregir si es rapido, sino agregar a PENDIENTES-MCP.md
+6. LOW documentar como deuda tecnica
+
+## Reglas importantes
+
+- NUNCA correr tests en telefono fisico (usar `testDeviceDebugAndroidTest` para managed device)
+- NUNCA incluir Co-Authored-By en commits
+- Despues de corregir, compilar + correr unit tests
+- Instalar APK en telefono: `adb -s 58251FDCR00D6P install -r app/build/outputs/apk/debug/app-debug.apk`
