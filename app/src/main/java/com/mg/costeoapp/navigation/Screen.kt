@@ -29,3 +29,6 @@ import kotlinx.serialization.Serializable
 @Serializable data class PlatoDetailRoute(val platoId: Long)
 @Serializable data class PlatoFormRoute(val platoId: Long? = null)
 @Serializable object SimuladorRoute
+
+// --- Fase 5 ---
+@Serializable object SettingsRoute

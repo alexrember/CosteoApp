@@ -117,6 +117,12 @@ dependencies {
     // Core AndroidX
     implementation(libs.androidx.core.ktx)
 
+    // Charts (Vico)
+    implementation(libs.vico.compose.m3)
+
+    // DataStore
+    implementation(libs.datastore.preferences)
+
     // Retrofit + OkHttp
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.kotlinx.serialization)

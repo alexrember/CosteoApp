@@ -40,6 +40,7 @@ import com.mg.costeoapp.feature.platos.ui.PlatoDetailScreen
 import com.mg.costeoapp.feature.platos.ui.PlatoFormScreen
 import com.mg.costeoapp.feature.platos.ui.PlatoListScreen
 import com.mg.costeoapp.feature.platos.ui.SimuladorScreen
+import com.mg.costeoapp.feature.settings.ui.SettingsScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaFormScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaListScreen
 
@@ -320,6 +321,14 @@ fun CosteoNavGraph(
 
             composable<SimuladorRoute> {
                 SimuladorScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // --- Fase 5: Settings ---
+
+            composable<SettingsRoute> {
+                SettingsScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

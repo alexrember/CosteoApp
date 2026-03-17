@@ -22,6 +22,8 @@ retrofitKotlinxSerialization = "1.0.0"
 camerax = "1.5.0"
 mlkitBarcode = "17.3.0"
 mlkitTextRecognition = "16.0.1"
+vico = "3.0.3"
+datastore = "1.2.1"
 mockk = "1.14.9"
 turbine = "1.2.1"
 archCoreTesting = "2.2.0"
@@ -79,6 +81,12 @@ androidx-camera-view = { group = "androidx.camera", name = "camera-view", versio
 # ML Kit
 mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
 mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitTextRecognition" }
+
+# Charts
+vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
+
+# DataStore
+datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
