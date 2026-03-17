@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Scaffold
@@ -27,6 +28,9 @@ import com.mg.costeoapp.feature.inventario.ui.ProductoRegistroScreen
 import com.mg.costeoapp.feature.inventario.ui.ScannerScreen
 import com.mg.costeoapp.feature.inventario.ui.SeleccionTiendaScreen
 import com.mg.costeoapp.feature.onboarding.ui.OnboardingScreen
+import com.mg.costeoapp.feature.prefabricados.ui.PrefabricadoDetailScreen
+import com.mg.costeoapp.feature.prefabricados.ui.PrefabricadoFormScreen
+import com.mg.costeoapp.feature.prefabricados.ui.PrefabricadoListScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoDetailScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoFormScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoListScreen
@@ -38,14 +42,16 @@ private val bottomNavItems = listOf(
     BottomNavItem("Inicio", Icons.Filled.Home, DashboardRoute),
     BottomNavItem("Tiendas", Icons.Filled.Store, TiendaListRoute),
     BottomNavItem("Productos", Icons.Filled.Inventory2, ProductoListRoute),
-    BottomNavItem("Inventario", Icons.Filled.ShoppingCart, InventarioListRoute)
+    BottomNavItem("Inventario", Icons.Filled.ShoppingCart, InventarioListRoute),
+    BottomNavItem("Recetas", Icons.Filled.Restaurant, RecetaListRoute)
 )
 
 private val bottomNavRoutes = setOf(
     DashboardRoute::class.qualifiedName,
     TiendaListRoute::class.qualifiedName,
     ProductoListRoute::class.qualifiedName,
-    InventarioListRoute::class.qualifiedName
+    InventarioListRoute::class.qualifiedName,
+    RecetaListRoute::class.qualifiedName
 )
 
 private const val PREFS_NAME = "costeo_prefs"
@@ -228,6 +234,37 @@ fun CosteoNavGraph(
                     onCompraConfirmada = {
                         navController.popBackStack(InventarioListRoute, inclusive = false)
                     }
+                )
+            }
+
+            // --- Fase 3: Prefabricados (Recetas) ---
+
+            composable<RecetaListRoute> {
+                PrefabricadoListScreen(
+                    onNavigateToDetail = { id ->
+                        navController.navigate(RecetaDetailRoute(recetaId = id))
+                    },
+                    onNavigateToForm = {
+                        navController.navigate(RecetaFormRoute())
+                    }
+                )
+            }
+
+            composable<RecetaDetailRoute> {
+                PrefabricadoDetailScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEdit = { id ->
+                        navController.navigate(RecetaFormRoute(recetaId = id))
+                    },
+                    onNavigateToDuplicate = { id ->
+                        navController.navigate(RecetaFormRoute(duplicadoDeId = id))
+                    }
+                )
+            }
+
+            composable<RecetaFormRoute> {
+                PrefabricadoFormScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }
