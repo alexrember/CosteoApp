@@ -3,6 +3,7 @@ package com.mg.costeoapp.navigation
 import android.content.Context
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Restaurant
@@ -35,6 +36,9 @@ import com.mg.costeoapp.feature.productos.ui.ProductoDetailScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoFormScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoListScreen
 import com.mg.costeoapp.feature.productos.ui.ProductoPrecioFormScreen
+import com.mg.costeoapp.feature.platos.ui.PlatoDetailScreen
+import com.mg.costeoapp.feature.platos.ui.PlatoFormScreen
+import com.mg.costeoapp.feature.platos.ui.PlatoListScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaFormScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaListScreen
 
@@ -43,7 +47,8 @@ private val bottomNavItems = listOf(
     BottomNavItem("Tiendas", Icons.Filled.Store, TiendaListRoute),
     BottomNavItem("Productos", Icons.Filled.Inventory2, ProductoListRoute),
     BottomNavItem("Inventario", Icons.Filled.ShoppingCart, InventarioListRoute),
-    BottomNavItem("Recetas", Icons.Filled.Restaurant, RecetaListRoute)
+    BottomNavItem("Recetas", Icons.Filled.Restaurant, RecetaListRoute),
+    BottomNavItem("Platos", Icons.Filled.Fastfood, PlatoListRoute)
 )
 
 private val bottomNavRoutes = setOf(
@@ -51,7 +56,8 @@ private val bottomNavRoutes = setOf(
     TiendaListRoute::class.qualifiedName,
     ProductoListRoute::class.qualifiedName,
     InventarioListRoute::class.qualifiedName,
-    RecetaListRoute::class.qualifiedName
+    RecetaListRoute::class.qualifiedName,
+    PlatoListRoute::class.qualifiedName
 )
 
 private const val PREFS_NAME = "costeo_prefs"
@@ -268,6 +274,39 @@ fun CosteoNavGraph(
                     onCreated = { newId ->
                         navController.navigate(RecetaDetailRoute(recetaId = newId)) {
                             popUpTo(RecetaListRoute) { inclusive = false }
+                        }
+                    }
+                )
+            }
+
+            // --- Fase 4: Platos ---
+
+            composable<PlatoListRoute> {
+                PlatoListScreen(
+                    onNavigateToDetail = { id ->
+                        navController.navigate(PlatoDetailRoute(platoId = id))
+                    },
+                    onNavigateToForm = {
+                        navController.navigate(PlatoFormRoute())
+                    }
+                )
+            }
+
+            composable<PlatoDetailRoute> {
+                PlatoDetailScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEdit = { id ->
+                        navController.navigate(PlatoFormRoute(platoId = id))
+                    }
+                )
+            }
+
+            composable<PlatoFormRoute> {
+                PlatoFormScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onCreated = { newId ->
+                        navController.navigate(PlatoDetailRoute(platoId = newId)) {
+                            popUpTo(PlatoListRoute) { inclusive = false }
                         }
                     }
                 )
