@@ -21,37 +21,25 @@ App Android nativa (Kotlin + Jetpack Compose) para calcular el costo real de pla
 - **Navegacion:** Callbacks (onNavigateBack), nunca acceder navController directo en Screen
 - **Textos UI:** En espanol
 
-## Skills instaladas — Cuando usar cada una
-Las skills en `.claude/skills/` se cargan automaticamente. Priorizar segun la tarea:
+## Skills — Cuando usar cada una
 
-### Al escribir codigo Kotlin/Compose
-- `compose-ui`, `compose-navigation`, `compose-performance-audit`
-- `android-architecture`, `android-viewmodel`, `android-coroutines`
-- `kotlin-specialist`, `material-design-3-*`, `material-theme-builder`
-- `sleek-design-mobile-apps`
+### Skills custom de CosteoApp (prioridad maxima)
+- `costeo-room-entity` — Generar Entity + DAO + Repository + DI completo
+- `costeo-compose-screen` — Generar Screen + ViewModel + Form + Navigation
+- `costeo-motor-calculo` — Motores de costeo, nutricion, propagacion de precios
+- `costeo-supabase-sync` — Sync Room↔Supabase (Fase 7+)
+- `costeo-audit-phase` — Auditoria multi-experto al completar cada fase
 
-### Al disenar base de datos
-- `database-schema-design`, `sqlite-database-expert`
-- `supabase-postgres-best-practices`, `postgresql-table-design`
-- `sql-optimization`, `database-migration`
-
-### Al planificar/disenar
-- `brainstorming`, `writing-plans`, `executing-plans`, `prd`
-- `architecture-patterns`, `file-organization`
-
-### Al hacer code review/refactor
-- `code-review`, `code-refactoring`, `refactor`
-- `requesting-code-review`, `verification-before-completion`
-
-### Al hacer testing/debugging
-- `test-driven-development`, `systematic-debugging`
-- `security-best-practices`
-
-### Al trabajar con Git
-- `git-commit`, `conventional-commit`, `finishing-a-development-branch`
-
-### Al hacer scraping/APIs (Fase 6+)
-- `firecrawl`, `agent-browser`
+### Skills genericas (37 complementarias)
+- **Kotlin/Compose:** `compose-ui`, `compose-navigation`, `compose-performance-audit`, `android-architecture`, `android-viewmodel`, `android-coroutines`, `kotlin-specialist`, `kotlin-concurrency-expert`, `coil-compose`, `m3-web-android`
+- **Material Design 3:** `material-design-3-guide`, `material-design-3-color`, `material-design-3-components`, `material-theme-builder`
+- **Base de datos:** `database-schema-design`, `supabase-postgres-best-practices`, `sql-optimization`, `database-migration`
+- **Planificacion:** `brainstorming`, `writing-plans`, `executing-plans`
+- **Code review:** `code-review`, `refactor`, `verification-before-completion`
+- **Testing/Debug:** `test-driven-development`, `systematic-debugging`, `security-best-practices`, `android-testing`
+- **Git:** `git-commit`, `conventional-commit`, `finishing-a-development-branch`
+- **Build:** `gradle-build-performance`, `android-gradle-logic`
+- **Android misc:** `android-data-layer`, `android-retrofit`, `android-emulator-skill`, `android-accessibility`
 
 ## Slash commands disponibles
 - `/project:new-entity NombreEntidad` — Genera Entity + DAO + Repository + ViewModel
