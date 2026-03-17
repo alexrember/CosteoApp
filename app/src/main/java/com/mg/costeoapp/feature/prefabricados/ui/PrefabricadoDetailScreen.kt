@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +36,7 @@ import com.mg.costeoapp.core.domain.model.Advertencia
 import com.mg.costeoapp.core.domain.model.FuentePrecio
 import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
 import com.mg.costeoapp.core.ui.components.LoadingIndicator
+import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.CurrencyFormatter
 import com.mg.costeoapp.core.util.UnidadMedida
 import com.mg.costeoapp.core.util.formatDisplay
@@ -47,6 +49,15 @@ fun PrefabricadoDetailScreen(
     viewModel: PrefabricadoDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is UiEvent.NavigateBack -> onNavigateBack()
+                else -> {}
+            }
+        }
+    }
 
     LifecycleResumeEffect(Unit) {
         viewModel.refresh()
@@ -66,10 +77,7 @@ fun PrefabricadoDetailScreen(
                         IconButton(onClick = { onNavigateToEdit(pref.id) }) {
                             Icon(Icons.Filled.Edit, contentDescription = "Editar")
                         }
-                        IconButton(onClick = {
-                            viewModel.softDelete()
-                            onNavigateBack()
-                        }) {
+                        IconButton(onClick = { viewModel.softDelete() }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Eliminar",
                                 tint = MaterialTheme.colorScheme.error)
                         }

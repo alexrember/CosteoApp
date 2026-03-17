@@ -65,4 +65,11 @@ data class PrefabricadoFormUiState(
     val duplicadoDeNombre: String? = null
 ) {
     val isEditMode: Boolean get() = prefabricado != null && !isDuplicateMode
+    val productosFiltrados: List<Producto> get() = if (productoSearchQuery.isBlank()) {
+        productosDisponibles
+    } else {
+        productosDisponibles.filter {
+            it.nombre.contains(productoSearchQuery, ignoreCase = true)
+        }
+    }
 }

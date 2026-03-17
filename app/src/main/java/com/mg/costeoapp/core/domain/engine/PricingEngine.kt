@@ -117,9 +117,10 @@ class PricingEngineImpl @Inject constructor(
         cantidadUsada: Double,
         factorMerma: Int
     ): Long {
+        if (cantidadPorEmpaque <= 0) return 0L
         val precioPorUnidad = precioUnitario.toDouble() / cantidadPorEmpaque
         val costo = precioPorUnidad * cantidadUsada
-        return if (factorMerma > 0 && factorMerma < 100) {
+        return if (factorMerma in 1..99) {
             (costo / (1.0 - factorMerma / 100.0)).roundToLong()
         } else {
             costo.roundToLong()

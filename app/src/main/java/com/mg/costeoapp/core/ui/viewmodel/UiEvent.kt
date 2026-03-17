@@ -5,4 +5,5 @@ sealed interface UiEvent {
     data class SaveSuccessWithId(val id: Long) : UiEvent
     data class ShowError(val message: String) : UiEvent
     data class ConfirmRemoval(val index: Int) : UiEvent
+    data object NavigateBack : UiEvent
 }

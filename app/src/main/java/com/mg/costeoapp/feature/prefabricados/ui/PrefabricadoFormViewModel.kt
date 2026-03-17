@@ -3,7 +3,6 @@ package com.mg.costeoapp.feature.prefabricados.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.entity.Prefabricado
 import com.mg.costeoapp.core.database.entity.PrefabricadoIngrediente
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
@@ -11,6 +10,7 @@ import com.mg.costeoapp.core.util.CurrencyFormatter
 import com.mg.costeoapp.core.util.UnidadMedida
 import com.mg.costeoapp.core.util.ValidationUtils
 import com.mg.costeoapp.feature.prefabricados.data.PrefabricadoRepository
+import com.mg.costeoapp.feature.productos.data.ProductoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +25,7 @@ import javax.inject.Inject
 @HiltViewModel
 class PrefabricadoFormViewModel @Inject constructor(
     private val repository: PrefabricadoRepository,
-    private val productoDao: ProductoDao,
+    private val productoRepository: ProductoRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -95,7 +95,7 @@ class PrefabricadoFormViewModel @Inject constructor(
 
     fun onShowIngredientePicker() {
         viewModelScope.launch {
-            val productos = productoDao.getAll().first().filter { p ->
+            val productos = productoRepository.getAll().first().filter { p ->
                 _uiState.value.ingredientes.none { it.producto.id == p.id }
             }
             _uiState.update { it.copy(showIngredientePicker = true, productosDisponibles = productos, productoSearchQuery = "") }
@@ -157,7 +157,7 @@ class PrefabricadoFormViewModel @Inject constructor(
                 PrefabricadoIngrediente(
                     prefabricadoId = 0,
                     productoId = it.producto.id,
-                    cantidadUsada = it.cantidadUsada.toDouble(),
+                    cantidadUsada = it.cantidadUsada.toDoubleOrNull() ?: 0.0,
                     unidadUsada = it.unidadUsada.codigo
                 )
             }
@@ -200,6 +200,12 @@ class PrefabricadoFormViewModel @Inject constructor(
         }
         if (state.ingredientes.isEmpty()) {
             errors["ingredientes"] = "Agrega al menos un ingrediente"
+        }
+        state.ingredientes.forEachIndexed { index, item ->
+            val cantidad = item.cantidadUsada.toDoubleOrNull()
+            if (cantidad == null || cantidad <= 0) {
+                errors["ingrediente_$index"] = "Cantidad invalida en ${item.producto.nombre}"
+            }
         }
 
         _uiState.update { it.copy(fieldErrors = errors) }

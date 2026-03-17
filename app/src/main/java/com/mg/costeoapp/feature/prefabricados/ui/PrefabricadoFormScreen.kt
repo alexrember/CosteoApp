@@ -199,10 +199,7 @@ fun PrefabricadoFormScreen(
     // Ingrediente picker dialog
     if (uiState.showIngredientePicker) {
         IngredientePickerDialog(
-            productos = uiState.productosDisponibles.filter {
-                uiState.productoSearchQuery.isBlank() ||
-                it.nombre.contains(uiState.productoSearchQuery, ignoreCase = true)
-            },
+            productos = uiState.productosFiltrados,
             searchQuery = uiState.productoSearchQuery,
             onSearchChanged = viewModel::onProductoSearchChanged,
             onProductoSelected = { producto ->

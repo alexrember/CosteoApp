@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.mg.costeoapp.feature.prefabricados.data.PrefabricadoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,15 +39,21 @@ class PrefabricadoListViewModel @Inject constructor(
                 repository.search(_uiState.value.searchQuery)
             }
             flow.collect { prefabricados ->
-                val items = prefabricados.map { pref ->
-                    val costeo = repository.calculateCost(pref.id)
-                    PrefabricadoConCosto(
-                        prefabricado = pref,
-                        costoPorPorcion = costeo.costoPorPorcion,
-                        tieneAdvertencias = costeo.advertencias.isNotEmpty()
-                    )
+                try {
+                    val items = prefabricados.map { pref ->
+                        async {
+                            val costeo = repository.calculateCost(pref.id)
+                            PrefabricadoConCosto(
+                                prefabricado = pref,
+                                costoPorPorcion = costeo.costoPorPorcion,
+                                tieneAdvertencias = costeo.advertencias.isNotEmpty()
+                            )
+                        }
+                    }.awaitAll()
+                    _uiState.update { it.copy(items = items, isLoading = false, error = null) }
+                } catch (e: Exception) {
+                    _uiState.update { it.copy(isLoading = false, error = e.message ?: "Error al cargar recetas") }
                 }
-                _uiState.update { it.copy(items = items, isLoading = false) }
             }
         }
     }
