@@ -108,6 +108,7 @@ class PlatoFormViewModel @Inject constructor(
 
     fun onAddPrefabricado(pref: com.mg.costeoapp.core.database.entity.Prefabricado) {
         _uiState.update {
+            if (it.componentes.any { c -> c.prefabricado?.id == pref.id }) return@update it
             it.copy(
                 componentes = it.componentes + ComponenteFormItem(prefabricado = pref, nombre = pref.nombre),
                 showComponentePicker = false
@@ -117,6 +118,7 @@ class PlatoFormViewModel @Inject constructor(
 
     fun onAddProducto(prod: com.mg.costeoapp.core.database.entity.Producto) {
         _uiState.update {
+            if (it.componentes.any { c -> c.producto?.id == prod.id }) return@update it
             it.copy(
                 componentes = it.componentes + ComponenteFormItem(producto = prod, nombre = prod.nombre),
                 showComponentePicker = false

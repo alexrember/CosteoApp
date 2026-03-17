@@ -102,7 +102,6 @@ class PlatoRepositoryImpl @Inject constructor(
             }
         }
 
-        val plato = platoDao.getById(platoId)
         return CosteoResult(
             costoTotal = costoTotal,
             costoPorPorcion = costoTotal,

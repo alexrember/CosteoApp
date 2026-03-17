@@ -175,8 +175,12 @@ fun SimuladorScreen(
     // Picker
     if (showPicker) {
         ComponentePickerDialog(
-            prefabricados = prefabricados,
-            productos = productos,
+            prefabricados = prefabricados.filter {
+                pickerSearchQuery.isBlank() || it.nombre.contains(pickerSearchQuery, ignoreCase = true)
+            },
+            productos = productos.filter {
+                pickerSearchQuery.isBlank() || it.nombre.contains(pickerSearchQuery, ignoreCase = true)
+            },
             searchQuery = pickerSearchQuery,
             selectedTab = pickerTab,
             onSearchChanged = viewModel::onPickerSearchChanged,

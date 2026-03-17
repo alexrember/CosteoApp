@@ -78,6 +78,7 @@ class SimuladorViewModel @Inject constructor(
 
     fun onAddPrefabricado(pref: Prefabricado) {
         _uiState.update {
+            if (it.componentes.any { c -> c.prefabricado?.id == pref.id }) return@update it
             it.copy(componentes = it.componentes + ComponenteFormItem(prefabricado = pref, nombre = pref.nombre))
         }
         _showPicker.value = false
@@ -86,6 +87,7 @@ class SimuladorViewModel @Inject constructor(
 
     fun onAddProducto(prod: Producto) {
         _uiState.update {
+            if (it.componentes.any { c -> c.producto?.id == prod.id }) return@update it
             it.copy(componentes = it.componentes + ComponenteFormItem(producto = prod, nombre = prod.nombre))
         }
         _showPicker.value = false
@@ -127,15 +129,29 @@ class SimuladorViewModel @Inject constructor(
     fun guardarComoPlato() {
         val state = _uiState.value
         if (state.nombreParaGuardar.isBlank()) return
+        if (state.componentes.isEmpty()) return
+
+        // Validar margen
+        val margen = state.margenPorcentaje.toDoubleOrNull()
+        if (margen != null && (margen <= 0 || margen >= 100)) return
 
         viewModelScope.launch {
-            val margen = state.margenPorcentaje.toDoubleOrNull()
             val plato = Plato(
                 nombre = state.nombreParaGuardar.trim(),
                 margenPorcentaje = margen
             )
 
-            val componentes = state.componentes.map { item ->
+            // Filtrar componentes validos: XOR + cantidad > 0
+            val componentesValidos = state.componentes.filter { item ->
+                val hasPref = item.prefabricado != null
+                val hasProd = item.producto != null
+                val cantidad = item.cantidad.toDoubleOrNull() ?: 0.0
+                (hasPref xor hasProd) && cantidad > 0
+            }
+
+            if (componentesValidos.isEmpty()) return@launch
+
+            val componentes = componentesValidos.map { item ->
                 PlatoComponente(
                     platoId = 0,
                     prefabricadoId = item.prefabricado?.id,
