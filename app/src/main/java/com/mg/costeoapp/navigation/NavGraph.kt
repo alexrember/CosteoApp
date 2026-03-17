@@ -39,6 +39,7 @@ import com.mg.costeoapp.feature.productos.ui.ProductoPrecioFormScreen
 import com.mg.costeoapp.feature.platos.ui.PlatoDetailScreen
 import com.mg.costeoapp.feature.platos.ui.PlatoFormScreen
 import com.mg.costeoapp.feature.platos.ui.PlatoListScreen
+import com.mg.costeoapp.feature.platos.ui.SimuladorScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaFormScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaListScreen
 
@@ -309,6 +310,14 @@ fun CosteoNavGraph(
                             popUpTo(PlatoListRoute) { inclusive = false }
                         }
                     }
+                )
+            }
+
+            // --- Fase 4: Simulador ---
+
+            composable<SimuladorRoute> {
+                SimuladorScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }
