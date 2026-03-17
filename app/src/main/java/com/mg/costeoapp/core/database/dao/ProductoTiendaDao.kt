@@ -8,6 +8,15 @@ import androidx.room.Update
 import com.mg.costeoapp.core.database.entity.ProductoTienda
 import kotlinx.coroutines.flow.Flow
 
+data class PrecioHistoricoRaw(
+    val id: Long,
+    val productoId: Long,
+    val tiendaId: Long,
+    val tiendaNombre: String,
+    val precio: Long,
+    val fechaRegistro: Long
+)
+
 data class PrecioConTiendaTuple(
     val id: Long,
     val productoId: Long,
@@ -70,4 +79,14 @@ interface ProductoTiendaDao {
         WHERE producto_id = :productoId AND tienda_id = :tiendaId
     """)
     suspend fun desactivarPrecios(productoId: Long, tiendaId: Long, timestamp: Long = System.currentTimeMillis())
+
+    @Query("""
+        SELECT pt.id, pt.producto_id AS productoId, pt.tienda_id AS tiendaId,
+               t.nombre AS tiendaNombre, pt.precio, pt.fecha_registro AS fechaRegistro
+        FROM producto_tienda pt
+        INNER JOIN tiendas t ON pt.tienda_id = t.id
+        WHERE pt.producto_id = :productoId AND pt.activo = 1 AND t.activo = 1
+        ORDER BY pt.fecha_registro DESC
+    """)
+    suspend fun getHistorialPrecios(productoId: Long): List<PrecioHistoricoRaw>
 }

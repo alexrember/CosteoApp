@@ -39,4 +39,7 @@ interface TiendaDao {
 
     @Query("UPDATE tiendas SET activo = 1, updated_at = :timestamp WHERE id = :id")
     suspend fun restore(id: Long, timestamp: Long = System.currentTimeMillis())
+
+    @Query("SELECT COUNT(*) FROM tiendas WHERE activo = 1")
+    suspend fun countActive(): Int
 }

@@ -2,9 +2,13 @@ package com.mg.costeoapp.feature.dashboard.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mg.costeoapp.feature.productos.data.ProductoRepository
-import com.mg.costeoapp.feature.tiendas.data.TiendaRepository
+import com.mg.costeoapp.core.database.dao.PlatoDao
+import com.mg.costeoapp.core.database.dao.PrefabricadoDao
+import com.mg.costeoapp.core.database.dao.ProductoDao
+import com.mg.costeoapp.core.database.dao.TiendaDao
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,27 +19,45 @@ import javax.inject.Inject
 data class DashboardUiState(
     val totalTiendas: Int = 0,
     val totalProductos: Int = 0,
-    val totalPrecios: Int = 0
+    val totalRecetas: Int = 0,
+    val totalPlatos: Int = 0,
+    val isLoading: Boolean = true
 )
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val tiendaRepository: TiendaRepository,
-    private val productoRepository: ProductoRepository
+    private val tiendaDao: TiendaDao,
+    private val productoDao: ProductoDao,
+    private val prefabricadoDao: PrefabricadoDao,
+    private val platoDao: PlatoDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
+        loadMetrics()
+    }
+
+    fun loadMetrics() {
         viewModelScope.launch {
-            tiendaRepository.getAll().collect { tiendas ->
-                _uiState.update { it.copy(totalTiendas = tiendas.size) }
-            }
-        }
-        viewModelScope.launch {
-            productoRepository.getAll().collect { productos ->
-                _uiState.update { it.copy(totalProductos = productos.size) }
+            _uiState.update { it.copy(isLoading = true) }
+
+            val tiendasDeferred = async { tiendaDao.countActive() }
+            val productosDeferred = async { productoDao.countActive() }
+            val recetasDeferred = async { prefabricadoDao.countActive() }
+            val platosDeferred = async { platoDao.countActive() }
+
+            val results = awaitAll(tiendasDeferred, productosDeferred, recetasDeferred, platosDeferred)
+
+            _uiState.update {
+                it.copy(
+                    totalTiendas = results[0],
+                    totalProductos = results[1],
+                    totalRecetas = results[2],
+                    totalPlatos = results[3],
+                    isLoading = false
+                )
             }
         }
     }

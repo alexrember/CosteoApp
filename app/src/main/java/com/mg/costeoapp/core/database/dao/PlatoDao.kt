@@ -53,4 +53,7 @@ interface PlatoDao {
 
     @Query("UPDATE platos SET activo = 1, updated_at = :timestamp WHERE id = :id")
     suspend fun restore(id: Long, timestamp: Long = System.currentTimeMillis())
+
+    @Query("SELECT COUNT(*) FROM platos WHERE activo = 1")
+    suspend fun countActive(): Int
 }

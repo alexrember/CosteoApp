@@ -10,21 +10,28 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -32,8 +39,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun DashboardScreen(
-    onNavigateToTiendaForm: () -> Unit,
-    onNavigateToProductoForm: () -> Unit,
+    onNavigateToCompras: () -> Unit,
+    onNavigateToNuevaReceta: () -> Unit,
+    onNavigateToNuevoPlato: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToSimulador: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -41,6 +51,7 @@ fun DashboardScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
@@ -59,47 +70,51 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatCard(
-                title = "Tiendas",
-                count = uiState.totalTiendas,
-                icon = { Icon(Icons.Filled.Store, contentDescription = null) },
-                modifier = Modifier.weight(1f)
+        if (uiState.isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.CenterHorizontally)
             )
-            StatCard(
-                title = "Productos",
-                count = uiState.totalProductos,
-                icon = { Icon(Icons.Filled.Inventory2, contentDescription = null) },
-                modifier = Modifier.weight(1f)
-            )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatCard(
+                    title = "Tiendas",
+                    count = uiState.totalTiendas,
+                    icon = Icons.Filled.Store,
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    title = "Productos",
+                    count = uiState.totalProductos,
+                    icon = Icons.Filled.Inventory2,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatCard(
+                    title = "Recetas",
+                    count = uiState.totalRecetas,
+                    icon = Icons.Filled.Restaurant,
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    title = "Platos",
+                    count = uiState.totalPlatos,
+                    icon = Icons.Filled.Fastfood,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        val allCompleted = uiState.totalTiendas > 0 && uiState.totalProductos > 0
-        if (!allCompleted) {
-            Text(
-                text = "Primeros pasos",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            ChecklistItem(
-                text = "Agregar tu primera tienda",
-                completed = uiState.totalTiendas > 0,
-                onClick = onNavigateToTiendaForm
-            )
-            ChecklistItem(
-                text = "Registrar tu primer producto",
-                completed = uiState.totalProductos > 0,
-                onClick = onNavigateToProductoForm
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
 
         Text(
             text = "Accesos rapidos",
@@ -107,35 +122,53 @@ fun DashboardScreen(
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextButton(onClick = onNavigateToTiendaForm) {
-            Icon(Icons.Filled.Store, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-            Text("Agregar tienda")
-        }
-        TextButton(onClick = onNavigateToProductoForm) {
-            Icon(Icons.Filled.Inventory2, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-            Text("Agregar producto")
-        }
+        QuickActionButton(
+            text = "Ir de compras",
+            icon = Icons.Filled.ShoppingCart,
+            onClick = onNavigateToCompras
+        )
+        QuickActionButton(
+            text = "Nueva receta",
+            icon = Icons.Filled.Restaurant,
+            onClick = onNavigateToNuevaReceta
+        )
+        QuickActionButton(
+            text = "Nuevo plato",
+            icon = Icons.Filled.Fastfood,
+            onClick = onNavigateToNuevoPlato
+        )
+        QuickActionButton(
+            text = "Simulador",
+            icon = Icons.Filled.Calculate,
+            onClick = onNavigateToSimulador
+        )
+        QuickActionButton(
+            text = "Configuracion",
+            icon = Icons.Filled.Settings,
+            onClick = onNavigateToSettings
+        )
     }
 }
 
 @Composable
-private fun ChecklistItem(
+private fun QuickActionButton(
     text: String,
-    completed: Boolean,
+    icon: ImageVector,
     onClick: () -> Unit
 ) {
-    TextButton(onClick = onClick) {
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
         Icon(
-            imageVector = if (completed) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+            imageVector = icon,
             contentDescription = null,
-            tint = if (completed) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            color = if (completed) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Text(text)
     }
 }
 
@@ -143,7 +176,7 @@ private fun ChecklistItem(
 private fun StatCard(
     title: String,
     count: Int,
-    icon: @Composable () -> Unit,
+    icon: ImageVector,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -151,10 +184,16 @@ private fun StatCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            icon()
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = count.toString(),

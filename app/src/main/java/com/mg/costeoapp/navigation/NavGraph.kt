@@ -128,11 +128,20 @@ fun CosteoNavGraph(
 
             composable<DashboardRoute> {
                 DashboardScreen(
-                    onNavigateToTiendaForm = {
-                        navController.navigate(TiendaFormRoute())
+                    onNavigateToCompras = {
+                        navController.navigate(SeleccionTiendaCompraRoute)
                     },
-                    onNavigateToProductoForm = {
-                        navController.navigate(ProductoFormRoute())
+                    onNavigateToNuevaReceta = {
+                        navController.navigate(RecetaFormRoute())
+                    },
+                    onNavigateToNuevoPlato = {
+                        navController.navigate(PlatoFormRoute())
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(SettingsRoute)
+                    },
+                    onNavigateToSimulador = {
+                        navController.navigate(SimuladorRoute)
                     }
                 )
             }

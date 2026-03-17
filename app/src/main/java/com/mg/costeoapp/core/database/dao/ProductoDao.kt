@@ -48,4 +48,7 @@ interface ProductoDao {
 
 	@Query("UPDATE productos SET activo = 1, updated_at = :timestamp WHERE id = :id")
 	suspend fun restore(id: Long, timestamp: Long = System.currentTimeMillis())
+
+	@Query("SELECT COUNT(*) FROM productos WHERE activo = 1")
+	suspend fun countActive(): Int
 }
