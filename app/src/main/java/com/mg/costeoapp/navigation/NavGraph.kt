@@ -1,6 +1,8 @@
 package com.mg.costeoapp.navigation
 
 import android.content.Context
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fastfood
@@ -13,6 +15,7 @@ import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -21,6 +24,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import com.mg.costeoapp.core.ui.components.BottomNavItem
 import com.mg.costeoapp.core.ui.components.CosteoBottomNavBar
 import com.mg.costeoapp.feature.dashboard.ui.DashboardScreen
@@ -42,9 +51,20 @@ import com.mg.costeoapp.feature.platos.ui.PlatoFormScreen
 import com.mg.costeoapp.feature.platos.ui.PlatoListScreen
 import com.mg.costeoapp.feature.historial.HistorialPreciosScreen
 import com.mg.costeoapp.feature.platos.ui.SimuladorScreen
+import com.mg.costeoapp.feature.export.CsvExportService
+import com.mg.costeoapp.feature.export.PdfExportService
+import com.mg.costeoapp.feature.platos.data.PlatoRepository
 import com.mg.costeoapp.feature.settings.ui.SettingsScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaFormScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaListScreen
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface NavGraphEntryPoint {
+    fun csvExportService(): CsvExportService
+    fun pdfExportService(): PdfExportService
+    fun platoRepository(): PlatoRepository
+}
 
 private val bottomNavItems = listOf(
     BottomNavItem("Inicio", Icons.Filled.Home, DashboardRoute),
@@ -81,6 +101,12 @@ fun CosteoNavGraph(
 ) {
     val context = LocalContext.current
     val startDestination: Any = if (isOnboardingCompleted(context)) DashboardRoute else OnboardingRoute
+
+    val scope = rememberCoroutineScope()
+    val entryPoint = EntryPointAccessors.fromApplication(context, NavGraphEntryPoint::class.java)
+    val csvExportService = entryPoint.csvExportService()
+    val pdfExportService = entryPoint.pdfExportService()
+    val platoRepository = entryPoint.platoRepository()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -142,6 +168,15 @@ fun CosteoNavGraph(
                     },
                     onNavigateToSimulador = {
                         navController.navigate(SimuladorRoute)
+                    },
+                    onNavigateToProductoDetail = { productoId ->
+                        navController.navigate(ProductoDetailRoute(productoId = productoId))
+                    },
+                    onNavigateToRecetaDetail = { recetaId ->
+                        navController.navigate(RecetaDetailRoute(recetaId = recetaId))
+                    },
+                    onNavigateToPlatoDetail = { platoId ->
+                        navController.navigate(PlatoDetailRoute(platoId = platoId))
                     }
                 )
             }
@@ -305,15 +340,61 @@ fun CosteoNavGraph(
                     },
                     onNavigateToSimulador = {
                         navController.navigate(SimuladorRoute)
+                    },
+                    onExportCsv = {
+                        scope.launch {
+                            try {
+                                val platos = platoRepository.getAllActive().first()
+                                val uri = csvExportService.exportPlatos(platos)
+                                if (uri != null) {
+                                    csvExportService.shareFile(uri)
+                                } else {
+                                    Toast.makeText(context, "Error al exportar", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Error al exportar", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 )
             }
 
-            composable<PlatoDetailRoute> {
+            composable<PlatoDetailRoute> { entry ->
+                val platoId = entry.arguments?.getLong("platoId") ?: 0L
                 PlatoDetailScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToEdit = { id ->
                         navController.navigate(PlatoFormRoute(platoId = id))
+                    },
+                    onExportPdf = {
+                        scope.launch {
+                            try {
+                                val plato = platoRepository.getById(platoId) ?: return@launch
+                                val componentes = platoRepository.getComponentesDetalle(platoId)
+                                val costeo = platoRepository.calculateCost(platoId)
+                                val precioVenta = platoRepository.calculatePrecioVenta(plato, costeo.costoTotal)
+                                val uri = pdfExportService.exportPlatoDetail(
+                                    plato = plato,
+                                    componentes = componentes,
+                                    costoTotal = costeo.costoTotal,
+                                    precioVenta = precioVenta
+                                )
+                                if (uri != null) {
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/pdf"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(Intent.createChooser(intent, "Compartir PDF").apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    })
+                                } else {
+                                    Toast.makeText(context, "Error al exportar PDF", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Error al exportar PDF", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 )
             }

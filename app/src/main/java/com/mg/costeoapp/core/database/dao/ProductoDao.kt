@@ -51,4 +51,14 @@ interface ProductoDao {
 
 	@Query("SELECT COUNT(*) FROM productos WHERE activo = 1")
 	suspend fun countActive(): Int
+
+	@Query("""
+		SELECT COUNT(*) FROM productos p
+		WHERE p.activo = 1
+		AND p.id NOT IN (SELECT DISTINCT producto_id FROM producto_tienda WHERE activo = 1)
+	""")
+	suspend fun countSinPrecio(): Int
+
+	@Query("SELECT COUNT(*) FROM productos WHERE activo = 1 AND factor_merma > :threshold")
+	suspend fun countConMermaAlta(threshold: Int = 15): Int
 }

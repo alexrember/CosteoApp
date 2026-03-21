@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +34,7 @@ import com.mg.costeoapp.feature.platos.data.TipoComponente
 fun PlatoDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEdit: (Long) -> Unit,
+    onExportPdf: () -> Unit = {},
     viewModel: PlatoDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -59,6 +61,9 @@ fun PlatoDetailScreen(
                 onNavigateBack = onNavigateBack,
                 actions = {
                     uiState.plato?.let { plato ->
+                        IconButton(onClick = onExportPdf) {
+                            Icon(Icons.Filled.PictureAsPdf, contentDescription = "Exportar PDF")
+                        }
                         IconButton(onClick = { onNavigateToEdit(plato.id) }) {
                             Icon(Icons.Filled.Edit, contentDescription = "Editar")
                         }

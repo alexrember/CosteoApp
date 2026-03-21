@@ -21,6 +21,8 @@ data class DashboardUiState(
     val totalProductos: Int = 0,
     val totalRecetas: Int = 0,
     val totalPlatos: Int = 0,
+    val productosSinPrecio: Int = 0,
+    val productosConMermaAlta: Int = 0,
     val isLoading: Boolean = true
 )
 
@@ -47,8 +49,13 @@ class DashboardViewModel @Inject constructor(
             val productosDeferred = async { productoDao.countActive() }
             val recetasDeferred = async { prefabricadoDao.countActive() }
             val platosDeferred = async { platoDao.countActive() }
+            val sinPrecioDeferred = async { productoDao.countSinPrecio() }
+            val mermaAltaDeferred = async { productoDao.countConMermaAlta() }
 
-            val results = awaitAll(tiendasDeferred, productosDeferred, recetasDeferred, platosDeferred)
+            val results = awaitAll(
+                tiendasDeferred, productosDeferred, recetasDeferred,
+                platosDeferred, sinPrecioDeferred, mermaAltaDeferred
+            )
 
             _uiState.update {
                 it.copy(
@@ -56,6 +63,8 @@ class DashboardViewModel @Inject constructor(
                     totalProductos = results[1],
                     totalRecetas = results[2],
                     totalPlatos = results[3],
+                    productosSinPrecio = results[4],
+                    productosConMermaAlta = results[5],
                     isLoading = false
                 )
             }
