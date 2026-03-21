@@ -37,7 +37,7 @@ import com.mg.costeoapp.core.database.entity.Tienda
         Plato::class,
         PlatoComponente::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class CosteoDatabase : RoomDatabase() {
@@ -183,6 +183,12 @@ abstract class CosteoDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("DROP INDEX IF EXISTS index_productos_codigo_barras")
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_productos_codigo_barras ON productos(codigo_barras)")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_inventario_producto_id_agotado_activo ON inventario(producto_id, agotado, activo)")
             }
         }
     }

@@ -24,7 +24,8 @@ import androidx.room.PrimaryKey
     ],
     indices = [
         Index(value = ["producto_id"]),
-        Index(value = ["tienda_id"])
+        Index(value = ["tienda_id"]),
+        Index(value = ["producto_id", "agotado", "activo"])
     ]
 )
 data class Inventario(
