@@ -82,6 +82,7 @@ private val bottomNavRoutes = setOf(
     SettingsRoute::class.qualifiedName
 )
 
+// TODO: Migrar onboarding flag de SharedPreferences a SettingsRepository (DataStore) para consistencia
 private const val PREFS_NAME = "costeo_prefs"
 private const val KEY_ONBOARDING_COMPLETADO = "onboarding_completado"
 
@@ -102,6 +103,7 @@ fun CosteoNavGraph(
     val context = LocalContext.current
     val startDestination: Any = if (isOnboardingCompleted(context)) DashboardRoute else OnboardingRoute
 
+    // TODO: Mover logica de export a un ViewModel dedicado (ExportViewModel) en vez de tenerla en NavGraph
     val scope = rememberCoroutineScope()
     val entryPoint = EntryPointAccessors.fromApplication(context, NavGraphEntryPoint::class.java)
     val csvExportService = entryPoint.csvExportService()

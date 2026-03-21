@@ -68,41 +68,70 @@ fun GlobalSearchBar(
             )
         } else {
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                items(uiState.results) { item ->
-                    when (item) {
-                        is SearchResultItem.ProductoResult -> {
-                            ListItem(
-                                headlineContent = { Text(item.producto.nombre) },
-                                supportingContent = { Text("Producto") },
-                                leadingContent = { Icon(Icons.Filled.Inventory2, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                                modifier = Modifier.clickable {
-                                    viewModel.onDismiss()
-                                    onProductoSelected(item.producto.id)
-                                }
-                            )
-                        }
-                        is SearchResultItem.RecetaResult -> {
-                            ListItem(
-                                headlineContent = { Text(item.prefabricado.nombre) },
-                                supportingContent = { Text("Receta") },
-                                leadingContent = { Icon(Icons.Filled.Restaurant, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) },
-                                modifier = Modifier.clickable {
-                                    viewModel.onDismiss()
-                                    onRecetaSelected(item.prefabricado.id)
-                                }
-                            )
-                        }
-                        is SearchResultItem.PlatoResult -> {
-                            ListItem(
-                                headlineContent = { Text(item.plato.nombre) },
-                                supportingContent = { Text("Plato") },
-                                leadingContent = { Icon(Icons.Filled.Fastfood, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) },
-                                modifier = Modifier.clickable {
-                                    viewModel.onDismiss()
-                                    onPlatoSelected(item.plato.id)
-                                }
-                            )
-                        }
+                val productos = uiState.results.filterIsInstance<SearchResultItem.ProductoResult>()
+                val recetas = uiState.results.filterIsInstance<SearchResultItem.RecetaResult>()
+                val platos = uiState.results.filterIsInstance<SearchResultItem.PlatoResult>()
+
+                if (productos.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Productos",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    items(productos) { item ->
+                        ListItem(
+                            headlineContent = { Text(item.producto.nombre) },
+                            leadingContent = { Icon(Icons.Filled.Inventory2, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                            modifier = Modifier.clickable {
+                                viewModel.onDismiss()
+                                onProductoSelected(item.producto.id)
+                            }
+                        )
+                    }
+                }
+
+                if (recetas.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Recetas",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    items(recetas) { item ->
+                        ListItem(
+                            headlineContent = { Text(item.prefabricado.nombre) },
+                            leadingContent = { Icon(Icons.Filled.Restaurant, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) },
+                            modifier = Modifier.clickable {
+                                viewModel.onDismiss()
+                                onRecetaSelected(item.prefabricado.id)
+                            }
+                        )
+                    }
+                }
+
+                if (platos.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Platos",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    items(platos) { item ->
+                        ListItem(
+                            headlineContent = { Text(item.plato.nombre) },
+                            leadingContent = { Icon(Icons.Filled.Fastfood, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) },
+                            modifier = Modifier.clickable {
+                                viewModel.onDismiss()
+                                onPlatoSelected(item.plato.id)
+                            }
+                        )
                     }
                 }
             }

@@ -8,6 +8,9 @@ import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -103,14 +106,18 @@ fun SettingsScreen(
 
             // Stock bajo
             Text("Alerta de stock bajo", style = MaterialTheme.typography.titleMedium)
+            var sliderValue by remember(uiState.stockBajoThreshold) {
+                mutableFloatStateOf(uiState.stockBajoThreshold.toFloat())
+            }
             Text(
-                "Umbral: ${uiState.stockBajoThreshold.toInt()} unidades",
+                "Umbral: ${sliderValue.toInt()} unidades",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Slider(
-                value = uiState.stockBajoThreshold.toFloat(),
-                onValueChange = { viewModel.setStockBajoThreshold(it.toDouble()) },
+                value = sliderValue,
+                onValueChange = { sliderValue = it },
+                onValueChangeFinished = { viewModel.setStockBajoThreshold(sliderValue.toDouble()) },
                 valueRange = 1f..50f,
                 steps = 48
             )

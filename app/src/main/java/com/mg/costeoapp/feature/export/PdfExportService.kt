@@ -28,6 +28,7 @@ class PdfExportService @Inject constructor(
         precioVenta: Long?
     ): Uri? {
         return try {
+            context.cacheDir.listFiles()?.filter { it.name.startsWith("platos_") || it.name.startsWith("plato_") }?.forEach { it.delete() }
             val doc = PdfDocument()
             val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4
             val page = doc.startPage(pageInfo)
@@ -67,7 +68,7 @@ class PdfExportService @Inject constructor(
             canvas.drawText("Componentes", margin, y, headerPaint)
             y += 20f
 
-            for (comp in componentes) {
+            for ((index, comp) in componentes.withIndex()) {
                 val tipo = if (comp.tipo == TipoComponente.PREFABRICADO) "Receta" else "Producto"
                 canvas.drawText("${comp.nombre} ($tipo)", margin, y, textPaint)
                 y += 15f
@@ -75,7 +76,13 @@ class PdfExportService @Inject constructor(
                 canvas.drawText("  Cantidad: ${comp.componente.cantidad} — Costo: $costoText", margin, y, smallPaint)
                 y += 18f
 
-                if (y > 780f) break // Evitar overflow de página
+                if (y > 780f) {
+                    val remaining = componentes.size - index - 1
+                    if (remaining > 0) {
+                        canvas.drawText("... y $remaining componentes mas", margin, y, smallPaint)
+                    }
+                    break
+                }
             }
 
             doc.finishPage(page)
@@ -86,6 +93,7 @@ class PdfExportService @Inject constructor(
 
             FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         } catch (e: Exception) {
+            android.util.Log.e("Export", "Error exportando PDF", e)
             null
         }
     }

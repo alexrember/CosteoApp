@@ -22,6 +22,7 @@ class CsvExportService @Inject constructor(
 
     suspend fun exportPlatos(platos: List<Plato>): Uri? {
         return try {
+            context.cacheDir.listFiles()?.filter { it.name.startsWith("platos_") || it.name.startsWith("plato_") }?.forEach { it.delete() }
             val file = File(context.cacheDir, "platos_${System.currentTimeMillis()}.csv")
             FileWriter(file).use { writer ->
                 // BOM para Excel
@@ -44,6 +45,7 @@ class CsvExportService @Inject constructor(
             }
             FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         } catch (e: Exception) {
+            android.util.Log.e("Export", "Error exportando CSV", e)
             null
         }
     }
@@ -60,8 +62,11 @@ class CsvExportService @Inject constructor(
     }
 
     private fun escapeCsv(value: String): String {
-        return if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-            "\"${value.replace("\"", "\"\"")}\""
+        val sanitized = if (value.isNotEmpty() && value[0] in charArrayOf('=', '+', '-', '@')) {
+            "'$value"
         } else value
+        return if (sanitized.contains(",") || sanitized.contains("\"") || sanitized.contains("\n")) {
+            "\"${sanitized.replace("\"", "\"\"")}\""
+        } else sanitized
     }
 }

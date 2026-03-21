@@ -41,6 +41,8 @@ class DashboardViewModel @Inject constructor(
         loadMetrics()
     }
 
+    fun refresh() = loadMetrics()
+
     fun loadMetrics() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
