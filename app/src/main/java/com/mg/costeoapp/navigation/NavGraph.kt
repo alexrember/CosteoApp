@@ -47,8 +47,6 @@ import com.mg.costeoapp.feature.tiendas.ui.TiendaListScreen
 
 private val bottomNavItems = listOf(
     BottomNavItem("Inicio", Icons.Filled.Home, DashboardRoute),
-    BottomNavItem("Tiendas", Icons.Filled.Store, TiendaListRoute),
-    BottomNavItem("Productos", Icons.Filled.Inventory2, ProductoListRoute),
     BottomNavItem("Inventario", Icons.Filled.ShoppingCart, InventarioListRoute),
     BottomNavItem("Recetas", Icons.Filled.Restaurant, RecetaListRoute),
     BottomNavItem("Platos", Icons.Filled.Fastfood, PlatoListRoute)
@@ -56,8 +54,6 @@ private val bottomNavItems = listOf(
 
 private val bottomNavRoutes = setOf(
     DashboardRoute::class.qualifiedName,
-    TiendaListRoute::class.qualifiedName,
-    ProductoListRoute::class.qualifiedName,
     InventarioListRoute::class.qualifiedName,
     RecetaListRoute::class.qualifiedName,
     PlatoListRoute::class.qualifiedName
@@ -342,7 +338,9 @@ fun CosteoNavGraph(
 
             composable<SettingsRoute> {
                 SettingsScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToTiendas = { navController.navigate(TiendaListRoute) },
+                    onNavigateToProductos = { navController.navigate(ProductoListRoute) }
                 )
             }
 
