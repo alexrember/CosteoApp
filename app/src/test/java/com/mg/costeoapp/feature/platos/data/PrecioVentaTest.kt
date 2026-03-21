@@ -81,4 +81,27 @@ class PrecioVentaTest {
 		val resultado = calculatePrecioVenta(costoTotal = 100, margenPorcentaje = null)
 		assertNull(resultado)
 	}
+
+	@Test
+	fun margen99_bordeMaximoValido() {
+		val resultado = calculatePrecioVenta(costoTotal = 100, margenPorcentaje = 99.0)
+		// 100 / (1 - 0.99) = 100 / 0.01 = 10000
+		assertEquals(10000L, resultado)
+	}
+
+	@Test
+	fun margen1_bordeMinimoValido() {
+		val resultado = calculatePrecioVenta(costoTotal = 100, margenPorcentaje = 1.0)
+		// 100 / (1 - 0.01) = 100 / 0.99 = 101.01... rounds to 101
+		assertEquals(101L, resultado)
+	}
+
+	@Test
+	fun costoMuyGrande_calculaSinOverflow() {
+		val costoGrande = Long.MAX_VALUE / 2
+		val resultado = calculatePrecioVenta(costoTotal = costoGrande, margenPorcentaje = 50.0)
+		// costoGrande / (1 - 0.5) = costoGrande / 0.5 = costoGrande * 2
+		val esperado = (costoGrande.toDouble() / 0.5).roundToLong()
+		assertEquals(esperado, resultado)
+	}
 }
