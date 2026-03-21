@@ -10,6 +10,13 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,13 +24,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +51,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -133,26 +146,16 @@ fun ScannerScreen(
                 .padding(padding)
         ) {
             if (cameraPermissionGranted) {
-                CameraPreview(
-                    onBarcodeDetected = viewModel::onBarcodeDetected,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                if (uiState.isProcessing) {
-                    Card(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(32.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
-                        )
-                    ) {
-                        Text(
-                            text = "Buscando producto...",
-                            modifier = Modifier.padding(24.dp),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                if (!uiState.isProcessing) {
+                    CameraPreview(
+                        onBarcodeDetected = viewModel::onBarcodeDetected,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    SearchingOverlay(
+                        barcode = uiState.scannedBarcode,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             } else {
                 Column(
@@ -193,6 +196,69 @@ fun ScannerScreen(
             precios = lookupState.preciosComparados,
             onDismiss = { /* Se cierra solo con el cooldown */ }
         )
+    }
+}
+
+@Composable
+private fun SearchingOverlay(
+    barcode: String?,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "search")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+
+    Box(
+        modifier = modifier.background(MaterialTheme.colorScheme.surface),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.TravelExplore,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(80.dp)
+                    .alpha(pulseAlpha),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            CircularProgressIndicator(
+                modifier = Modifier.size(48.dp),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 4.dp
+            )
+
+            Text(
+                text = "Buscando en tiendas...",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            if (barcode != null) {
+                Text(
+                    text = barcode,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text(
+                text = "Walmart  ·  PriceSmart  ·  Open Food Facts",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
