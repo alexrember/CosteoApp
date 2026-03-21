@@ -1,5 +1,6 @@
 package com.mg.costeoapp.feature.productos.data
 
+import com.mg.costeoapp.core.database.dao.PrecioHistoricoRaw
 import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
 import com.mg.costeoapp.core.database.entity.Producto
@@ -100,4 +101,7 @@ class ProductoRepositoryImpl @Inject constructor(
 
     override suspend fun searchSuggestions(query: String, limit: Int): List<Producto> =
         productoDao.searchSuggestions(query, limit)
+
+    override suspend fun getRecentPriceHistory(productoId: Long): List<PrecioHistoricoRaw> =
+        productoTiendaDao.getHistorialPreciosRecientes(productoId)
 }

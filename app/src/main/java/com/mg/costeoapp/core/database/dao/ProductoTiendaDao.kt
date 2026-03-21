@@ -89,4 +89,15 @@ interface ProductoTiendaDao {
         ORDER BY pt.fecha_registro DESC
     """)
     suspend fun getHistorialPrecios(productoId: Long): List<PrecioHistoricoRaw>
+
+    @Query("""
+        SELECT pt.id, pt.producto_id AS productoId, pt.tienda_id AS tiendaId,
+               t.nombre AS tiendaNombre, pt.precio, pt.fecha_registro AS fechaRegistro
+        FROM producto_tienda pt
+        INNER JOIN tiendas t ON pt.tienda_id = t.id
+        WHERE pt.producto_id = :productoId AND pt.activo = 1 AND t.activo = 1
+        ORDER BY pt.fecha_registro DESC
+        LIMIT 5
+    """)
+    suspend fun getHistorialPreciosRecientes(productoId: Long): List<PrecioHistoricoRaw>
 }

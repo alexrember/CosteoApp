@@ -1,5 +1,6 @@
 package com.mg.costeoapp.feature.productos.data
 
+import com.mg.costeoapp.core.database.dao.PrecioHistoricoRaw
 import com.mg.costeoapp.core.database.entity.Producto
 import com.mg.costeoapp.core.database.entity.ProductoTienda
 import com.mg.costeoapp.core.database.relation.PrecioConTienda
@@ -24,4 +25,5 @@ interface ProductoRepository {
     suspend fun getFrequentProducts(limit: Int = 10): List<Producto>
     suspend fun getLastPrice(productoId: Long): Long?
     suspend fun searchSuggestions(query: String, limit: Int = 5): List<Producto>
+    suspend fun getRecentPriceHistory(productoId: Long): List<PrecioHistoricoRaw>
 }

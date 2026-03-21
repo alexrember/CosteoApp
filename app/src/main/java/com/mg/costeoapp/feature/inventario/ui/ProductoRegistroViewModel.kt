@@ -3,6 +3,7 @@ package com.mg.costeoapp.feature.inventario.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mg.costeoapp.core.database.dao.PrecioHistoricoRaw
 import com.mg.costeoapp.core.database.entity.Producto
 import com.mg.costeoapp.core.database.entity.ProductoTienda
 import com.mg.costeoapp.core.domain.model.FieldResolution
@@ -50,7 +51,8 @@ data class ProductoRegistroUiState(
     val isSaving: Boolean = false,
     val productosFrequentes: List<Producto> = emptyList(),
     val sugerencias: List<Producto> = emptyList(),
-    val ultimoPrecioSugerencia: String? = null
+    val historialPrecios: List<PrecioHistoricoRaw> = emptyList(),
+    val duplicateProducto: Producto? = null
 )
 
 @HiltViewModel
@@ -231,7 +233,7 @@ class ProductoRegistroViewModel @Inject constructor(
                 nombre = value,
                 fieldErrors = it.fieldErrors - "nombre",
                 unidadMedida = if (shouldSuggestUnit && value.length >= 3) SmartDefaults.suggestUnit(value) else it.unidadMedida,
-                ultimoPrecioSugerencia = null
+                historialPrecios = emptyList()
             )
         }
         debounceSuggestions(value)
@@ -240,7 +242,7 @@ class ProductoRegistroViewModel @Inject constructor(
     private fun debounceSuggestions(query: String) {
         searchJob?.cancel()
         if (query.length < 2) {
-            _uiState.update { it.copy(sugerencias = emptyList(), ultimoPrecioSugerencia = null) }
+            _uiState.update { it.copy(sugerencias = emptyList(), historialPrecios = emptyList()) }
             return
         }
         searchJob = viewModelScope.launch {
@@ -262,14 +264,7 @@ class ProductoRegistroViewModel @Inject constructor(
                 sugerencias = emptyList()
             )
         }
-        viewModelScope.launch {
-            val lastPrice = productoRepository.getLastPrice(producto.id)
-            if (lastPrice != null) {
-                _uiState.update {
-                    it.copy(ultimoPrecioSugerencia = CurrencyFormatter.fromCents(lastPrice))
-                }
-            }
-        }
+        loadPriceHistory(producto.id)
     }
 
     fun onSelectFrequentProduct(producto: Producto) {
@@ -284,13 +279,13 @@ class ProductoRegistroViewModel @Inject constructor(
                 sugerencias = emptyList()
             )
         }
+        loadPriceHistory(producto.id)
+    }
+
+    private fun loadPriceHistory(productoId: Long) {
         viewModelScope.launch {
-            val lastPrice = productoRepository.getLastPrice(producto.id)
-            if (lastPrice != null) {
-                _uiState.update {
-                    it.copy(ultimoPrecioSugerencia = CurrencyFormatter.fromCents(lastPrice))
-                }
-            }
+            val history = productoRepository.getRecentPriceHistory(productoId)
+            _uiState.update { it.copy(historialPrecios = history) }
         }
     }
 
@@ -329,50 +324,99 @@ class ProductoRegistroViewModel @Inject constructor(
 
         viewModelScope.launch {
             val state = _uiState.value
+            val codigoBarras = state.codigoBarras.ifBlank { null }
+
+            if (codigoBarras != null) {
+                val existente = productoRepository.getByCodigoBarras(codigoBarras)
+                if (existente != null) {
+                    _uiState.update { it.copy(isSaving = false, duplicateProducto = existente) }
+                    return@launch
+                }
+            }
+
+            createNewProduct()
+        }
+    }
+
+    fun onDuplicateDismiss() {
+        _uiState.update { it.copy(duplicateProducto = null) }
+    }
+
+    fun onDuplicateCreateNew() {
+        _uiState.update { it.copy(duplicateProducto = null, isSaving = true) }
+        viewModelScope.launch { createNewProduct() }
+    }
+
+    fun onDuplicateUpdatePrice() {
+        val existente = _uiState.value.duplicateProducto ?: return
+        _uiState.update { it.copy(duplicateProducto = null, isSaving = true) }
+
+        viewModelScope.launch {
+            val state = _uiState.value
             val precioCents = CurrencyFormatter.toCents(state.precio)!!
             val tienda = compraManager.getTienda()
 
-            val producto = Producto(
-                nombre = state.nombre.trim(),
-                codigoBarras = state.codigoBarras.ifBlank { null },
-                unidadMedida = state.unidadMedida.codigo,
-                cantidadPorEmpaque = state.cantidadPorEmpaque.toDouble(),
-                unidadesPorEmpaque = state.unidadesPorEmpaque.toIntOrNull() ?: 1,
-                nutricionPorcionG = nutricionExterna?.porcionG,
-                nutricionCalorias = nutricionExterna?.calorias,
-                nutricionProteinasG = nutricionExterna?.proteinas,
-                nutricionCarbohidratosG = nutricionExterna?.carbohidratos,
-                nutricionGrasasG = nutricionExterna?.grasas,
-                nutricionFibraG = nutricionExterna?.fibra,
-                nutricionSodioMg = nutricionExterna?.sodioMg,
-                nutricionFuente = nutricionExterna?.fuente
-            )
-
-            val productoResult = productoRepository.insert(producto)
-            if (productoResult.isFailure) {
-                _uiState.update { it.copy(isSaving = false) }
-                _events.send(UiEvent.ShowError(productoResult.exceptionOrNull()?.let { ErrorMapper.toUserMessage(it) } ?: "Error al crear producto"))
-                return@launch
-            }
-
-            val productoId = productoResult.getOrThrow()
-            val productoCreado = producto.copy(id = productoId)
-
-            // Guardar precio en producto_tienda para futuras consultas
             if (tienda != null) {
+                productoRepository.desactivarPrecios(existente.id, tienda.id)
                 productoRepository.insertPrecio(
                     ProductoTienda(
-                        productoId = productoId,
+                        productoId = existente.id,
                         tiendaId = tienda.id,
                         precio = precioCents
                     )
                 )
-                compraManager.agregarProducto(productoCreado, 1.0, precioCents)
+                compraManager.agregarProducto(existente, 1.0, precioCents)
             }
 
             _uiState.update { it.copy(isSaving = false) }
             _events.send(UiEvent.SaveSuccess)
         }
+    }
+
+    private suspend fun createNewProduct() {
+        val state = _uiState.value
+        val precioCents = CurrencyFormatter.toCents(state.precio)!!
+        val tienda = compraManager.getTienda()
+
+        val producto = Producto(
+            nombre = state.nombre.trim(),
+            codigoBarras = state.codigoBarras.ifBlank { null },
+            unidadMedida = state.unidadMedida.codigo,
+            cantidadPorEmpaque = state.cantidadPorEmpaque.toDouble(),
+            unidadesPorEmpaque = state.unidadesPorEmpaque.toIntOrNull() ?: 1,
+            nutricionPorcionG = nutricionExterna?.porcionG,
+            nutricionCalorias = nutricionExterna?.calorias,
+            nutricionProteinasG = nutricionExterna?.proteinas,
+            nutricionCarbohidratosG = nutricionExterna?.carbohidratos,
+            nutricionGrasasG = nutricionExterna?.grasas,
+            nutricionFibraG = nutricionExterna?.fibra,
+            nutricionSodioMg = nutricionExterna?.sodioMg,
+            nutricionFuente = nutricionExterna?.fuente
+        )
+
+        val productoResult = productoRepository.insert(producto)
+        if (productoResult.isFailure) {
+            _uiState.update { it.copy(isSaving = false) }
+            _events.send(UiEvent.ShowError(productoResult.exceptionOrNull()?.let { ErrorMapper.toUserMessage(it) } ?: "Error al crear producto"))
+            return
+        }
+
+        val productoId = productoResult.getOrThrow()
+        val productoCreado = producto.copy(id = productoId)
+
+        if (tienda != null) {
+            productoRepository.insertPrecio(
+                ProductoTienda(
+                    productoId = productoId,
+                    tiendaId = tienda.id,
+                    precio = precioCents
+                )
+            )
+            compraManager.agregarProducto(productoCreado, 1.0, precioCents)
+        }
+
+        _uiState.update { it.copy(isSaving = false) }
+        _events.send(UiEvent.SaveSuccess)
     }
 
     private fun validate(): Boolean {

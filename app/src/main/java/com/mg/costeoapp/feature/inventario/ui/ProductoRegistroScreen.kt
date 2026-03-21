@@ -44,9 +44,13 @@ import com.mg.costeoapp.core.ui.components.CosteoTextField
 import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
 import com.mg.costeoapp.core.ui.components.FieldConflictChooser
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
+import com.mg.costeoapp.core.util.CurrencyFormatter
+import com.mg.costeoapp.core.util.DateFormatter
 import com.mg.costeoapp.core.util.UnidadMedida
 import com.mg.costeoapp.feature.inventario.data.ocr.OcrNutritionProcessor
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.HorizontalDivider
@@ -99,6 +103,26 @@ fun ProductoRegistroScreen(
                 else -> {}
             }
         }
+    }
+
+    if (uiState.duplicateProducto != null) {
+        AlertDialog(
+            onDismissRequest = viewModel::onDuplicateDismiss,
+            title = { Text("Producto duplicado") },
+            text = {
+                Text("Este producto ya existe: ${uiState.duplicateProducto!!.nombre}. ¿Deseas actualizar su precio?")
+            },
+            confirmButton = {
+                Button(onClick = viewModel::onDuplicateUpdatePrice) {
+                    Text("Actualizar precio")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::onDuplicateCreateNew) {
+                    Text("Crear nuevo")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -196,13 +220,31 @@ fun ProductoRegistroScreen(
                 }
             }
 
-            if (uiState.ultimoPrecioSugerencia != null) {
-                Text(
-                    text = "Ultimo precio: ${uiState.ultimoPrecioSugerencia}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+            if (uiState.historialPrecios.isNotEmpty()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "Historial de precios",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        uiState.historialPrecios.forEach { entry ->
+                            Text(
+                                text = "${entry.tiendaNombre} — ${CurrencyFormatter.fromCents(entry.precio)} — ${DateFormatter.formatDate(entry.fechaRegistro)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
