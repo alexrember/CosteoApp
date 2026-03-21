@@ -36,4 +36,11 @@ interface PrefabricadoIngredienteDao {
 
     @Query("DELETE FROM prefabricado_ingrediente WHERE prefabricado_id = :prefabricadoId")
     suspend fun deleteByPrefabricado(prefabricadoId: Long)
+
+    @Query("""
+        SELECT COUNT(DISTINCT pi.prefabricado_id) FROM prefabricado_ingrediente pi
+        INNER JOIN productos p ON pi.producto_id = p.id
+        WHERE p.activo = 0
+    """)
+    suspend fun countRecetasConIngredientesInactivos(): Int
 }

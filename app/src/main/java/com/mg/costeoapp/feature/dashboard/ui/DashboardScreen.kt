@@ -125,7 +125,12 @@ fun DashboardScreen(
                     )
                 }
 
-                if (uiState.productosSinPrecio > 0 || uiState.productosConMermaAlta > 0) {
+                val hayAlertas = uiState.productosSinPrecio > 0 ||
+                    uiState.productosConMermaAlta > 0 ||
+                    uiState.productosConStockBajo > 0 ||
+                    uiState.recetasConIngredientesInactivos > 0
+
+                if (hayAlertas) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Alertas",
@@ -141,6 +146,16 @@ fun DashboardScreen(
                     if (uiState.productosConMermaAlta > 0) {
                         AlertCard(
                             message = "${uiState.productosConMermaAlta} productos con merma alta (>15%)"
+                        )
+                    }
+                    if (uiState.productosConStockBajo > 0) {
+                        AlertCard(
+                            message = "${uiState.productosConStockBajo} productos con stock bajo"
+                        )
+                    }
+                    if (uiState.recetasConIngredientesInactivos > 0) {
+                        AlertCard(
+                            message = "${uiState.recetasConIngredientesInactivos} recetas con ingredientes inactivos"
                         )
                     }
                 }

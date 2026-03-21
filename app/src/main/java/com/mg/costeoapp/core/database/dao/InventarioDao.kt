@@ -138,6 +138,16 @@ interface InventarioDao {
     @Query("UPDATE inventario SET activo = 1, updated_at = :timestamp WHERE id = :inventarioId")
     suspend fun restaurar(inventarioId: Long, timestamp: Long = System.currentTimeMillis())
 
+    @Query("""
+        SELECT COUNT(*) FROM (
+            SELECT producto_id FROM inventario
+            WHERE agotado = 0 AND activo = 1
+            GROUP BY producto_id
+            HAVING SUM(cantidad) < :threshold
+        )
+    """)
+    suspend fun countProductosConStockBajo(threshold: Double): Int
+
     @Update
     suspend fun update(inventario: Inventario)
 }
