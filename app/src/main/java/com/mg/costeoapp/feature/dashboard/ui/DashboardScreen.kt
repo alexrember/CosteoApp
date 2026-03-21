@@ -21,16 +21,24 @@ import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mg.costeoapp.core.util.CurrencyFormatter
 import com.mg.costeoapp.feature.search.GlobalSearchBar
 
 @Composable
@@ -54,13 +63,23 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.propagacionNotificaciones.collect { mensaje ->
+            snackbarHostState.showSnackbar(mensaje)
+        }
+    }
 
     LifecycleResumeEffect(Unit) {
         viewModel.refresh()
         onPauseOrDispose {}
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { scaffoldPadding ->
+    Box(modifier = Modifier.fillMaxSize().padding(scaffoldPadding)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -128,7 +147,8 @@ fun DashboardScreen(
                 val hayAlertas = uiState.productosSinPrecio > 0 ||
                     uiState.productosConMermaAlta > 0 ||
                     uiState.productosConStockBajo > 0 ||
-                    uiState.recetasConIngredientesInactivos > 0
+                    uiState.recetasConIngredientesInactivos > 0 ||
+                    uiState.costoMermaMensual > 0
 
                 if (hayAlertas) {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -158,6 +178,29 @@ fun DashboardScreen(
                             message = "${uiState.recetasConIngredientesInactivos} recetas con ingredientes inactivos"
                         )
                     }
+                    if (uiState.costoMermaMensual > 0) {
+                        AlertCard(
+                            message = "Costo estimado de merma mensual: ${CurrencyFormatter.fromCents(uiState.costoMermaMensual)}"
+                        )
+                    }
+                }
+
+                if (uiState.topPlatosCaros.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    RankingSection(
+                        title = "Top 5 platos mas caros",
+                        icon = Icons.Filled.TrendingUp,
+                        items = uiState.topPlatosCaros
+                    )
+                }
+
+                if (uiState.topPlatosBaratos.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    RankingSection(
+                        title = "Top 5 platos mas baratos",
+                        icon = Icons.Filled.TrendingDown,
+                        items = uiState.topPlatosBaratos
+                    )
                 }
             }
 
@@ -190,6 +233,7 @@ fun DashboardScreen(
                 onClick = onNavigateToSimulador
             )
         }
+    }
     }
 }
 
@@ -282,6 +326,62 @@ private fun StatCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
+        }
+    }
+}
+
+@Composable
+private fun RankingSection(
+    title: String,
+    icon: ImageVector,
+    items: List<Pair<String, Long>>
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            items.forEachIndexed { index, (nombre, costo) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "${index + 1}. $nombre",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = CurrencyFormatter.fromCents(costo),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                if (index < items.lastIndex) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                }
+            }
         }
     }
 }

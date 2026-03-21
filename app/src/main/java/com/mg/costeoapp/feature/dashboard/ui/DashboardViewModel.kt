@@ -7,14 +7,19 @@ import com.mg.costeoapp.core.database.dao.PlatoDao
 import com.mg.costeoapp.core.database.dao.PrefabricadoDao
 import com.mg.costeoapp.core.database.dao.PrefabricadoIngredienteDao
 import com.mg.costeoapp.core.database.dao.ProductoDao
+import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
 import com.mg.costeoapp.core.database.dao.TiendaDao
+import com.mg.costeoapp.core.domain.engine.PricePropagationService
+import com.mg.costeoapp.feature.platos.data.PlatoRepository
 import com.mg.costeoapp.feature.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -29,6 +34,9 @@ data class DashboardUiState(
     val productosConMermaAlta: Int = 0,
     val productosConStockBajo: Int = 0,
     val recetasConIngredientesInactivos: Int = 0,
+    val topPlatosCaros: List<Pair<String, Long>> = emptyList(),
+    val topPlatosBaratos: List<Pair<String, Long>> = emptyList(),
+    val costoMermaMensual: Long = 0,
     val isLoading: Boolean = true
 )
 
@@ -40,11 +48,16 @@ class DashboardViewModel @Inject constructor(
     private val platoDao: PlatoDao,
     private val inventarioDao: InventarioDao,
     private val prefabricadoIngredienteDao: PrefabricadoIngredienteDao,
-    private val settingsRepository: SettingsRepository
+    private val productoTiendaDao: ProductoTiendaDao,
+    private val platoRepository: PlatoRepository,
+    private val settingsRepository: SettingsRepository,
+    private val pricePropagationService: PricePropagationService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
+
+    val propagacionNotificaciones: SharedFlow<String> = pricePropagationService.notificaciones
 
     init {
         loadMetrics()
@@ -86,6 +99,48 @@ class DashboardViewModel @Inject constructor(
                     isLoading = false
                 )
             }
+
+            loadRankings()
+            loadCostoMerma()
         }
+    }
+
+    private suspend fun loadRankings() {
+        val platos = platoDao.getAllActiveOnce()
+        if (platos.isEmpty()) return
+
+        val costos = coroutineScope {
+            platos.map { plato ->
+                async {
+                    val costeo = platoRepository.calculateCost(plato.id)
+                    plato.nombre to costeo.costoTotal
+                }
+            }.awaitAll()
+        }.filter { it.second > 0 }
+
+        if (costos.isEmpty()) return
+
+        val sorted = costos.sortedByDescending { it.second }
+        _uiState.update {
+            it.copy(
+                topPlatosCaros = sorted.take(5),
+                topPlatosBaratos = sorted.reversed().take(5)
+            )
+        }
+    }
+
+    private suspend fun loadCostoMerma() {
+        val productosConMerma = productoDao.getConMerma()
+        if (productosConMerma.isEmpty()) return
+
+        var costoMerma = 0L
+        for (producto in productosConMerma) {
+            val precioReciente = productoTiendaDao.getPrecioMasReciente(producto.id)
+            if (precioReciente != null) {
+                costoMerma += (precioReciente.precio * producto.factorMerma / 100)
+            }
+        }
+
+        _uiState.update { it.copy(costoMermaMensual = costoMerma) }
     }
 }

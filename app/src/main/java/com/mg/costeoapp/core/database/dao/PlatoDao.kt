@@ -14,6 +14,9 @@ interface PlatoDao {
     @Query("SELECT * FROM platos WHERE activo = 1 ORDER BY nombre ASC")
     fun getAllActive(): Flow<List<Plato>>
 
+    @Query("SELECT * FROM platos WHERE activo = 1 ORDER BY nombre ASC")
+    suspend fun getAllActiveOnce(): List<Plato>
+
     @Query("SELECT * FROM platos WHERE id = :id")
     suspend fun getById(id: Long): Plato?
 

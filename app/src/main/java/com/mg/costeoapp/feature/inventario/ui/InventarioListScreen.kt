@@ -41,7 +41,7 @@ fun InventarioListScreen(
     viewModel: InventarioListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val hayCompraEnCurso = viewModel.compraManager.hayCompraEnCurso()
+    val hayCompraEnCurso by viewModel.hayCompraEnCurso.collectAsStateWithLifecycle()
 
     Scaffold(
         floatingActionButton = {

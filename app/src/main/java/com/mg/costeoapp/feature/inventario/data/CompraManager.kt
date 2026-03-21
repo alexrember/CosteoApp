@@ -7,9 +7,15 @@ import com.mg.costeoapp.core.database.entity.CarritoTemporal
 import com.mg.costeoapp.core.database.entity.Producto
 import com.mg.costeoapp.core.database.entity.Tienda
 import com.mg.costeoapp.feature.inventario.ui.CarritoItem
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
@@ -21,6 +27,7 @@ class CompraManager @Inject constructor(
     private val productoDao: ProductoDao,
     private val tiendaDao: TiendaDao
 ) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mutex = Mutex()
 
     private val _tienda = MutableStateFlow<Tienda?>(null)
@@ -30,6 +37,10 @@ class CompraManager @Inject constructor(
     val items: StateFlow<List<CarritoItem>> = _items.asStateFlow()
 
     val itemCount: Int get() = _items.value.size
+
+    val hayCompraEnCursoFlow: StateFlow<Boolean> = combine(_items, _tienda) { items, tienda ->
+        items.isNotEmpty() || tienda != null
+    }.stateIn(scope, SharingStarted.Eagerly, false)
 
     // Cache de resultados de busqueda
     var lastSearchResults: List<com.mg.costeoapp.core.domain.model.StoreSearchResult>? = null

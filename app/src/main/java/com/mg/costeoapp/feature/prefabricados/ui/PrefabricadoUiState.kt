@@ -56,6 +56,8 @@ data class PrefabricadoFormUiState(
     val costoFijo: String = "0",
     val ingredientes: List<IngredienteFormItem> = emptyList(),
     val costeoEnVivo: CosteoResult? = null,
+    val costoEnVivoTotal: Long? = null,
+    val costoEnVivoPorPorcion: Long? = null,
     val showIngredientePicker: Boolean = false,
     val productosDisponibles: List<Producto> = emptyList(),
     val productoSearchQuery: String = "",

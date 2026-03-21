@@ -66,4 +66,8 @@ class PrefabricadoListViewModel @Inject constructor(
     fun softDelete(id: Long) {
         viewModelScope.launch { repository.softDelete(id) }
     }
+
+    fun restore(id: Long) {
+        viewModelScope.launch { repository.restore(id) }
+    }
 }

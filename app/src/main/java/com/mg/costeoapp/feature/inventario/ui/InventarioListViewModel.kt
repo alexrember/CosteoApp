@@ -23,6 +23,8 @@ class InventarioListViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(InventarioListUiState())
     val uiState: StateFlow<InventarioListUiState> = _uiState.asStateFlow()
 
+    val hayCompraEnCurso: StateFlow<Boolean> = compraManager.hayCompraEnCursoFlow
+
     private var searchJob: Job? = null
 
     init {
