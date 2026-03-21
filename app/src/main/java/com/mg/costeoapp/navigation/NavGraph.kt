@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Scaffold
@@ -49,14 +50,16 @@ private val bottomNavItems = listOf(
     BottomNavItem("Inicio", Icons.Filled.Home, DashboardRoute),
     BottomNavItem("Inventario", Icons.Filled.ShoppingCart, InventarioListRoute),
     BottomNavItem("Recetas", Icons.Filled.Restaurant, RecetaListRoute),
-    BottomNavItem("Platos", Icons.Filled.Fastfood, PlatoListRoute)
+    BottomNavItem("Platos", Icons.Filled.Fastfood, PlatoListRoute),
+    BottomNavItem("Config", Icons.Filled.Settings, SettingsRoute)
 )
 
 private val bottomNavRoutes = setOf(
     DashboardRoute::class.qualifiedName,
     InventarioListRoute::class.qualifiedName,
     RecetaListRoute::class.qualifiedName,
-    PlatoListRoute::class.qualifiedName
+    PlatoListRoute::class.qualifiedName,
+    SettingsRoute::class.qualifiedName
 )
 
 private const val PREFS_NAME = "costeo_prefs"
