@@ -353,7 +353,12 @@ class ProductoRegistroViewModel @Inject constructor(
 
         viewModelScope.launch {
             val state = _uiState.value
-            val precioCents = CurrencyFormatter.toCents(state.precio)!!
+            val precioCents = CurrencyFormatter.toCents(state.precio)
+            if (precioCents == null || precioCents <= 0) {
+                _uiState.update { it.copy(isSaving = false) }
+                _events.send(UiEvent.ShowError("Precio invalido"))
+                return@launch
+            }
             val tienda = compraManager.getTienda()
 
             if (tienda != null) {

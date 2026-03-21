@@ -42,9 +42,13 @@ class CompraManager @Inject constructor(
         items.isNotEmpty() || tienda != null
     }.stateIn(scope, SharingStarted.Eagerly, false)
 
-    // Cache de resultados de busqueda
+    @Volatile
     var lastSearchResults: List<com.mg.costeoapp.core.domain.model.StoreSearchResult>? = null
+        private set
+
+    @Volatile
     var lastNutricion: com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna? = null
+        private set
 
     fun cacheSearchResults(
         results: List<com.mg.costeoapp.core.domain.model.StoreSearchResult>,

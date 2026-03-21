@@ -146,12 +146,11 @@ fun ScannerScreen(
                 .padding(padding)
         ) {
             if (cameraPermissionGranted) {
-                if (!uiState.isProcessing) {
-                    CameraPreview(
-                        onBarcodeDetected = viewModel::onBarcodeDetected,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
+                CameraPreview(
+                    onBarcodeDetected = viewModel::onBarcodeDetected,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (uiState.isProcessing) {
                     SearchingOverlay(
                         barcode = uiState.scannedBarcode,
                         modifier = Modifier.fillMaxSize()
@@ -328,7 +327,9 @@ private fun CameraPreview(
                     preview,
                     imageAnalysis
                 )
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("CameraPreview", "Error binding camera", e)
+            }
         }, ContextCompat.getMainExecutor(context))
 
         onDispose {

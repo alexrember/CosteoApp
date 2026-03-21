@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -70,7 +71,7 @@ fun ProductoRegistroScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
-    val ocrProcessor = remember { OcrNutritionProcessor(context) }
+    val ocrProcessor = remember { OcrNutritionProcessor(context.applicationContext) }
 
     // Crear archivo temporal fresco para cada foto
     var photoUri by remember { mutableStateOf<Uri?>(null) }
@@ -105,12 +106,12 @@ fun ProductoRegistroScreen(
         }
     }
 
-    if (uiState.duplicateProducto != null) {
+    uiState.duplicateProducto?.let { duplicate ->
         AlertDialog(
             onDismissRequest = viewModel::onDuplicateDismiss,
             title = { Text("Producto duplicado") },
             text = {
-                Text("Este producto ya existe: ${uiState.duplicateProducto!!.nombre}. ¿Deseas actualizar su precio?")
+                Text("Este producto ya existe: ${duplicate.nombre}. ¿Deseas actualizar su precio?")
             },
             confirmButton = {
                 Button(onClick = viewModel::onDuplicateUpdatePrice) {
@@ -213,7 +214,7 @@ fun ProductoRegistroScreen(
                                 },
                                 modifier = Modifier.clickable {
                                     viewModel.onSugerenciaSelected(producto)
-                                }
+                                }.heightIn(min = 48.dp)
                             )
                         }
                     }
@@ -316,7 +317,7 @@ fun ProductoRegistroScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(horizontal = 0.dp)
                 ) {
-                    items(uiState.productosFrequentes) { producto ->
+                    items(uiState.productosFrequentes, key = { it.id }) { producto ->
                         AssistChip(
                             onClick = { viewModel.onSelectFrequentProduct(producto) },
                             label = { Text(producto.nombre) }

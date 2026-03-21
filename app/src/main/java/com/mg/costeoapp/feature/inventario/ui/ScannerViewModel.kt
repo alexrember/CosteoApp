@@ -46,10 +46,10 @@ class ScannerViewModel @Inject constructor(
     var lastNutricion: NutricionExterna? = null
         private set
 
-    @Volatile private var candidateBarcode: String? = null
-    @Volatile private var candidateCount = 0
+    private var candidateBarcode: String? = null
+    private var candidateCount = 0
     private val requiredDetections = 3
-    @Volatile private var processingBarcode: String? = null
+    private var processingBarcode: String? = null
     private val scanLock = Any()
 
     init {
@@ -75,6 +75,7 @@ class ScannerViewModel @Inject constructor(
             if (candidateCount < requiredDetections) return
             if (barcode == processingBarcode) return
             candidateCount = 0
+            processingBarcode = barcode
         }
         processBarcode(barcode)
     }
@@ -84,7 +85,6 @@ class ScannerViewModel @Inject constructor(
 
     private fun processBarcode(barcode: String) {
         if (!isValidBarcode(barcode)) return
-        processingBarcode = barcode
 
         viewModelScope.launch {
             _uiState.update {
@@ -123,10 +123,8 @@ class ScannerViewModel @Inject constructor(
 
                 // Buscar precios en todas las tiendas en paralelo
                 if (productoLocal.codigoBarras != null) {
-                    val orchestrated = withTimeoutOrNull(6000L) {
-                        searchOrchestrator.searchByBarcode(productoLocal.codigoBarras)
-                    }
-                    orchestrated?.results?.filter { it.isAvailable && it.price != null }?.forEach { result ->
+                    val orchestrated = searchOrchestrator.searchByBarcode(productoLocal.codigoBarras)
+                    orchestrated.results.filter { it.isAvailable && it.price != null }.forEach { result ->
                         preciosComparados.add(PrecioComparado(
                             tiendaNombre = result.storeName,
                             precio = result.price!!,
@@ -147,25 +145,21 @@ class ScannerViewModel @Inject constructor(
                 _events.send(UiEvent.ShowError("${productoLocal.nombre} agregado al carrito"))
 
                 kotlinx.coroutines.delay(2000)
-                processingBarcode = null
+                synchronized(scanLock) { processingBarcode = null }
                 _uiState.update { it.copy(lookupState = BarcodeLookupState.Idle) }
                 return@launch
             }
 
             val deferredStores = async {
-                withTimeoutOrNull(8000L) {
-                    searchOrchestrator.searchByBarcode(barcode)
-                }
+                searchOrchestrator.searchByBarcode(barcode)
             }
 
             val deferredNutricion = async {
-                withTimeoutOrNull(8000L) {
-                    nutritionRepository.searchByBarcode(barcode)
-                }
+                nutritionRepository.searchByBarcode(barcode)
             }
 
             val orchestrated = deferredStores.await()
-            var storeResults = orchestrated?.results ?: emptyList()
+            var storeResults = orchestrated.results
             lastNutricion = deferredNutricion.await()
 
             // PriceSmart no indexa por barcode — siempre necesita nombre.
@@ -206,7 +200,9 @@ class ScannerViewModel @Inject constructor(
 
     /** Llamar al volver del registro. Permite re-escanear cualquier codigo. */
     fun onReturnFromRegistro() {
-        processingBarcode = null
+        synchronized(scanLock) {
+            processingBarcode = null
+        }
         _uiState.update {
             it.copy(lookupState = BarcodeLookupState.Idle, isProcessing = false)
         }
@@ -214,9 +210,11 @@ class ScannerViewModel @Inject constructor(
 
     /** Reset completo para empezar de nuevo */
     fun resetScanner() {
-        processingBarcode = null
-        candidateBarcode = null
-        candidateCount = 0
+        synchronized(scanLock) {
+            processingBarcode = null
+            candidateBarcode = null
+            candidateCount = 0
+        }
         lastNutricion = null
         _uiState.update {
             it.copy(

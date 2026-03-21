@@ -27,6 +27,9 @@ android {
 
         testInstrumentationRunner = "com.mg.costeoapp.HiltTestRunner"
 
+        buildConfigField("String", "BLOOMREACH_ACCOUNT_ID", "\"7024\"")
+        buildConfigField("String", "BLOOMREACH_AUTH_KEY", "\"ev7libhybjg5h1d1\"")
+
         // Room - Exportar esquemas para migraciones futuras
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")

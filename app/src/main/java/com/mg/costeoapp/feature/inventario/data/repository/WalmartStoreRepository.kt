@@ -10,6 +10,7 @@ class WalmartStoreRepository @Inject constructor(
 ) {
 
     suspend fun searchByBarcode(ean: String): Result<List<StoreSearchResult>> {
+        if (!ean.matches(Regex("^\\d{8,14}$"))) return Result.success(emptyList())
         return try {
             val response = walmartApi.searchByBarcode(fq = "alternateIds_Ean:$ean")
             if (response.isSuccessful) {

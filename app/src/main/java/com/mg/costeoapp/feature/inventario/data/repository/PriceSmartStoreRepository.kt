@@ -14,8 +14,10 @@ class PriceSmartStoreRepository @Inject constructor(
     }
 
     suspend fun searchByName(query: String): Result<List<StoreSearchResult>> {
+        val sanitized = query.take(100).replace(Regex("[^\\p{L}\\p{N}\\s]"), "").trim()
+        if (sanitized.isBlank()) return Result.success(emptyList())
         return try {
-            val response = searchApi.search(query = query)
+            val response = searchApi.search(query = sanitized)
             if (response.isSuccessful) {
                 val results = response.body()
                     ?.response
