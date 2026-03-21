@@ -19,7 +19,6 @@ import com.mg.costeoapp.feature.inventario.data.InventarioRepository
 import com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna
 import com.mg.costeoapp.feature.inventario.data.mapper.SmartDefaults
 import com.mg.costeoapp.feature.inventario.data.mapper.parseContenidoFromName
-import com.mg.costeoapp.feature.inventario.data.voice.VoiceParseResult
 import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
 import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrator
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
@@ -292,21 +291,6 @@ class ProductoRegistroViewModel @Inject constructor(
                     it.copy(ultimoPrecioSugerencia = CurrencyFormatter.fromCents(lastPrice))
                 }
             }
-        }
-    }
-
-    fun onVoiceResult(result: VoiceParseResult) {
-        _uiState.update { state ->
-            state.copy(
-                nombre = result.nombre ?: state.nombre,
-                cantidadPorEmpaque = result.cantidad?.let { formatCantidad(it) } ?: state.cantidadPorEmpaque,
-                unidadMedida = result.unidad ?: state.unidadMedida,
-                precio = result.precio?.let {
-                    if (it == it.toLong().toDouble()) it.toLong().toString()
-                    else String.format("%.2f", it)
-                } ?: state.precio,
-                sugerencias = emptyList()
-            )
         }
     }
 
