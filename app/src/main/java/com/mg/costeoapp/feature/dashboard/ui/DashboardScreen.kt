@@ -80,25 +80,11 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 StatCard(
-                    title = "Tiendas",
-                    count = uiState.totalTiendas,
-                    icon = Icons.Filled.Store,
-                    modifier = Modifier.weight(1f)
-                )
-                StatCard(
                     title = "Productos",
                     count = uiState.totalProductos,
                     icon = Icons.Filled.Inventory2,
                     modifier = Modifier.weight(1f)
                 )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
                 StatCard(
                     title = "Recetas",
                     count = uiState.totalRecetas,
@@ -136,16 +122,6 @@ fun DashboardScreen(
             text = "Nuevo plato",
             icon = Icons.Filled.Fastfood,
             onClick = onNavigateToNuevoPlato
-        )
-        QuickActionButton(
-            text = "Simulador",
-            icon = Icons.Filled.Calculate,
-            onClick = onNavigateToSimulador
-        )
-        QuickActionButton(
-            text = "Configuracion",
-            icon = Icons.Filled.Settings,
-            onClick = onNavigateToSettings
         )
     }
 }
