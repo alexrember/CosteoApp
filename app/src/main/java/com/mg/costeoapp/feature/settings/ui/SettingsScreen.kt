@@ -3,7 +3,9 @@ package com.mg.costeoapp.feature.settings.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -17,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
+import com.mg.costeoapp.feature.auth.data.AuthState
+import com.mg.costeoapp.feature.auth.ui.AuthViewModel
 import com.mg.costeoapp.feature.settings.ThemeMode
 
 @Composable
@@ -24,14 +28,65 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToTiendas: () -> Unit = {},
     onNavigateToProductos: () -> Unit = {},
-    viewModel: SettingsViewModel = hiltViewModel()
+    onNavigateToLogin: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
+    viewModel: SettingsViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val authState by authViewModel.authState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = { CosteoTopAppBar(title = "Configuracion", onNavigateBack = onNavigateBack) }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+
+            // Cuenta
+            Text("Cuenta", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            when (val state = authState) {
+                is AuthState.LoggedIn -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable(onClick = onNavigateToProfile),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(state.user.email, style = MaterialTheme.typography.bodyLarge)
+                                Text("Ver perfil y sincronizacion", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable(onClick = onNavigateToLogin),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Iniciar sesion", style = MaterialTheme.typography.bodyLarge)
+                                Text("Sincroniza tus datos entre dispositivos", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Datos maestros
             Text("Datos maestros", style = MaterialTheme.typography.titleMedium)

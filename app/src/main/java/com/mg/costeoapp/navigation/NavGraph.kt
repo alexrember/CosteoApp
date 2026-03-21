@@ -54,6 +54,8 @@ import com.mg.costeoapp.feature.platos.ui.SimuladorScreen
 import com.mg.costeoapp.feature.export.CsvExportService
 import com.mg.costeoapp.feature.export.PdfExportService
 import com.mg.costeoapp.feature.platos.data.PlatoRepository
+import com.mg.costeoapp.feature.auth.ui.LoginScreen
+import com.mg.costeoapp.feature.auth.ui.ProfileScreen
 import com.mg.costeoapp.feature.settings.ui.SettingsScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaFormScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaListScreen
@@ -426,7 +428,29 @@ fun CosteoNavGraph(
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToTiendas = { navController.navigate(TiendaListRoute) },
-                    onNavigateToProductos = { navController.navigate(ProductoListRoute) }
+                    onNavigateToProductos = { navController.navigate(ProductoListRoute) },
+                    onNavigateToLogin = { navController.navigate(LoginRoute) },
+                    onNavigateToProfile = { navController.navigate(ProfileRoute) }
+                )
+            }
+
+            // --- Fase 7: Auth ---
+
+            composable<LoginRoute> {
+                LoginScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onAuthSuccess = {
+                        navController.popBackStack(SettingsRoute, inclusive = false)
+                    }
+                )
+            }
+
+            composable<ProfileRoute> {
+                ProfileScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onSignedOut = {
+                        navController.popBackStack(SettingsRoute, inclusive = false)
+                    }
                 )
             }
 
