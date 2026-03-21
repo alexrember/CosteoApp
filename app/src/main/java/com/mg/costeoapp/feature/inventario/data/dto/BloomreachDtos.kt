@@ -1,14 +1,16 @@
 package com.mg.costeoapp.feature.inventario.data.dto
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class BloomreachResponse(
+data class BloomreachSearchResponse(
     val response: BloomreachDocs? = null
 )
 
 @Serializable
 data class BloomreachDocs(
+    val numFound: Int? = null,
     val docs: List<BloomreachProduct>? = null
 )
 
@@ -17,8 +19,7 @@ data class BloomreachProduct(
     val title: String? = null,
     val brand: String? = null,
     val pid: String? = null,
-    val price: Double? = null,
-    val sale_price: Double? = null,
-    val thumb_image: String? = null,
-    val url: String? = null
+    @SerialName("price_SV") val priceSV: Double? = null,
+    @SerialName("thumb_image") val thumbImage: String? = null,
+    @SerialName("availability_SV") val availabilitySV: String? = null
 )

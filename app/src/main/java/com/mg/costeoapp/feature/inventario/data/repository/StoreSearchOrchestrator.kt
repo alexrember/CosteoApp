@@ -29,6 +29,12 @@ class StoreSearchOrchestrator @Inject constructor(
         )
     }
 
+    suspend fun searchPriceSmartByName(query: String): List<StoreSearchResult> {
+        return withTimeoutOrNull(TIMEOUT_MS) {
+            priceSmartRepository.searchByName(query).getOrNull()
+        } ?: emptyList()
+    }
+
     suspend fun searchByName(query: String): OrchestratedSearchResult {
         return executeParallelSearch(
             walmartSearch = { walmartRepository.searchByName(query) },
