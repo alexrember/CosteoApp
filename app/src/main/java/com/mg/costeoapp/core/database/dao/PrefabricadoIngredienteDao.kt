@@ -43,4 +43,7 @@ interface PrefabricadoIngredienteDao {
         WHERE p.activo = 0
     """)
     suspend fun countRecetasConIngredientesInactivos(): Int
+
+    @Query("SELECT * FROM prefabricado_ingrediente")
+    suspend fun getAllOnce(): List<PrefabricadoIngrediente>
 }

@@ -150,4 +150,10 @@ interface InventarioDao {
 
     @Update
     suspend fun update(inventario: Inventario)
+
+    @Query("SELECT * FROM inventario WHERE updated_at > :since")
+    suspend fun getModifiedSince(since: Long): List<Inventario>
+
+    @Query("SELECT * FROM inventario")
+    suspend fun getAllOnce(): List<Inventario>
 }

@@ -58,4 +58,10 @@ interface PrefabricadoDao {
 
     @Query("SELECT COUNT(*) FROM prefabricados WHERE activo = 1")
     suspend fun countActive(): Int
+
+    @Query("SELECT * FROM prefabricados WHERE updated_at > :since")
+    suspend fun getModifiedSince(since: Long): List<Prefabricado>
+
+    @Query("SELECT * FROM prefabricados")
+    suspend fun getAllOnce(): List<Prefabricado>
 }

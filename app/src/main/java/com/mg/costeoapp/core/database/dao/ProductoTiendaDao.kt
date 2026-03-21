@@ -100,4 +100,10 @@ interface ProductoTiendaDao {
         LIMIT 5
     """)
     suspend fun getHistorialPreciosRecientes(productoId: Long): List<PrecioHistoricoRaw>
+
+    @Query("SELECT * FROM producto_tienda WHERE updated_at > :since")
+    suspend fun getModifiedSince(since: Long): List<ProductoTienda>
+
+    @Query("SELECT * FROM producto_tienda")
+    suspend fun getAllOnce(): List<ProductoTienda>
 }

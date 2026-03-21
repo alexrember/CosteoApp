@@ -98,4 +98,10 @@ interface ProductoDao {
 		LIMIT :limit
 	""")
 	suspend fun searchSuggestions(query: String, limit: Int = 5): List<Producto>
+
+	@Query("SELECT * FROM productos WHERE updated_at > :since")
+	suspend fun getModifiedSince(since: Long): List<Producto>
+
+	@Query("SELECT * FROM productos")
+	suspend fun getAllOnce(): List<Producto>
 }

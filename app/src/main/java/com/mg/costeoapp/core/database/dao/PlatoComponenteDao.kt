@@ -32,4 +32,7 @@ interface PlatoComponenteDao {
 
     @Query("DELETE FROM plato_componente WHERE plato_id = :platoId")
     suspend fun deleteByPlato(platoId: Long)
+
+    @Query("SELECT * FROM plato_componente")
+    suspend fun getAllOnce(): List<PlatoComponente>
 }

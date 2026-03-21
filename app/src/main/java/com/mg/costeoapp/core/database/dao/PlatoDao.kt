@@ -59,4 +59,10 @@ interface PlatoDao {
 
     @Query("SELECT COUNT(*) FROM platos WHERE activo = 1")
     suspend fun countActive(): Int
+
+    @Query("SELECT * FROM platos WHERE updated_at > :since")
+    suspend fun getModifiedSince(since: Long): List<Plato>
+
+    @Query("SELECT * FROM platos")
+    suspend fun getAllPlatos(): List<Plato>
 }
