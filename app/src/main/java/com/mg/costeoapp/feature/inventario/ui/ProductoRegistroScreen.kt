@@ -3,16 +3,25 @@ package com.mg.costeoapp.feature.inventario.ui
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -40,6 +49,7 @@ import com.mg.costeoapp.feature.inventario.data.ocr.OcrNutritionProcessor
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.core.content.FileProvider
 import androidx.compose.runtime.rememberCoroutineScope
@@ -163,6 +173,38 @@ fun ProductoRegistroScreen(
                 error = uiState.fieldErrors["nombre"]
             )
 
+            if (uiState.sugerencias.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column {
+                        uiState.sugerencias.forEach { producto ->
+                            ListItem(
+                                headlineContent = { Text(producto.nombre) },
+                                supportingContent = {
+                                    Text("${producto.unidadMedida} - ${producto.cantidadPorEmpaque}")
+                                },
+                                modifier = Modifier.clickable {
+                                    viewModel.onSugerenciaSelected(producto)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (uiState.ultimoPrecioSugerencia != null) {
+                Text(
+                    text = "Ultimo precio: ${uiState.ultimoPrecioSugerencia}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
             CosteoDropdown(
@@ -216,6 +258,29 @@ fun ProductoRegistroScreen(
                 Icon(Icons.Filled.CameraAlt, contentDescription = null,
                     modifier = androidx.compose.ui.Modifier.padding(end = 8.dp))
                 Text("Escanear etiqueta nutricional")
+            }
+
+            if (uiState.productosFrequentes.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Productos frecuentes",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 0.dp)
+                ) {
+                    items(uiState.productosFrequentes) { producto ->
+                        AssistChip(
+                            onClick = { viewModel.onSelectFrequentProduct(producto) },
+                            label = { Text(producto.nombre) }
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

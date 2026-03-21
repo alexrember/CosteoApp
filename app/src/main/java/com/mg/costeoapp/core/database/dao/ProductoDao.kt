@@ -71,4 +71,31 @@ interface ProductoDao {
 
 	@Query("SELECT * FROM productos WHERE activo = 1 AND factor_merma > 0")
 	suspend fun getConMerma(): List<Producto>
+
+	@Query("""
+		SELECT p.* FROM productos p
+		INNER JOIN inventario i ON p.id = i.producto_id
+		WHERE p.activo = 1
+		GROUP BY p.id
+		ORDER BY COUNT(i.id) DESC
+		LIMIT :limit
+	""")
+	suspend fun getFrequentProducts(limit: Int = 10): List<Producto>
+
+	@Query("""
+		SELECT pt.precio FROM producto_tienda pt
+		WHERE pt.producto_id = :productoId AND pt.activo = 1
+		ORDER BY pt.fecha_registro DESC
+		LIMIT 1
+	""")
+	suspend fun getLastPrice(productoId: Long): Long?
+
+	@Query("""
+		SELECT * FROM productos
+		WHERE activo = 1
+		AND LOWER(nombre) LIKE '%' || LOWER(:query) || '%'
+		ORDER BY nombre ASC
+		LIMIT :limit
+	""")
+	suspend fun searchSuggestions(query: String, limit: Int = 5): List<Producto>
 }

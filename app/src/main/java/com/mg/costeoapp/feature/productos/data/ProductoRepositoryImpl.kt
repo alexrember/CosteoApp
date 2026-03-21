@@ -91,4 +91,13 @@ class ProductoRepositoryImpl @Inject constructor(
 
     override suspend fun desactivarPrecios(productoId: Long, tiendaId: Long) =
         productoTiendaDao.desactivarPrecios(productoId, tiendaId)
+
+    override suspend fun getFrequentProducts(limit: Int): List<Producto> =
+        productoDao.getFrequentProducts(limit)
+
+    override suspend fun getLastPrice(productoId: Long): Long? =
+        productoDao.getLastPrice(productoId)
+
+    override suspend fun searchSuggestions(query: String, limit: Int): List<Producto> =
+        productoDao.searchSuggestions(query, limit)
 }

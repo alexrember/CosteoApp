@@ -21,4 +21,7 @@ interface ProductoRepository {
     suspend fun insertPrecio(productoTienda: ProductoTienda): Result<Long>
     suspend fun updatePrecio(productoTienda: ProductoTienda): Result<Unit>
     suspend fun desactivarPrecios(productoId: Long, tiendaId: Long)
+    suspend fun getFrequentProducts(limit: Int = 10): List<Producto>
+    suspend fun getLastPrice(productoId: Long): Long?
+    suspend fun searchSuggestions(query: String, limit: Int = 5): List<Producto>
 }

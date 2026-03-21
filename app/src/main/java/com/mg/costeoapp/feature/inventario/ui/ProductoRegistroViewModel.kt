@@ -17,13 +17,16 @@ import com.mg.costeoapp.core.util.ValidationUtils
 import com.mg.costeoapp.feature.inventario.data.CompraManager
 import com.mg.costeoapp.feature.inventario.data.InventarioRepository
 import com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna
+import com.mg.costeoapp.feature.inventario.data.mapper.SmartDefaults
 import com.mg.costeoapp.feature.inventario.data.mapper.parseContenidoFromName
 import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
-import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
+import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrator
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,14 +47,17 @@ data class ProductoRegistroUiState(
     val buscandoEnApi: Boolean = false,
     val mergedData: MergedProductData? = null,
     val fieldErrors: Map<String, String> = emptyMap(),
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val productosFrequentes: List<Producto> = emptyList(),
+    val sugerencias: List<Producto> = emptyList(),
+    val ultimoPrecioSugerencia: String? = null
 )
 
 @HiltViewModel
 class ProductoRegistroViewModel @Inject constructor(
     private val productoRepository: ProductoRepository,
     private val inventarioRepository: InventarioRepository,
-    private val walmartRepository: WalmartStoreRepository,
+    private val searchOrchestrator: StoreSearchOrchestrator,
     private val nutritionRepository: NutritionRepository,
     private val compraManager: CompraManager,
     savedStateHandle: SavedStateHandle
@@ -64,8 +70,11 @@ class ProductoRegistroViewModel @Inject constructor(
     val events = _events.receiveAsFlow()
 
     private var nutricionExterna: NutricionExterna? = null
+    private var searchJob: Job? = null
 
     init {
+        loadFrequentProducts()
+
         val codigoBarras = savedStateHandle.get<String>("codigoBarras") ?: ""
         val tienda = compraManager.getTienda()
 
@@ -93,10 +102,10 @@ class ProductoRegistroViewModel @Inject constructor(
         _uiState.update { it.copy(buscandoEnApi = true) }
 
         viewModelScope.launch {
-            val deferredWalmart = async {
+            val deferredStores = async {
                 withTimeoutOrNull(8000L) {
-                    walmartRepository.searchByBarcode(barcode).getOrNull()
-                } ?: emptyList()
+                    searchOrchestrator.searchByBarcode(barcode)
+                }
             }
 
             val deferredNutricion = async {
@@ -105,25 +114,25 @@ class ProductoRegistroViewModel @Inject constructor(
                 }
             }
 
-            val walmartResults = deferredWalmart.await()
+            val storeResults = deferredStores.await()?.results ?: emptyList()
             val nutricion = deferredNutricion.await()
-            aplicarResultados(walmartResults, nutricion)
+            aplicarResultados(storeResults, nutricion)
         }
     }
 
     private fun aplicarResultados(
-        walmartResults: List<com.mg.costeoapp.core.domain.model.StoreSearchResult>,
+        storeResults: List<com.mg.costeoapp.core.domain.model.StoreSearchResult>,
         nutricion: NutricionExterna?
     ) {
         nutricionExterna = nutricion
         val dataSources = mutableListOf<ProductDataSource>()
 
-        val best = walmartResults.firstOrNull { it.isAvailable }
+        val best = storeResults.firstOrNull { it.isAvailable }
         if (best != null) {
             val contenido = parseContenidoFromName(best.productName)
             dataSources.add(
                 ProductDataSource(
-                    sourceName = "Walmart SV",
+                    sourceName = best.storeName,
                     nombre = best.productName,
                     precio = best.price,
                     unidadMedida = contenido?.unidad ?: mapVtexUnit(best.measurementUnit),
@@ -205,11 +214,95 @@ class ProductoRegistroViewModel @Inject constructor(
     }
 
     fun onNombreSelected(value: String) {
-        _uiState.update { it.copy(nombre = value, fieldErrors = it.fieldErrors - "nombre") }
+        _uiState.update {
+            val shouldSuggestUnit = it.mergedData == null || it.mergedData.unidadMedida is FieldResolution.Empty
+            it.copy(
+                nombre = value,
+                fieldErrors = it.fieldErrors - "nombre",
+                unidadMedida = if (shouldSuggestUnit) SmartDefaults.suggestUnit(value) else it.unidadMedida
+            )
+        }
     }
 
     fun onNombreChanged(value: String) {
-        _uiState.update { it.copy(nombre = value, fieldErrors = it.fieldErrors - "nombre") }
+        _uiState.update {
+            val shouldSuggestUnit = it.mergedData == null || it.mergedData.unidadMedida is FieldResolution.Empty
+            it.copy(
+                nombre = value,
+                fieldErrors = it.fieldErrors - "nombre",
+                unidadMedida = if (shouldSuggestUnit && value.length >= 3) SmartDefaults.suggestUnit(value) else it.unidadMedida,
+                ultimoPrecioSugerencia = null
+            )
+        }
+        debounceSuggestions(value)
+    }
+
+    private fun debounceSuggestions(query: String) {
+        searchJob?.cancel()
+        if (query.length < 2) {
+            _uiState.update { it.copy(sugerencias = emptyList(), ultimoPrecioSugerencia = null) }
+            return
+        }
+        searchJob = viewModelScope.launch {
+            delay(300)
+            val results = productoRepository.searchSuggestions(query)
+            _uiState.update { it.copy(sugerencias = results) }
+        }
+    }
+
+    fun onSugerenciaSelected(producto: Producto) {
+        val unidad = UnidadMedida.fromCodigo(producto.unidadMedida) ?: UnidadMedida.UNIDAD
+        _uiState.update {
+            it.copy(
+                nombre = producto.nombre,
+                unidadMedida = unidad,
+                cantidadPorEmpaque = formatCantidad(producto.cantidadPorEmpaque),
+                unidadesPorEmpaque = producto.unidadesPorEmpaque.toString(),
+                codigoBarras = producto.codigoBarras ?: it.codigoBarras,
+                sugerencias = emptyList()
+            )
+        }
+        viewModelScope.launch {
+            val lastPrice = productoRepository.getLastPrice(producto.id)
+            if (lastPrice != null) {
+                _uiState.update {
+                    it.copy(ultimoPrecioSugerencia = CurrencyFormatter.fromCents(lastPrice))
+                }
+            }
+        }
+    }
+
+    fun onSelectFrequentProduct(producto: Producto) {
+        val unidad = UnidadMedida.fromCodigo(producto.unidadMedida) ?: UnidadMedida.UNIDAD
+        _uiState.update {
+            it.copy(
+                nombre = producto.nombre,
+                unidadMedida = unidad,
+                cantidadPorEmpaque = formatCantidad(producto.cantidadPorEmpaque),
+                unidadesPorEmpaque = producto.unidadesPorEmpaque.toString(),
+                codigoBarras = producto.codigoBarras ?: it.codigoBarras,
+                sugerencias = emptyList()
+            )
+        }
+        viewModelScope.launch {
+            val lastPrice = productoRepository.getLastPrice(producto.id)
+            if (lastPrice != null) {
+                _uiState.update {
+                    it.copy(ultimoPrecioSugerencia = CurrencyFormatter.fromCents(lastPrice))
+                }
+            }
+        }
+    }
+
+    fun dismissSugerencias() {
+        _uiState.update { it.copy(sugerencias = emptyList()) }
+    }
+
+    private fun loadFrequentProducts() {
+        viewModelScope.launch {
+            val frequent = productoRepository.getFrequentProducts()
+            _uiState.update { it.copy(productosFrequentes = frequent) }
+        }
     }
 
     fun onUnidadMedidaChanged(value: UnidadMedida) {
