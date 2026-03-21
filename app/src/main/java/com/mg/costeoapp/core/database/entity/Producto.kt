@@ -70,5 +70,8 @@ data class Producto(
     val nutricionFuente: String? = null,
 
     @ColumnInfo(name = "factor_merma")
-    val factorMerma: Int = 0
+    val factorMerma: Int = 0,
+
+    @ColumnInfo(name = "version", defaultValue = "1")
+    val version: Int = 1
 )

@@ -49,5 +49,8 @@ data class PlatoComponente(
 
     val cantidad: Double,
 
-    val notas: String? = null
+    val notas: String? = null,
+
+    @ColumnInfo(name = "version", defaultValue = "1")
+    val version: Int = 1
 )

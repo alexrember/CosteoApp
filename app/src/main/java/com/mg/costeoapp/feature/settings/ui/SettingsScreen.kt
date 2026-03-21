@@ -1,20 +1,27 @@
 package com.mg.costeoapp.feature.settings.ui
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,9 +42,43 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let { viewModel.requestImportBackup(it) }
+    }
+
+    LaunchedEffect(uiState.backupMessage) {
+        uiState.backupMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearBackupMessage()
+        }
+    }
+
+    if (uiState.showImportConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelImportBackup() },
+            title = { Text("Importar base de datos") },
+            text = { Text("Esto reemplazara todos tus datos. \u00bfContinuar?") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmImportBackup(context) }) {
+                    Text("Importar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelImportBackup() }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Scaffold(
-        topBar = { CosteoTopAppBar(title = "Configuracion", onNavigateBack = onNavigateBack) }
+        topBar = { CosteoTopAppBar(title = "Configuracion", onNavigateBack = onNavigateBack) },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
 
@@ -125,6 +166,58 @@ fun SettingsScreen(
                     Column {
                         Text("Productos", style = MaterialTheme.typography.bodyLarge)
                         Text("Administrar productos base", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Respaldos
+            Text("Respaldos", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth().clickable {
+                    val intent = viewModel.exportBackup(context)
+                    if (intent != null) {
+                        val chooser = android.content.Intent.createChooser(intent, "Compartir respaldo")
+                        context.startActivity(chooser)
+                    }
+                },
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.CloudUpload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Exportar base de datos", style = MaterialTheme.typography.bodyLarge)
+                        Text("Compartir un respaldo de tus datos", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth().clickable {
+                    importLauncher.launch(arrayOf("application/octet-stream", "application/x-sqlite3", "*/*"))
+                },
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Importar base de datos", style = MaterialTheme.typography.bodyLarge)
+                        Text("Restaurar datos desde un respaldo", style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

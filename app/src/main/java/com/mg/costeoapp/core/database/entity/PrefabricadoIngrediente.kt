@@ -41,5 +41,8 @@ data class PrefabricadoIngrediente(
     val cantidadUsada: Double,
 
     @ColumnInfo(name = "unidad_usada")
-    val unidadUsada: String
+    val unidadUsada: String,
+
+    @ColumnInfo(name = "version", defaultValue = "1")
+    val version: Int = 1
 )

@@ -14,6 +14,7 @@ import com.mg.costeoapp.core.database.dao.PrefabricadoDao
 import com.mg.costeoapp.core.database.dao.PrefabricadoIngredienteDao
 import com.mg.costeoapp.core.database.dao.ProductoDao
 import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
+import com.mg.costeoapp.core.database.dao.SyncMetadataDao
 import com.mg.costeoapp.core.database.dao.TiendaDao
 import dagger.Module
 import dagger.Provides
@@ -43,7 +44,7 @@ object DatabaseModule {
             CosteoDatabase::class.java,
             "costeo_database"
         )
-            .addMigrations(CosteoDatabase.MIGRATION_1_2, CosteoDatabase.MIGRATION_2_3, CosteoDatabase.MIGRATION_3_4, CosteoDatabase.MIGRATION_4_5, CosteoDatabase.MIGRATION_5_6, CosteoDatabase.MIGRATION_6_7, CosteoDatabase.MIGRATION_7_8)
+            .addMigrations(CosteoDatabase.MIGRATION_1_2, CosteoDatabase.MIGRATION_2_3, CosteoDatabase.MIGRATION_3_4, CosteoDatabase.MIGRATION_4_5, CosteoDatabase.MIGRATION_5_6, CosteoDatabase.MIGRATION_6_7, CosteoDatabase.MIGRATION_7_8, CosteoDatabase.MIGRATION_8_9)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
@@ -87,4 +88,8 @@ object DatabaseModule {
     @Provides
     fun providePlatoComponenteDao(database: CosteoDatabase): PlatoComponenteDao =
         database.platoComponenteDao()
+
+    @Provides
+    fun provideSyncMetadataDao(database: CosteoDatabase): SyncMetadataDao =
+        database.syncMetadataDao()
 }

@@ -1,0 +1,1019 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 9,
+    "identityHash": "730f428b80eeb107148e376a4f2e289f",
+    "entities": [
+      {
+        "tableName": "tiendas",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nombre` TEXT NOT NULL, `activo` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `version` INTEGER NOT NULL DEFAULT 1)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_tiendas_nombre",
+            "unique": true,
+            "columnNames": [
+              "nombre"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_tiendas_nombre` ON `${TABLE_NAME}` (`nombre`)"
+          }
+        ]
+      },
+      {
+        "tableName": "productos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nombre` TEXT NOT NULL, `codigo_barras` TEXT, `unidad_medida` TEXT NOT NULL, `cantidad_por_empaque` REAL NOT NULL, `unidades_por_empaque` INTEGER NOT NULL DEFAULT 1, `es_servicio` INTEGER NOT NULL, `notas` TEXT, `activo` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `nutricion_porcion_g` REAL, `nutricion_calorias` REAL, `nutricion_proteinas_g` REAL, `nutricion_carbohidratos_g` REAL, `nutricion_grasas_g` REAL, `nutricion_fibra_g` REAL, `nutricion_sodio_mg` REAL, `nutricion_fuente` TEXT, `factor_merma` INTEGER NOT NULL, `version` INTEGER NOT NULL DEFAULT 1)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "codigoBarras",
+            "columnName": "codigo_barras",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "unidadMedida",
+            "columnName": "unidad_medida",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cantidadPorEmpaque",
+            "columnName": "cantidad_por_empaque",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unidadesPorEmpaque",
+            "columnName": "unidades_por_empaque",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "esServicio",
+            "columnName": "es_servicio",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notas",
+            "columnName": "notas",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nutricionPorcionG",
+            "columnName": "nutricion_porcion_g",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "nutricionCalorias",
+            "columnName": "nutricion_calorias",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "nutricionProteinasG",
+            "columnName": "nutricion_proteinas_g",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "nutricionCarbohidratosG",
+            "columnName": "nutricion_carbohidratos_g",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "nutricionGrasasG",
+            "columnName": "nutricion_grasas_g",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "nutricionFibraG",
+            "columnName": "nutricion_fibra_g",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "nutricionSodioMg",
+            "columnName": "nutricion_sodio_mg",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "nutricionFuente",
+            "columnName": "nutricion_fuente",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "factorMerma",
+            "columnName": "factor_merma",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_productos_codigo_barras",
+            "unique": true,
+            "columnNames": [
+              "codigo_barras"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_productos_codigo_barras` ON `${TABLE_NAME}` (`codigo_barras`)"
+          }
+        ]
+      },
+      {
+        "tableName": "producto_tienda",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `producto_id` INTEGER NOT NULL, `tienda_id` INTEGER NOT NULL, `precio` INTEGER NOT NULL, `fecha_registro` INTEGER NOT NULL, `activo` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `version` INTEGER NOT NULL DEFAULT 1, FOREIGN KEY(`producto_id`) REFERENCES `productos`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`tienda_id`) REFERENCES `tiendas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "productoId",
+            "columnName": "producto_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tiendaId",
+            "columnName": "tienda_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "precio",
+            "columnName": "precio",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fechaRegistro",
+            "columnName": "fecha_registro",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_producto_tienda_producto_id_tienda_id_fecha_registro",
+            "unique": true,
+            "columnNames": [
+              "producto_id",
+              "tienda_id",
+              "fecha_registro"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_producto_tienda_producto_id_tienda_id_fecha_registro` ON `${TABLE_NAME}` (`producto_id`, `tienda_id`, `fecha_registro`)"
+          },
+          {
+            "name": "index_producto_tienda_producto_id",
+            "unique": false,
+            "columnNames": [
+              "producto_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_producto_tienda_producto_id` ON `${TABLE_NAME}` (`producto_id`)"
+          },
+          {
+            "name": "index_producto_tienda_tienda_id",
+            "unique": false,
+            "columnNames": [
+              "tienda_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_producto_tienda_tienda_id` ON `${TABLE_NAME}` (`tienda_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "productos",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "producto_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "tiendas",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tienda_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "inventario",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `producto_id` INTEGER NOT NULL, `tienda_id` INTEGER NOT NULL, `cantidad` REAL NOT NULL, `precio_compra` INTEGER NOT NULL, `fecha_compra` INTEGER NOT NULL, `agotado` INTEGER NOT NULL, `activo` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `version` INTEGER NOT NULL DEFAULT 1, FOREIGN KEY(`producto_id`) REFERENCES `productos`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`tienda_id`) REFERENCES `tiendas`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "productoId",
+            "columnName": "producto_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tiendaId",
+            "columnName": "tienda_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cantidad",
+            "columnName": "cantidad",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "precioCompra",
+            "columnName": "precio_compra",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fechaCompra",
+            "columnName": "fecha_compra",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "agotado",
+            "columnName": "agotado",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_inventario_producto_id",
+            "unique": false,
+            "columnNames": [
+              "producto_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_inventario_producto_id` ON `${TABLE_NAME}` (`producto_id`)"
+          },
+          {
+            "name": "index_inventario_tienda_id",
+            "unique": false,
+            "columnNames": [
+              "tienda_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_inventario_tienda_id` ON `${TABLE_NAME}` (`tienda_id`)"
+          },
+          {
+            "name": "index_inventario_producto_id_agotado_activo",
+            "unique": false,
+            "columnNames": [
+              "producto_id",
+              "agotado",
+              "activo"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_inventario_producto_id_agotado_activo` ON `${TABLE_NAME}` (`producto_id`, `agotado`, `activo`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "productos",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "producto_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "tiendas",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tienda_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "carrito_temporal",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `producto_id` INTEGER NOT NULL, `tienda_id` INTEGER NOT NULL, `cantidad` REAL NOT NULL, `precio_unitario` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "productoId",
+            "columnName": "producto_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tiendaId",
+            "columnName": "tienda_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cantidad",
+            "columnName": "cantidad",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "precioUnitario",
+            "columnName": "precio_unitario",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "prefabricados",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nombre` TEXT NOT NULL, `descripcion` TEXT, `duplicado_de` INTEGER, `costo_fijo` INTEGER NOT NULL DEFAULT 0, `rendimiento_porciones` REAL NOT NULL, `activo` INTEGER NOT NULL DEFAULT 1, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `version` INTEGER NOT NULL DEFAULT 1, FOREIGN KEY(`duplicado_de`) REFERENCES `prefabricados`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descripcion",
+            "columnName": "descripcion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "duplicadoDe",
+            "columnName": "duplicado_de",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "costoFijo",
+            "columnName": "costo_fijo",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "rendimientoPorciones",
+            "columnName": "rendimiento_porciones",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_prefabricados_duplicado_de",
+            "unique": false,
+            "columnNames": [
+              "duplicado_de"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_prefabricados_duplicado_de` ON `${TABLE_NAME}` (`duplicado_de`)"
+          },
+          {
+            "name": "index_prefabricados_activo",
+            "unique": false,
+            "columnNames": [
+              "activo"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_prefabricados_activo` ON `${TABLE_NAME}` (`activo`)"
+          },
+          {
+            "name": "index_prefabricados_nombre",
+            "unique": false,
+            "columnNames": [
+              "nombre"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_prefabricados_nombre` ON `${TABLE_NAME}` (`nombre`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "prefabricados",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "duplicado_de"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "prefabricado_ingrediente",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `prefabricado_id` INTEGER NOT NULL, `producto_id` INTEGER NOT NULL, `cantidad_usada` REAL NOT NULL, `unidad_usada` TEXT NOT NULL, `version` INTEGER NOT NULL DEFAULT 1, FOREIGN KEY(`prefabricado_id`) REFERENCES `prefabricados`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`producto_id`) REFERENCES `productos`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prefabricadoId",
+            "columnName": "prefabricado_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "productoId",
+            "columnName": "producto_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cantidadUsada",
+            "columnName": "cantidad_usada",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unidadUsada",
+            "columnName": "unidad_usada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_prefabricado_ingrediente_prefabricado_id_producto_id",
+            "unique": true,
+            "columnNames": [
+              "prefabricado_id",
+              "producto_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_prefabricado_ingrediente_prefabricado_id_producto_id` ON `${TABLE_NAME}` (`prefabricado_id`, `producto_id`)"
+          },
+          {
+            "name": "index_prefabricado_ingrediente_producto_id",
+            "unique": false,
+            "columnNames": [
+              "producto_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_prefabricado_ingrediente_producto_id` ON `${TABLE_NAME}` (`producto_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "prefabricados",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "prefabricado_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "productos",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "producto_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "costos_indirectos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `prefabricado_id` INTEGER NOT NULL, `nombre` TEXT NOT NULL, `monto` INTEGER NOT NULL, `activo` INTEGER NOT NULL DEFAULT 1, FOREIGN KEY(`prefabricado_id`) REFERENCES `prefabricados`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prefabricadoId",
+            "columnName": "prefabricado_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "monto",
+            "columnName": "monto",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_costos_indirectos_prefabricado_id",
+            "unique": false,
+            "columnNames": [
+              "prefabricado_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_costos_indirectos_prefabricado_id` ON `${TABLE_NAME}` (`prefabricado_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "prefabricados",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "prefabricado_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "platos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nombre` TEXT NOT NULL, `descripcion` TEXT, `margen_porcentaje` REAL, `precio_venta_manual` INTEGER, `activo` INTEGER NOT NULL DEFAULT 1, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `version` INTEGER NOT NULL DEFAULT 1)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descripcion",
+            "columnName": "descripcion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "margenPorcentaje",
+            "columnName": "margen_porcentaje",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "precioVentaManual",
+            "columnName": "precio_venta_manual",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_platos_nombre",
+            "unique": false,
+            "columnNames": [
+              "nombre"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_platos_nombre` ON `${TABLE_NAME}` (`nombre`)"
+          },
+          {
+            "name": "index_platos_activo",
+            "unique": false,
+            "columnNames": [
+              "activo"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_platos_activo` ON `${TABLE_NAME}` (`activo`)"
+          }
+        ]
+      },
+      {
+        "tableName": "plato_componente",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `plato_id` INTEGER NOT NULL, `prefabricado_id` INTEGER, `producto_id` INTEGER, `cantidad` REAL NOT NULL, `notas` TEXT, `version` INTEGER NOT NULL DEFAULT 1, FOREIGN KEY(`plato_id`) REFERENCES `platos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`prefabricado_id`) REFERENCES `prefabricados`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`producto_id`) REFERENCES `productos`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "platoId",
+            "columnName": "plato_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prefabricadoId",
+            "columnName": "prefabricado_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "productoId",
+            "columnName": "producto_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "cantidad",
+            "columnName": "cantidad",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notas",
+            "columnName": "notas",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_plato_componente_plato_id",
+            "unique": false,
+            "columnNames": [
+              "plato_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_plato_componente_plato_id` ON `${TABLE_NAME}` (`plato_id`)"
+          },
+          {
+            "name": "index_plato_componente_prefabricado_id",
+            "unique": false,
+            "columnNames": [
+              "prefabricado_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_plato_componente_prefabricado_id` ON `${TABLE_NAME}` (`prefabricado_id`)"
+          },
+          {
+            "name": "index_plato_componente_producto_id",
+            "unique": false,
+            "columnNames": [
+              "producto_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_plato_componente_producto_id` ON `${TABLE_NAME}` (`producto_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "platos",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "plato_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "prefabricados",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "prefabricado_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "productos",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "producto_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "sync_metadata",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tableName` TEXT NOT NULL, `last_push_at` INTEGER NOT NULL, `last_pull_at` INTEGER NOT NULL, PRIMARY KEY(`tableName`))",
+        "fields": [
+          {
+            "fieldPath": "tableName",
+            "columnName": "tableName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastPushAt",
+            "columnName": "last_push_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastPullAt",
+            "columnName": "last_pull_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tableName"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '730f428b80eeb107148e376a4f2e289f')"
+    ]
+  }
+}

@@ -22,6 +22,8 @@ import com.mg.costeoapp.core.database.entity.Prefabricado
 import com.mg.costeoapp.core.database.entity.PrefabricadoIngrediente
 import com.mg.costeoapp.core.database.entity.Producto
 import com.mg.costeoapp.core.database.entity.ProductoTienda
+import com.mg.costeoapp.core.database.dao.SyncMetadataDao
+import com.mg.costeoapp.core.database.entity.SyncMetadata
 import com.mg.costeoapp.core.database.entity.Tienda
 
 @Database(
@@ -35,9 +37,10 @@ import com.mg.costeoapp.core.database.entity.Tienda
         PrefabricadoIngrediente::class,
         CostoIndirecto::class,
         Plato::class,
-        PlatoComponente::class
+        PlatoComponente::class,
+        SyncMetadata::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 abstract class CosteoDatabase : RoomDatabase() {
@@ -50,6 +53,7 @@ abstract class CosteoDatabase : RoomDatabase() {
     abstract fun prefabricadoIngredienteDao(): PrefabricadoIngredienteDao
     abstract fun platoDao(): PlatoDao
     abstract fun platoComponenteDao(): PlatoComponenteDao
+    abstract fun syncMetadataDao(): SyncMetadataDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -189,6 +193,27 @@ abstract class CosteoDatabase : RoomDatabase() {
         val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_inventario_producto_id_agotado_activo ON inventario(producto_id, agotado, activo)")
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tiendas ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE productos ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE producto_tienda ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE inventario ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE prefabricados ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE prefabricado_ingrediente ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE platos ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE plato_componente ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS sync_metadata (
+                        tableName TEXT NOT NULL PRIMARY KEY,
+                        last_push_at INTEGER NOT NULL DEFAULT 0,
+                        last_pull_at INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
             }
         }
     }

@@ -51,5 +51,8 @@ data class ProductoTienda(
     val createdAt: Long = System.currentTimeMillis(),
 
     @ColumnInfo(name = "updated_at")
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+
+    @ColumnInfo(name = "version", defaultValue = "1")
+    val version: Int = 1
 )
