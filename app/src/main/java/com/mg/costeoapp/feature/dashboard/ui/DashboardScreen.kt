@@ -123,6 +123,11 @@ fun DashboardScreen(
             icon = Icons.Filled.Fastfood,
             onClick = onNavigateToNuevoPlato
         )
+        QuickActionButton(
+            text = "Simulador",
+            icon = Icons.Filled.Calculate,
+            onClick = onNavigateToSimulador
+        )
     }
 }
 
