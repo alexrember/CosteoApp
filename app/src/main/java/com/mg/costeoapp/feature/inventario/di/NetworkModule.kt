@@ -2,9 +2,12 @@ package com.mg.costeoapp.feature.inventario.di
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.mg.costeoapp.BuildConfig
+import com.mg.costeoapp.feature.inventario.data.remote.BloomreachApi
 import com.mg.costeoapp.feature.inventario.data.remote.OpenFoodFactsApi
 import com.mg.costeoapp.feature.inventario.data.remote.WalmartVtexApi
 import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
+import com.mg.costeoapp.feature.inventario.data.repository.PriceSmartStoreRepository
+import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrator
 import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
 import javax.inject.Named
 import dagger.Module
@@ -71,6 +74,36 @@ object NetworkModule {
     @Singleton
     fun provideWalmartStoreRepository(api: WalmartVtexApi): WalmartStoreRepository {
         return WalmartStoreRepository(api)
+    }
+
+    // --- PriceSmart Bloomreach ---
+
+    @Provides
+    @Singleton
+    fun provideBloomreachApi(client: OkHttpClient, json: Json): BloomreachApi {
+        return Retrofit.Builder()
+            .baseUrl(BloomreachApi.BASE_URL)
+            .client(client)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(BloomreachApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun providePriceSmartStoreRepository(api: BloomreachApi): PriceSmartStoreRepository {
+        return PriceSmartStoreRepository(api)
+    }
+
+    // --- Orquestador de busqueda paralela ---
+
+    @Provides
+    @Singleton
+    fun provideStoreSearchOrchestrator(
+        walmartRepository: WalmartStoreRepository,
+        priceSmartRepository: PriceSmartStoreRepository
+    ): StoreSearchOrchestrator {
+        return StoreSearchOrchestrator(walmartRepository, priceSmartRepository)
     }
 
     // --- Open Food Facts ---

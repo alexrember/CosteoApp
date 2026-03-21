@@ -8,7 +8,7 @@ import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.feature.inventario.data.CompraManager
 import com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna
 import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
-import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
+import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -25,7 +25,7 @@ import javax.inject.Inject
 class ScannerViewModel @Inject constructor(
     private val productoDao: ProductoDao,
     private val productoTiendaDao: ProductoTiendaDao,
-    private val walmartRepository: WalmartStoreRepository,
+    private val searchOrchestrator: StoreSearchOrchestrator,
     private val nutritionRepository: NutritionRepository,
     val compraManager: CompraManager
 ) : ViewModel() {
@@ -120,12 +120,12 @@ class ScannerViewModel @Inject constructor(
                     ))
                 }
 
-                // Buscar precio actual en Walmart (no bloquea)
+                // Buscar precios en todas las tiendas en paralelo
                 if (productoLocal.codigoBarras != null) {
-                    val walmartResults = withTimeoutOrNull(3000L) {
-                        walmartRepository.searchByBarcode(productoLocal.codigoBarras).getOrNull()
+                    val orchestrated = withTimeoutOrNull(6000L) {
+                        searchOrchestrator.searchByBarcode(productoLocal.codigoBarras)
                     }
-                    walmartResults?.filter { it.isAvailable && it.price != null }?.forEach { result ->
+                    orchestrated?.results?.filter { it.isAvailable && it.price != null }?.forEach { result ->
                         preciosComparados.add(PrecioComparado(
                             tiendaNombre = result.storeName,
                             precio = result.price!!,
@@ -151,10 +151,10 @@ class ScannerViewModel @Inject constructor(
                 return@launch
             }
 
-            val deferredWalmart = async {
+            val deferredStores = async {
                 withTimeoutOrNull(8000L) {
-                    walmartRepository.searchByBarcode(barcode).getOrNull()
-                } ?: emptyList()
+                    searchOrchestrator.searchByBarcode(barcode)
+                }
             }
 
             val deferredNutricion = async {
@@ -163,17 +163,17 @@ class ScannerViewModel @Inject constructor(
                 }
             }
 
-            val walmartResults = deferredWalmart.await()
+            val orchestrated = deferredStores.await()
+            val storeResults = orchestrated?.results ?: emptyList()
             lastNutricion = deferredNutricion.await()
 
-            // Cachear para que ProductoRegistroViewModel no tenga que buscar de nuevo
-            compraManager.cacheSearchResults(walmartResults, lastNutricion)
+            compraManager.cacheSearchResults(storeResults, lastNutricion)
 
             _uiState.update {
                 it.copy(
                     isProcessing = false,
-                    lookupState = if (walmartResults.isNotEmpty())
-                        BarcodeLookupState.EncontradoApi(barcode, walmartResults)
+                    lookupState = if (storeResults.isNotEmpty())
+                        BarcodeLookupState.EncontradoApi(barcode, storeResults)
                     else
                         BarcodeLookupState.NoEncontrado(barcode)
                 )
