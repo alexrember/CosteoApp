@@ -7,6 +7,7 @@ import com.mg.costeoapp.core.database.entity.Plato
 import com.mg.costeoapp.core.database.entity.PlatoComponente
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.CurrencyFormatter
+import com.mg.costeoapp.core.util.ErrorMapper
 import com.mg.costeoapp.core.util.ValidationUtils
 import com.mg.costeoapp.feature.platos.data.PlatoRepository
 import com.mg.costeoapp.feature.prefabricados.data.PrefabricadoRepository
@@ -179,7 +180,7 @@ class PlatoFormViewModel @Inject constructor(
                     },
                     onFailure = { e ->
                         _uiState.update { it.copy(isSaving = false) }
-                        _events.send(UiEvent.ShowError(e.message ?: "Error al guardar"))
+                        _events.send(UiEvent.ShowError(ErrorMapper.toUserMessage(e)))
                     }
                 )
             } else {
@@ -190,7 +191,7 @@ class PlatoFormViewModel @Inject constructor(
                     },
                     onFailure = { e ->
                         _uiState.update { it.copy(isSaving = false) }
-                        _events.send(UiEvent.ShowError(e.message ?: "Error al guardar"))
+                        _events.send(UiEvent.ShowError(ErrorMapper.toUserMessage(e)))
                     }
                 )
             }

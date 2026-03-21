@@ -30,6 +30,9 @@ object NetworkModule {
         isLenient = true
     }
 
+    // TODO: Add certificate pinning for Walmart VTEX before production release
+    // Get pins with: openssl s_client -connect www.walmart.com.sv:443 | openssl x509 -pubkey | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | base64
+    // Then add: .certificatePinner(CertificatePinner.Builder().add("www.walmart.com.sv", "sha256/REAL_HASH_HERE").build())
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {

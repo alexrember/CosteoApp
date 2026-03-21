@@ -11,6 +11,7 @@ import com.mg.costeoapp.core.domain.model.ProductDataMerger
 import com.mg.costeoapp.core.domain.model.ProductDataSource
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.CurrencyFormatter
+import com.mg.costeoapp.core.util.ErrorMapper
 import com.mg.costeoapp.core.util.UnidadMedida
 import com.mg.costeoapp.core.util.ValidationUtils
 import com.mg.costeoapp.feature.inventario.data.CompraManager
@@ -257,7 +258,7 @@ class ProductoRegistroViewModel @Inject constructor(
             val productoResult = productoRepository.insert(producto)
             if (productoResult.isFailure) {
                 _uiState.update { it.copy(isSaving = false) }
-                _events.send(UiEvent.ShowError(productoResult.exceptionOrNull()?.message ?: "Error al crear producto"))
+                _events.send(UiEvent.ShowError(productoResult.exceptionOrNull()?.let { ErrorMapper.toUserMessage(it) } ?: "Error al crear producto"))
                 return@launch
             }
 

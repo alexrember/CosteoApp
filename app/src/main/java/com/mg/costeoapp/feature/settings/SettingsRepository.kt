@@ -21,6 +21,9 @@ enum class ThemeMode(val value: Int) {
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
+// TODO Fase 7: Migrate to EncryptedSharedPreferences for sensitive data
+// Currently DataStore is used for non-sensitive preferences (theme, thresholds)
+// Auth tokens and session data (Fase 7) should use EncryptedSharedPreferences
 @Singleton
 class SettingsRepository @Inject constructor(
     private val context: Context

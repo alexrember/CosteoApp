@@ -1,3 +1,4 @@
+// TODO: Extract shared list ViewModel pattern (search debounce, softDelete, clearError) into BaseListViewModel
 package com.mg.costeoapp.feature.tiendas.ui
 
 import androidx.lifecycle.ViewModel

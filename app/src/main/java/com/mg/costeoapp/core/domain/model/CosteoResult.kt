@@ -1,3 +1,7 @@
+// Domain layer: modelos de dominio puros (sin dependencias de Room/Android)
+// CosteoResult, Advertencia, NutricionResumen, StoreSearchResult, PropagacionResult, etc.
+// Las Room entities (Tienda, Producto, etc.) tambien sirven como domain models — aceptable en app single-module.
+// Si se migra a multi-module, crear domain models separados de las entities.
 package com.mg.costeoapp.core.domain.model
 
 enum class FuentePrecio { INVENTARIO, PRECIO_RECIENTE, SIN_PRECIO }

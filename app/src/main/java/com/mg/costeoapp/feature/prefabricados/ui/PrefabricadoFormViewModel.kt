@@ -7,6 +7,7 @@ import com.mg.costeoapp.core.database.entity.Prefabricado
 import com.mg.costeoapp.core.database.entity.PrefabricadoIngrediente
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.CurrencyFormatter
+import com.mg.costeoapp.core.util.ErrorMapper
 import com.mg.costeoapp.core.util.UnidadMedida
 import com.mg.costeoapp.core.util.ValidationUtils
 import com.mg.costeoapp.feature.prefabricados.data.PrefabricadoRepository
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+// TODO: Extract duplicar logic (loadForDuplicate) into DuplicarRecetaUseCase
 @HiltViewModel
 class PrefabricadoFormViewModel @Inject constructor(
     private val repository: PrefabricadoRepository,
@@ -170,7 +172,7 @@ class PrefabricadoFormViewModel @Inject constructor(
                     },
                     onFailure = { e ->
                         _uiState.update { it.copy(isSaving = false) }
-                        _events.send(UiEvent.ShowError(e.message ?: "Error al guardar"))
+                        _events.send(UiEvent.ShowError(ErrorMapper.toUserMessage(e)))
                     }
                 )
             } else {
@@ -181,7 +183,7 @@ class PrefabricadoFormViewModel @Inject constructor(
                     },
                     onFailure = { e ->
                         _uiState.update { it.copy(isSaving = false) }
-                        _events.send(UiEvent.ShowError(e.message ?: "Error al guardar"))
+                        _events.send(UiEvent.ShowError(ErrorMapper.toUserMessage(e)))
                     }
                 )
             }

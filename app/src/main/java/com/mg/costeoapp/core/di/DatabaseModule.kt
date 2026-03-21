@@ -26,6 +26,15 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    // TODO Fase 7: Encrypt database with SQLCipher
+    // 1. Add dependency: implementation("net.zetetic:android-database-sqlcipher:4.5.4")
+    // 2. Add: implementation("androidx.sqlite:sqlite-ktx:2.4.0")
+    // 3. Replace .build() with:
+    //    val passphrase = getOrCreatePassphrase() // from EncryptedSharedPreferences
+    //    val factory = SupportFactory(passphrase)
+    //    .openHelperFactory(factory)
+    //    .build()
+
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): CosteoDatabase =
