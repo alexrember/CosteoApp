@@ -22,11 +22,18 @@ interface ProductoDao {
 	@Query("SELECT * FROM productos WHERE codigo_barras = :codigoBarras AND activo = 1 LIMIT 1")
 	suspend fun getByCodigoBarras(codigoBarras: String): Producto?
 
+	// TODO: FTS (Full-Text Search)
+	// Para miles de productos, reemplazar LIKE con FTS4/FTS5:
+	// 1. Crear tabla FTS: @Fts4(contentEntity = Producto::class) entity ProductoFts
+	// 2. Query: SELECT * FROM productos JOIN productos_fts ON productos.rowid = productos_fts.rowid
+	//    WHERE productos_fts MATCH :query
+	// 3. Mantener sync con triggers AFTER INSERT/UPDATE/DELETE
+	// Por ahora LIKE funciona bien para cientos de productos. Diferido hasta que sea necesario.
 	@Query(
-		""" 
+		"""
         SELECT * FROM productos
-        WHERE activo = 1 
-        AND (LOWER(nombre) LIKE '%' || LOWER(:query) || '%'  
+        WHERE activo = 1
+        AND (LOWER(nombre) LIKE '%' || LOWER(:query) || '%'
              OR codigo_barras LIKE '%' || :query || '%')
         ORDER BY nombre ASC
     """
@@ -61,4 +68,7 @@ interface ProductoDao {
 
 	@Query("SELECT COUNT(*) FROM productos WHERE activo = 1 AND factor_merma > :threshold")
 	suspend fun countConMermaAlta(threshold: Int = 15): Int
+
+	@Query("SELECT * FROM productos WHERE activo = 1 AND factor_merma > 0")
+	suspend fun getConMerma(): List<Producto>
 }

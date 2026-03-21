@@ -77,19 +77,39 @@ fun HistorialPreciosScreen(
             }
 
             items(uiState.precios) { precio ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(precio.tiendaNombre, style = MaterialTheme.typography.bodyMedium)
-                        Text(DateFormatter.formatDate(precio.fechaRegistro),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(precio.tiendaNombre, style = MaterialTheme.typography.bodyMedium)
+                            Text(DateFormatter.formatDate(precio.fechaRegistro),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(CurrencyFormatter.fromCents(precio.precio),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary)
                     }
-                    Text(CurrencyFormatter.fromCents(precio.precio),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val pMin = uiState.precioMin
+                    val pMax = uiState.precioMax
+                    val progress = if (pMax != null && pMin != null && pMax != pMin) {
+                        ((precio.precio - pMin).toFloat() / (pMax - pMin).toFloat())
+                    } else {
+                        0.5f
+                    }
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth().height(6.dp),
+                        color = when {
+                            progress < 0.33f -> MaterialTheme.colorScheme.secondary
+                            progress < 0.66f -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.error
+                        },
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 }
                 HorizontalDivider()
             }

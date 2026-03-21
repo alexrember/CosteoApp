@@ -181,6 +181,15 @@ fun PrefabricadoFormScreen(
                 }
             }
 
+            // TODO: Costos Indirectos UI
+            // Aqui iria la seccion "Costos indirectos" con:
+            // - Titulo + boton "Agregar costo indirecto"
+            // - Lista de items: nombre (TextField) + monto (TextField decimal) + boton eliminar
+            // - Almacenar en PrefabricadoFormUiState como costosIndirectos: List<CostoIndirectoFormItem>
+            // - Al guardar, insertar en tabla costos_indirectos via CostoIndirectoDao
+            // - La entity CostoIndirecto ya existe en core/database/entity/CostoIndirecto.kt
+            // - Pendiente: crear CostoIndirectoDao y CostoIndirectoRepository
+
             // Guardar
             item {
                 Spacer(modifier = Modifier.height(24.dp))

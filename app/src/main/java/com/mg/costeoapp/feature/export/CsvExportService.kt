@@ -14,6 +14,9 @@ import java.io.FileWriter
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// Export XLSX diferido a backend (Fase 7+)
+// Apache POI agrega ~5MB al APK. Mejor generar XLSX en servidor Supabase Edge Function.
+// Por ahora CSV con BOM es compatible con Excel y es suficiente para exportar datos.
 @Singleton
 class CsvExportService @Inject constructor(
     @ApplicationContext private val context: Context,
