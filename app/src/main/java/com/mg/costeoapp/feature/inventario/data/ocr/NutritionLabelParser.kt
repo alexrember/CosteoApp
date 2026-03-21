@@ -40,12 +40,12 @@ class NutritionLabelParser {
         )
 
         private val GRASAS_PATTERN = Regex(
-            """(?:grasas?\s*(?:totales?)?|total\s*fat|fat|l[ií]pidos?|mat(?:eria)?\s*grasa|grasa)$SEP$NUM$OPT_SPACE(?:g(?:r)?|gramos?)""",
+            """(?:grasas?\s*(?:totale?s?)?|total\s*fat|fat|l[ií]pidos?|mat(?:eria)?\s*grasa|grasa)$SEP$NUM$OPT_SPACE(?:g(?:r)?|gramos?)""",
             RegexOption.IGNORE_CASE
         )
 
         private val FIBRA_PATTERN = Regex(
-            """(?:fibra\s*(?:diet[eé]tica)?|fibra\s*dietetica|dietary\s*fiber|fibre|fibra\s*alimentaria|fibra)$SEP$NUM$OPT_SPACE(?:g(?:r)?|gramos?)""",
+            """(?:fibra\s*(?:diet[eé]tica)?|fibra\s*dietetica|dietary\s*fiber|fibre|fiber|fibra\s*alimentaria|fibra)$SEP$NUM$OPT_SPACE(?:g(?:r)?|gramos?)""",
             RegexOption.IGNORE_CASE
         )
 

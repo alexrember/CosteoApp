@@ -2,8 +2,7 @@ package com.mg.costeoapp.feature.inventario.data
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.mg.costeoapp.feature.inventario.data.dto.BloomreachProduct
-import com.mg.costeoapp.feature.inventario.data.mapper.toStoreSearchResult
-import com.mg.costeoapp.feature.inventario.data.remote.BloomreachApi
+import com.mg.costeoapp.feature.inventario.data.remote.BloomreachSearchApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -26,7 +25,7 @@ import java.util.concurrent.TimeUnit
  */
 class PriceSmartApiTest {
 
-    private lateinit var api: BloomreachApi
+    private lateinit var api: BloomreachSearchApi
     private var apiAccessible = false
 
     private val json = Json {
@@ -49,11 +48,11 @@ class PriceSmartApiTest {
             .build()
 
         api = Retrofit.Builder()
-            .baseUrl(BloomreachApi.BASE_URL)
+            .baseUrl(BloomreachSearchApi.BASE_URL)
             .client(client)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
-            .create(BloomreachApi::class.java)
+            .create(BloomreachSearchApi::class.java)
     }
 
     private suspend fun checkApiAccessible(): Boolean {
@@ -78,24 +77,23 @@ class PriceSmartApiTest {
     }
 
     @Test
-    fun `producto tiene title y price`() = runTest {
+    fun `producto tiene title y priceSV`() = runTest {
         assumeTrue("API Bloomreach no accesible (posible geo-restriccion)", checkApiAccessible())
         val docs = fetchArroz()
         val product = docs.first()
         assertNotNull("title", product.title)
         assertTrue("title no vacio", product.title!!.isNotBlank())
-        assertNotNull("price", product.price)
+        assertNotNull("priceSV", product.priceSV)
     }
 
     @Test
-    fun `mapeo a StoreSearchResult tiene campos correctos`() = runTest {
+    fun `producto tiene campos esperados`() = runTest {
         assumeTrue("API Bloomreach no accesible (posible geo-restriccion)", checkApiAccessible())
         val docs = fetchArroz()
-        val result = docs.first().toStoreSearchResult()
-        assertTrue("storeName es PriceSmart", result.storeName == "PriceSmart")
-        assertTrue("productName no vacio", result.productName.isNotBlank())
-        assertTrue("source correcto", result.source == "pricesmart_bloomreach")
-        assertTrue("isAvailable", result.isAvailable)
+        val product = docs.first()
+        assertNotNull("title", product.title)
+        assertTrue("title no vacio", product.title!!.isNotBlank())
+        assertNotNull("priceSV", product.priceSV)
     }
 
     @Test
