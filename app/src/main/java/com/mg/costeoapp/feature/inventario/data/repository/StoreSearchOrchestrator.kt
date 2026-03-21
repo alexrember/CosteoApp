@@ -16,7 +16,8 @@ data class OrchestratedSearchResult(
 
 class StoreSearchOrchestrator @Inject constructor(
     private val walmartRepository: WalmartStoreRepository,
-    private val priceSmartRepository: PriceSmartStoreRepository
+    private val priceSmartRepository: PriceSmartStoreRepository,
+    private val superSelectosRepository: SuperSelectosRepository
 ) {
     companion object {
         private const val TIMEOUT_MS = 5000L
@@ -25,7 +26,8 @@ class StoreSearchOrchestrator @Inject constructor(
     suspend fun searchByBarcode(barcode: String): OrchestratedSearchResult {
         return executeParallelSearch(
             walmartSearch = { walmartRepository.searchByBarcode(barcode) },
-            priceSmartSearch = { priceSmartRepository.searchByBarcode(barcode) }
+            priceSmartSearch = { priceSmartRepository.searchByBarcode(barcode) },
+            superSelectosSearch = { superSelectosRepository.searchByBarcode(barcode) }
         )
     }
 
@@ -38,13 +40,15 @@ class StoreSearchOrchestrator @Inject constructor(
     suspend fun searchByName(query: String): OrchestratedSearchResult {
         return executeParallelSearch(
             walmartSearch = { walmartRepository.searchByName(query) },
-            priceSmartSearch = { priceSmartRepository.searchByName(query) }
+            priceSmartSearch = { priceSmartRepository.searchByName(query) },
+            superSelectosSearch = { superSelectosRepository.searchByName(query) }
         )
     }
 
     private suspend fun executeParallelSearch(
         walmartSearch: suspend () -> Result<List<StoreSearchResult>>,
-        priceSmartSearch: suspend () -> Result<List<StoreSearchResult>>
+        priceSmartSearch: suspend () -> Result<List<StoreSearchResult>>,
+        superSelectosSearch: suspend () -> Result<List<StoreSearchResult>>
     ): OrchestratedSearchResult {
         val start = System.currentTimeMillis()
         val storesSearched = mutableListOf<String>()
@@ -59,6 +63,9 @@ class StoreSearchOrchestrator @Inject constructor(
                 },
                 "PriceSmart" to async {
                     withTimeoutOrNull(TIMEOUT_MS) { priceSmartSearch() }
+                },
+                "Super Selectos" to async {
+                    withTimeoutOrNull(TIMEOUT_MS) { superSelectosSearch() }
                 }
             )
 

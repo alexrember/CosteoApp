@@ -1,17 +1,22 @@
 package com.mg.costeoapp.feature.inventario.ui
 
+import android.app.Activity
+import android.content.Intent
 import android.net.Uri
+import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -46,9 +51,13 @@ import com.mg.costeoapp.core.ui.components.FieldConflictChooser
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.UnidadMedida
 import com.mg.costeoapp.feature.inventario.data.ocr.OcrNutritionProcessor
+import com.mg.costeoapp.feature.inventario.data.voice.VoiceInputParser
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.core.content.FileProvider
@@ -74,6 +83,23 @@ fun ProductoRegistroScreen(
     fun createPhotoUri(): Uri {
         val file = File(context.cacheDir, "ocr_nutrition_${System.currentTimeMillis()}.jpg")
         return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    }
+
+    val speechLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spoken = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+            if (!spoken.isNullOrBlank()) {
+                val parsed = VoiceInputParser.parse(spoken)
+                viewModel.onVoiceResult(parsed)
+                scope.launch {
+                    snackbarHostState.showSnackbar("Voz: \"$spoken\"")
+                }
+            }
+        }
     }
 
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -166,12 +192,32 @@ fun ProductoRegistroScreen(
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
-            CosteoTextField(
-                value = uiState.nombre,
-                onValueChange = viewModel::onNombreChanged,
-                label = "Nombre del producto *",
-                error = uiState.fieldErrors["nombre"]
-            )
+            Row(
+                verticalAlignment = androidx.compose.ui.Alignment.Top,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                CosteoTextField(
+                    value = uiState.nombre,
+                    onValueChange = viewModel::onNombreChanged,
+                    label = "Nombre del producto *",
+                    error = uiState.fieldErrors["nombre"],
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                FilledTonalIconButton(
+                    onClick = {
+                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-SV")
+                            putExtra(RecognizerIntent.EXTRA_PROMPT, "Dicta producto, cantidad y precio")
+                        }
+                        speechLauncher.launch(intent)
+                    },
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Icon(Icons.Filled.Mic, contentDescription = "Entrada por voz")
+                }
+            }
 
             if (uiState.sugerencias.isNotEmpty()) {
                 Card(

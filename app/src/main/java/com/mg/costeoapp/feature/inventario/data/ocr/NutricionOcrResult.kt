@@ -11,7 +11,9 @@ data class NutricionOcrResult(
     val fibra: Double?,
     val sodioMg: Double?,
     val rawText: String,
-    val confidence: Float
+    val confidence: Float,
+    val fieldsExtracted: Int = 0,
+    val totalFields: Int = 7
 ) {
     fun toNutricionExterna(): NutricionExterna = NutricionExterna(
         nombreProducto = null,

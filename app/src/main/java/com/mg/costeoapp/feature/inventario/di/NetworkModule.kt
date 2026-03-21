@@ -8,6 +8,7 @@ import com.mg.costeoapp.feature.inventario.data.remote.WalmartVtexApi
 import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
 import com.mg.costeoapp.feature.inventario.data.repository.PriceSmartStoreRepository
 import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrator
+import com.mg.costeoapp.feature.inventario.data.repository.SuperSelectosRepository
 import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
 import javax.inject.Named
 import dagger.Module
@@ -95,15 +96,24 @@ object NetworkModule {
         return PriceSmartStoreRepository(api)
     }
 
+    // --- Super Selectos (HTML scraping) ---
+
+    @Provides
+    @Singleton
+    fun provideSuperSelectosRepository(client: OkHttpClient): SuperSelectosRepository {
+        return SuperSelectosRepository(client)
+    }
+
     // --- Orquestador de busqueda paralela ---
 
     @Provides
     @Singleton
     fun provideStoreSearchOrchestrator(
         walmartRepository: WalmartStoreRepository,
-        priceSmartRepository: PriceSmartStoreRepository
+        priceSmartRepository: PriceSmartStoreRepository,
+        superSelectosRepository: SuperSelectosRepository
     ): StoreSearchOrchestrator {
-        return StoreSearchOrchestrator(walmartRepository, priceSmartRepository)
+        return StoreSearchOrchestrator(walmartRepository, priceSmartRepository, superSelectosRepository)
     }
 
     // --- Open Food Facts ---
