@@ -27,12 +27,18 @@ android {
 
         testInstrumentationRunner = "com.mg.costeoapp.HiltTestRunner"
 
-        buildConfigField("String", "BLOOMREACH_ACCOUNT_ID", "\"7024\"")
-        buildConfigField("String", "BLOOMREACH_AUTH_KEY", "\"ev7libhybjg5h1d1\"")
+        // Credenciales movidas a native C++ (NativeSecrets) para seguridad
 
         // Room - Exportar esquemas para migraciones futuras
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
         }
     }
 
@@ -125,6 +131,17 @@ dependencies {
 
     // DataStore
     implementation(libs.datastore.preferences)
+
+    // Supabase
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.storage)
+    implementation(libs.ktor.client.android)
+
+    // WorkManager
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
 
     // Retrofit + OkHttp
     implementation(libs.retrofit.core)

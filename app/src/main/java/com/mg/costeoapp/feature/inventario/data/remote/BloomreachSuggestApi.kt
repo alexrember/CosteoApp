@@ -1,6 +1,5 @@
 package com.mg.costeoapp.feature.inventario.data.remote
 
-import com.mg.costeoapp.BuildConfig
 import com.mg.costeoapp.feature.inventario.data.dto.BloomreachSearchResponse
 import retrofit2.Response
 import retrofit2.http.GET
@@ -14,8 +13,8 @@ interface BloomreachSearchApi {
 
     @GET("api/v1/core/")
     suspend fun search(
-        @Query("account_id") accountId: String = BuildConfig.BLOOMREACH_ACCOUNT_ID,
-        @Query("auth_key") authKey: String = BuildConfig.BLOOMREACH_AUTH_KEY,
+        @Query("account_id") accountId: String,
+        @Query("auth_key") authKey: String,
         @Query("domain_key") domainKey: String = "pricesmart_bloomreach_io_es",
         @Query("view_id") viewId: String = "SV",
         @Query("request_type") requestType: String = "search",

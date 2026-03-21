@@ -1,6 +1,7 @@
 package com.mg.costeoapp.feature.inventario.data.repository
 
 import com.mg.costeoapp.core.domain.model.StoreSearchResult
+import com.mg.costeoapp.core.security.NativeSecrets
 import com.mg.costeoapp.feature.inventario.data.remote.BloomreachSearchApi
 import javax.inject.Inject
 import kotlin.math.roundToLong
@@ -17,7 +18,11 @@ class PriceSmartStoreRepository @Inject constructor(
         val sanitized = query.take(100).replace(Regex("[^\\p{L}\\p{N}\\s]"), "").trim()
         if (sanitized.isBlank()) return Result.success(emptyList())
         return try {
-            val response = searchApi.search(query = sanitized)
+            val response = searchApi.search(
+                accountId = NativeSecrets.getBloomreachAccountId(),
+                authKey = NativeSecrets.getBloomreachAuthKey(),
+                query = sanitized
+            )
             if (response.isSuccessful) {
                 val results = response.body()
                     ?.response
