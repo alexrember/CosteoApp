@@ -27,6 +27,8 @@ class PriceSmartApiTest {
 
     private lateinit var api: BloomreachSearchApi
     private var apiAccessible = false
+    private val accountId = "6492"
+    private val authKey = "b1gglfh34z9bfr8s"
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -57,7 +59,7 @@ class PriceSmartApiTest {
 
     private suspend fun checkApiAccessible(): Boolean {
         return try {
-            val response = api.search(query = "arroz", rows = 1)
+            val response = api.search(accountId = accountId, authKey = authKey, query = "arroz", rows = 1)
             response.isSuccessful
         } catch (e: Exception) {
             false
@@ -67,7 +69,7 @@ class PriceSmartApiTest {
     @Test
     fun `busqueda arroz retorna resultados`() = runTest {
         assumeTrue("API Bloomreach no accesible (posible geo-restriccion)", checkApiAccessible())
-        val response = api.search(query = "arroz")
+        val response = api.search(accountId = accountId, authKey = authKey, query = "arroz")
         assertTrue("respuesta exitosa", response.isSuccessful)
         val body = response.body()
         assertNotNull("body no null", body)
@@ -99,14 +101,14 @@ class PriceSmartApiTest {
     @Test
     fun `busqueda sin resultados retorna lista vacia`() = runTest {
         assumeTrue("API Bloomreach no accesible (posible geo-restriccion)", checkApiAccessible())
-        val response = api.search(query = "xyznoexiste12345")
+        val response = api.search(accountId = accountId, authKey = authKey, query = "xyznoexiste12345")
         assertTrue("respuesta exitosa", response.isSuccessful)
         val docs = response.body()?.response?.docs ?: emptyList()
         assertTrue("lista vacia", docs.isEmpty())
     }
 
     private suspend fun fetchArroz(): List<BloomreachProduct> {
-        val response = api.search(query = "arroz")
+        val response = api.search(accountId = accountId, authKey = authKey, query = "arroz")
         assertTrue("API responde", response.isSuccessful)
         val docs = response.body()?.response?.docs
         assertNotNull("docs no null", docs)
