@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -30,6 +31,7 @@ class SettingsRepository @Inject constructor(
 ) {
     private val themeKey = intPreferencesKey("theme_mode")
     private val stockThresholdKey = doublePreferencesKey("stock_bajo_threshold")
+    private val useBackendSearchKey = booleanPreferencesKey("use_backend_search")
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
         ThemeMode.fromValue(prefs[themeKey] ?: 0)
@@ -39,11 +41,19 @@ class SettingsRepository @Inject constructor(
         prefs[stockThresholdKey] ?: 5.0
     }
 
+    val useBackendSearchFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[useBackendSearchKey] ?: true
+    }
+
     suspend fun setThemeMode(mode: ThemeMode) {
         context.dataStore.edit { it[themeKey] = mode.value }
     }
 
     suspend fun setStockBajoThreshold(threshold: Double) {
         context.dataStore.edit { it[stockThresholdKey] = threshold }
+    }
+
+    suspend fun setUseBackendSearch(enabled: Boolean) {
+        context.dataStore.edit { it[useBackendSearchKey] = enabled }
     }
 }

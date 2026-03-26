@@ -7,9 +7,11 @@ import com.mg.costeoapp.feature.inventario.data.remote.OpenFoodFactsApi
 import com.mg.costeoapp.feature.inventario.data.remote.WalmartVtexApi
 import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
 import com.mg.costeoapp.feature.inventario.data.repository.PriceSmartStoreRepository
+import com.mg.costeoapp.feature.inventario.data.repository.CosteoBackendRepository
 import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrator
 import com.mg.costeoapp.feature.inventario.data.repository.SuperSelectosRepository
 import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
+import com.mg.costeoapp.feature.settings.SettingsRepository
 import javax.inject.Named
 import dagger.Module
 import dagger.Provides
@@ -104,6 +106,14 @@ object NetworkModule {
         return SuperSelectosRepository(client)
     }
 
+    // --- Backend centralizado (Fase 8) ---
+
+    @Provides
+    @Singleton
+    fun provideCosteoBackendRepository(client: OkHttpClient, json: Json): CosteoBackendRepository {
+        return CosteoBackendRepository(client, json)
+    }
+
     // --- Orquestador de busqueda paralela ---
 
     @Provides
@@ -111,9 +121,17 @@ object NetworkModule {
     fun provideStoreSearchOrchestrator(
         walmartRepository: WalmartStoreRepository,
         priceSmartRepository: PriceSmartStoreRepository,
-        superSelectosRepository: SuperSelectosRepository
+        superSelectosRepository: SuperSelectosRepository,
+        backendRepository: CosteoBackendRepository,
+        settingsRepository: SettingsRepository
     ): StoreSearchOrchestrator {
-        return StoreSearchOrchestrator(walmartRepository, priceSmartRepository, superSelectosRepository)
+        return StoreSearchOrchestrator(
+            walmartRepository,
+            priceSmartRepository,
+            superSelectosRepository,
+            backendRepository,
+            settingsRepository
+        )
     }
 
     // --- Open Food Facts ---

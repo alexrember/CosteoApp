@@ -1,8 +1,11 @@
 package com.mg.costeoapp.feature.inventario.data.repository
 
+import android.util.Log
 import com.mg.costeoapp.core.domain.model.StoreSearchResult
+import com.mg.costeoapp.feature.settings.SettingsRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
@@ -17,13 +20,24 @@ data class OrchestratedSearchResult(
 class StoreSearchOrchestrator @Inject constructor(
     private val walmartRepository: WalmartStoreRepository,
     private val priceSmartRepository: PriceSmartStoreRepository,
-    private val superSelectosRepository: SuperSelectosRepository
+    private val superSelectosRepository: SuperSelectosRepository,
+    private val backendRepository: CosteoBackendRepository,
+    private val settingsRepository: SettingsRepository
 ) {
     companion object {
+        private const val TAG = "SearchOrchestrator"
         private const val TIMEOUT_MS = 5000L
     }
 
     suspend fun searchByBarcode(barcode: String): OrchestratedSearchResult {
+        val useBackend = settingsRepository.useBackendSearchFlow.first()
+
+        if (useBackend) {
+            val backendResult = tryBackendSearch { backendRepository.searchByBarcode(barcode) }
+            if (backendResult != null) return backendResult
+            Log.d(TAG, "Backend fallo, usando APIs directas para barcode")
+        }
+
         return executeParallelSearch(
             walmartSearch = { walmartRepository.searchByBarcode(barcode) },
             priceSmartSearch = { priceSmartRepository.searchByBarcode(barcode) },
@@ -38,11 +52,48 @@ class StoreSearchOrchestrator @Inject constructor(
     }
 
     suspend fun searchByName(query: String): OrchestratedSearchResult {
+        val useBackend = settingsRepository.useBackendSearchFlow.first()
+
+        if (useBackend) {
+            val backendResult = tryBackendSearch { backendRepository.searchByName(query) }
+            if (backendResult != null) return backendResult
+            Log.d(TAG, "Backend fallo, usando APIs directas para nombre")
+        }
+
         return executeParallelSearch(
             walmartSearch = { walmartRepository.searchByName(query) },
             priceSmartSearch = { priceSmartRepository.searchByName(query) },
             superSelectosSearch = { superSelectosRepository.searchByName(query) }
         )
+    }
+
+    private suspend fun tryBackendSearch(
+        search: suspend () -> Result<List<StoreSearchResult>>
+    ): OrchestratedSearchResult? {
+        val start = System.currentTimeMillis()
+        return try {
+            val result = withTimeoutOrNull(TIMEOUT_MS) { search() }
+            when {
+                result == null -> {
+                    Log.w(TAG, "Backend timeout")
+                    null
+                }
+                result.isFailure -> {
+                    Log.w(TAG, "Backend error: ${result.exceptionOrNull()?.message}")
+                    null
+                }
+                else -> OrchestratedSearchResult(
+                    results = result.getOrDefault(emptyList()),
+                    storesSearched = listOf("Backend Costeo"),
+                    storesTimedOut = emptyList(),
+                    storesFailed = emptyList(),
+                    totalTimeMs = System.currentTimeMillis() - start
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Backend exception: ${e.message}", e)
+            null
+        }
     }
 
     private suspend fun executeParallelSearch(
