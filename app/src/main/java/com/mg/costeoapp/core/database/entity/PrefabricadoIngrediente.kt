@@ -43,6 +43,9 @@ data class PrefabricadoIngrediente(
     @ColumnInfo(name = "unidad_usada")
     val unidadUsada: String,
 
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: Long = System.currentTimeMillis(),
+
     @ColumnInfo(name = "version", defaultValue = "1")
     val version: Int = 1
 )

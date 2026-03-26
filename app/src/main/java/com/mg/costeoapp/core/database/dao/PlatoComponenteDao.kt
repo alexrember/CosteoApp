@@ -35,4 +35,7 @@ interface PlatoComponenteDao {
 
     @Query("SELECT * FROM plato_componente")
     suspend fun getAllOnce(): List<PlatoComponente>
+
+    @Query("SELECT * FROM plato_componente WHERE updated_at > :since")
+    suspend fun getModifiedSince(since: Long): List<PlatoComponente>
 }

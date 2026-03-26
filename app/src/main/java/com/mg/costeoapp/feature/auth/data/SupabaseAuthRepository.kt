@@ -72,18 +72,20 @@ class SupabaseAuthRepository @Inject constructor(
 
     private fun mapAuthError(e: Exception): Exception {
         val message = when {
-            e.message?.contains("Invalid login", ignoreCase = true) == true ->
-                "Correo o contrasena incorrectos"
-            e.message?.contains("Email not confirmed", ignoreCase = true) == true ->
-                "Verifica tu correo antes de iniciar sesion"
+            e.message?.contains("Invalid login credentials", ignoreCase = true) == true ->
+                "Credenciales incorrectas"
             e.message?.contains("User already registered", ignoreCase = true) == true ->
-                "Ya existe una cuenta con este correo"
-            e.message?.contains("Password", ignoreCase = true) == true ->
+                "Este correo ya tiene cuenta"
+            e.message?.contains("Email not confirmed", ignoreCase = true) == true ->
+                "Confirma tu correo electronico primero"
+            e.message?.contains("Password should be at least", ignoreCase = true) == true ->
                 "La contrasena debe tener al menos 6 caracteres"
             e.message?.contains("network", ignoreCase = true) == true ||
-            e.message?.contains("Unable to resolve", ignoreCase = true) == true ->
+            e.message?.contains("Unable to resolve", ignoreCase = true) == true ||
+            e.message?.contains("timeout", ignoreCase = true) == true ||
+            e.message?.contains("UnknownHost", ignoreCase = true) == true ->
                 "Sin conexion a internet"
-            else -> e.message ?: "Error desconocido"
+            else -> "Error: ${e.message ?: "desconocido"}"
         }
         return Exception(message)
     }

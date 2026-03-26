@@ -63,6 +63,7 @@ fun LoginScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is AuthUiEvent.AuthSuccess -> onAuthSuccess()
+                is AuthUiEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
                 is AuthUiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
             }
         }

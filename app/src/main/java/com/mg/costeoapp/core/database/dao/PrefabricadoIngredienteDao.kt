@@ -46,4 +46,7 @@ interface PrefabricadoIngredienteDao {
 
     @Query("SELECT * FROM prefabricado_ingrediente")
     suspend fun getAllOnce(): List<PrefabricadoIngrediente>
+
+    @Query("SELECT * FROM prefabricado_ingrediente WHERE updated_at > :since")
+    suspend fun getModifiedSince(since: Long): List<PrefabricadoIngrediente>
 }

@@ -61,7 +61,7 @@ class SettingsViewModel @Inject constructor(
             _uiState.update { it.copy(backupMessage = "Error al exportar la base de datos") }
             return null
         }
-        _uiState.update { it.copy(backupMessage = "Base de datos exportada exitosamente") }
+        _uiState.update { it.copy(backupMessage = "El respaldo no esta encriptado. No lo compartas con personas no confiables.") }
         return Intent(Intent.ACTION_SEND).apply {
             type = "application/octet-stream"
             putExtra(Intent.EXTRA_STREAM, uri)
@@ -81,7 +81,7 @@ class SettingsViewModel @Inject constructor(
             val result = backupRestoreService.importDatabase(context, uri)
             result.fold(
                 onSuccess = {
-                    _uiState.update { it.copy(backupMessage = "Base de datos importada exitosamente. Reinicia la app para aplicar los cambios.", importSuccess = true) }
+                    _uiState.update { it.copy(backupMessage = "Importando base de datos... La app se reiniciara automaticamente.", importSuccess = true) }
                 },
                 onFailure = { error ->
                     _uiState.update { it.copy(backupMessage = error.message ?: "Error al importar") }

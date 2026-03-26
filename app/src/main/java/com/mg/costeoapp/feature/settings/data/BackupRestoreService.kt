@@ -1,6 +1,7 @@
 package com.mg.costeoapp.feature.settings.data
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.core.content.FileProvider
 import com.mg.costeoapp.core.database.CosteoDatabase
@@ -64,6 +65,11 @@ class BackupRestoreService @Inject constructor(
                 return Result.failure(Exception("El archivo no es una base de datos SQLite valida"))
             }
 
+            if (!validateSchema(tempFile)) {
+                tempFile.delete()
+                return Result.failure(Exception("El archivo no contiene el esquema esperado de CosteoApp"))
+            }
+
             val dbFile = context.getDatabasePath(DB_NAME)
             val bakFile = File(dbFile.path + ".bak")
 
@@ -82,6 +88,7 @@ class BackupRestoreService @Inject constructor(
                 tempFile.copyTo(dbFile, overwrite = true)
                 tempFile.delete()
 
+                android.os.Process.killProcess(android.os.Process.myPid())
                 Result.success(Unit)
             } catch (e: Exception) {
                 if (bakFile.exists()) {
@@ -92,6 +99,25 @@ class BackupRestoreService @Inject constructor(
             }
         } catch (e: Exception) {
             Result.failure(Exception("Error al importar la base de datos: ${e.message}"))
+        }
+    }
+
+    private fun validateSchema(dbFile: File): Boolean {
+        return try {
+            val db = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
+            val tables = mutableSetOf<String>()
+            db.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='table'",
+                null
+            ).use { cursor ->
+                while (cursor.moveToNext()) {
+                    tables.add(cursor.getString(0))
+                }
+            }
+            db.close()
+            tables.contains("productos") && tables.contains("tiendas")
+        } catch (_: Exception) {
+            false
         }
     }
 

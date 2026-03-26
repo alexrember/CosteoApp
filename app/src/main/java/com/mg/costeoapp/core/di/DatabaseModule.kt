@@ -44,7 +44,7 @@ object DatabaseModule {
             CosteoDatabase::class.java,
             "costeo_database"
         )
-            .addMigrations(CosteoDatabase.MIGRATION_1_2, CosteoDatabase.MIGRATION_2_3, CosteoDatabase.MIGRATION_3_4, CosteoDatabase.MIGRATION_4_5, CosteoDatabase.MIGRATION_5_6, CosteoDatabase.MIGRATION_6_7, CosteoDatabase.MIGRATION_7_8, CosteoDatabase.MIGRATION_8_9)
+            .addMigrations(CosteoDatabase.MIGRATION_1_2, CosteoDatabase.MIGRATION_2_3, CosteoDatabase.MIGRATION_3_4, CosteoDatabase.MIGRATION_4_5, CosteoDatabase.MIGRATION_5_6, CosteoDatabase.MIGRATION_6_7, CosteoDatabase.MIGRATION_7_8, CosteoDatabase.MIGRATION_8_9, CosteoDatabase.MIGRATION_9_10)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)

@@ -40,7 +40,7 @@ import com.mg.costeoapp.core.database.entity.Tienda
         PlatoComponente::class,
         SyncMetadata::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 abstract class CosteoDatabase : RoomDatabase() {
@@ -214,6 +214,13 @@ abstract class CosteoDatabase : RoomDatabase() {
                         last_pull_at INTEGER NOT NULL DEFAULT 0
                     )
                 """)
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE prefabricado_ingrediente ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE plato_componente ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

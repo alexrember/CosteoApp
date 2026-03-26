@@ -25,7 +25,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -45,6 +49,14 @@ fun ProfileScreen(
 ) {
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val syncState by syncViewModel.uiState.collectAsStateWithLifecycle()
+    var signOutRequested by remember { mutableStateOf(false) }
+
+    LaunchedEffect(authState, signOutRequested) {
+        if (signOutRequested && authState !is AuthState.LoggedIn) {
+            signOutRequested = false
+            onSignedOut()
+        }
+    }
 
     Scaffold(
         topBar = { CosteoTopAppBar(title = "Mi cuenta", onNavigateBack = onNavigateBack) }
@@ -60,7 +72,7 @@ fun ProfileScreen(
 
             Icon(
                 imageVector = Icons.Filled.AccountCircle,
-                contentDescription = null,
+                contentDescription = "Foto de perfil",
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -95,7 +107,7 @@ fun ProfileScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = if (syncState.lastSyncAt != null) Icons.Filled.CloudDone else Icons.Filled.CloudOff,
-                                    contentDescription = null,
+                                    contentDescription = if (syncState.lastSyncAt != null) "Sincronizado con la nube" else "Sin sincronizar",
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -153,7 +165,7 @@ fun ProfileScreen(
                                 } else {
                                     Icon(
                                         imageVector = Icons.Filled.Sync,
-                                        contentDescription = null,
+                                        contentDescription = "Sincronizar",
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -167,8 +179,8 @@ fun ProfileScreen(
 
                     Button(
                         onClick = {
+                            signOutRequested = true
                             authViewModel.signOut()
-                            onSignedOut()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(

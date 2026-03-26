@@ -12,6 +12,7 @@ import com.mg.costeoapp.core.database.dao.SyncMetadataDao
 import com.mg.costeoapp.core.database.dao.TiendaDao
 import com.mg.costeoapp.core.database.entity.SyncMetadata
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.json.JsonObject
 import javax.inject.Inject
@@ -46,6 +47,13 @@ class SyncManager @Inject constructor(
     )
 
     suspend fun syncAll(userId: String): SyncResult {
+        val session = supabase.auth.currentSessionOrNull()
+        if (session == null) {
+            return SyncResult(
+                success = false,
+                errors = listOf("No hay sesion activa. Inicia sesion para sincronizar.")
+            )
+        }
         val pushResult = pushAll(userId)
         val pullResult = pullAll(userId)
         return pushResult + pullResult
@@ -78,7 +86,7 @@ class SyncManager @Inject constructor(
 
         for (table in syncTables) {
             try {
-                val pulled = pullTable(table, userId)
+                val pulled = pullTable(table, userId, errors)
                 totalPulled += pulled
             } catch (e: Exception) {
                 Log.e(TAG, "Error pulling $table", e)
@@ -96,6 +104,7 @@ class SyncManager @Inject constructor(
     private suspend fun pushTable(table: String, userId: String): Int {
         val metadata = syncMetadataDao.get(table) ?: SyncMetadata(tableName = table)
         val lastPushAt = metadata.lastPushAt
+        val now = System.currentTimeMillis()
 
         val localRows = getModifiedRows(table, lastPushAt)
         if (localRows.isEmpty()) return 0
@@ -106,14 +115,13 @@ class SyncManager @Inject constructor(
             onConflict = "user_id,local_id"
         }
 
-        val now = System.currentTimeMillis()
         syncMetadataDao.upsert(metadata.copy(lastPushAt = now))
 
         Log.d(TAG, "Pushed ${jsonRows.size} rows to $table")
         return jsonRows.size
     }
 
-    private suspend fun pullTable(table: String, userId: String): Int {
+    private suspend fun pullTable(table: String, userId: String, errors: MutableList<String> = mutableListOf()): Int {
         val metadata = syncMetadataDao.get(table) ?: SyncMetadata(tableName = table)
         val lastPullAt = metadata.lastPullAt
         val lastPullIso = if (lastPullAt > 0) epochMillisToIso(lastPullAt) else "1970-01-01T00:00:00Z"
@@ -130,7 +138,7 @@ class SyncManager @Inject constructor(
         if (remoteRows.isEmpty()) return 0
 
         for (row in remoteRows) {
-            upsertLocally(table, row)
+            upsertLocally(table, row, errors)
         }
 
         val now = System.currentTimeMillis()
@@ -148,9 +156,9 @@ class SyncManager @Inject constructor(
             "producto_tienda" -> if (since == 0L) productoTiendaDao.getAllOnce() else productoTiendaDao.getModifiedSince(since)
             "inventario" -> if (since == 0L) inventarioDao.getAllOnce() else inventarioDao.getModifiedSince(since)
             "prefabricados" -> if (since == 0L) prefabricadoDao.getAllOnce() else prefabricadoDao.getModifiedSince(since)
-            "prefabricado_ingrediente" -> prefabricadoIngredienteDao.getAllOnce()
+            "prefabricado_ingrediente" -> if (since == 0L) prefabricadoIngredienteDao.getAllOnce() else prefabricadoIngredienteDao.getModifiedSince(since)
             "platos" -> if (since == 0L) platoDao.getAllPlatos() else platoDao.getModifiedSince(since)
-            "plato_componente" -> platoComponenteDao.getAllOnce()
+            "plato_componente" -> if (since == 0L) platoComponenteDao.getAllOnce() else platoComponenteDao.getModifiedSince(since)
             else -> emptyList()
         }
     }
@@ -169,7 +177,7 @@ class SyncManager @Inject constructor(
         }
     }
 
-    private suspend fun upsertLocally(table: String, json: JsonObject) {
+    private suspend fun upsertLocally(table: String, json: JsonObject, errors: MutableList<String> = mutableListOf()) {
         when (table) {
             "tiendas" -> {
                 val entity = json.toTienda()
@@ -195,8 +203,13 @@ class SyncManager @Inject constructor(
                 if (existing == null || existing.id != entity.id) {
                     try {
                         productoTiendaDao.insert(entity)
-                    } catch (_: Exception) {
-                        productoTiendaDao.update(entity)
+                    } catch (e: Exception) {
+                        try {
+                            productoTiendaDao.update(entity)
+                        } catch (e2: Exception) {
+                            Log.e(TAG, "Error upserting producto_tienda ${entity.id}", e2)
+                            errors.add("Upsert producto_tienda ${entity.id}: ${e2.message}")
+                        }
                     }
                 } else if (entity.updatedAt > existing.updatedAt) {
                     productoTiendaDao.update(entity)
@@ -206,8 +219,13 @@ class SyncManager @Inject constructor(
                 val entity = json.toInventario()
                 try {
                     inventarioDao.insert(entity)
-                } catch (_: Exception) {
-                    inventarioDao.update(entity)
+                } catch (e: Exception) {
+                    try {
+                        inventarioDao.update(entity)
+                    } catch (e2: Exception) {
+                        Log.e(TAG, "Error upserting inventario ${entity.id}", e2)
+                        errors.add("Upsert inventario ${entity.id}: ${e2.message}")
+                    }
                 }
             }
             "prefabricados" -> {
@@ -223,8 +241,13 @@ class SyncManager @Inject constructor(
                 val entity = json.toPrefabricadoIngrediente()
                 try {
                     prefabricadoIngredienteDao.insert(entity)
-                } catch (_: Exception) {
-                    prefabricadoIngredienteDao.update(entity)
+                } catch (e: Exception) {
+                    try {
+                        prefabricadoIngredienteDao.update(entity)
+                    } catch (e2: Exception) {
+                        Log.e(TAG, "Error upserting prefabricado_ingrediente ${entity.id}", e2)
+                        errors.add("Upsert prefabricado_ingrediente ${entity.id}: ${e2.message}")
+                    }
                 }
             }
             "platos" -> {
@@ -240,8 +263,13 @@ class SyncManager @Inject constructor(
                 val entity = json.toPlatoComponente()
                 try {
                     platoComponenteDao.insert(entity)
-                } catch (_: Exception) {
-                    platoComponenteDao.update(entity)
+                } catch (e: Exception) {
+                    try {
+                        platoComponenteDao.update(entity)
+                    } catch (e2: Exception) {
+                        Log.e(TAG, "Error upserting plato_componente ${entity.id}", e2)
+                        errors.add("Upsert plato_componente ${entity.id}: ${e2.message}")
+                    }
                 }
             }
         }

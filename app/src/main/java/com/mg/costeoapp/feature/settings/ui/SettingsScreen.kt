@@ -64,8 +64,11 @@ fun SettingsScreen(
             title = { Text("Importar base de datos") },
             text = { Text("Esto reemplazara todos tus datos. \u00bfContinuar?") },
             confirmButton = {
-                TextButton(onClick = { viewModel.confirmImportBackup(context) }) {
-                    Text("Importar")
+                TextButton(
+                    onClick = { viewModel.confirmImportBackup(context) },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Reemplazar datos")
                 }
             },
             dismissButton = {
@@ -96,7 +99,7 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth().padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Filled.AccountCircle, contentDescription = "Cuenta de usuario", tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(state.user.email, style = MaterialTheme.typography.bodyLarge)
@@ -115,7 +118,7 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth().padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.AutoMirrored.Filled.Login, contentDescription = "Iniciar sesion", tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text("Iniciar sesion", style = MaterialTheme.typography.bodyLarge)
@@ -141,7 +144,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Filled.Store, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Filled.Store, contentDescription = "Tiendas", tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text("Tiendas", style = MaterialTheme.typography.bodyLarge)
@@ -161,7 +164,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Filled.Inventory2, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Filled.Inventory2, contentDescription = "Productos", tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text("Productos", style = MaterialTheme.typography.bodyLarge)
@@ -191,7 +194,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Filled.CloudUpload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Filled.CloudUpload, contentDescription = "Exportar respaldo", tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text("Exportar base de datos", style = MaterialTheme.typography.bodyLarge)
@@ -213,7 +216,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Filled.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Filled.CloudDownload, contentDescription = "Importar respaldo", tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text("Importar base de datos", style = MaterialTheme.typography.bodyLarge)

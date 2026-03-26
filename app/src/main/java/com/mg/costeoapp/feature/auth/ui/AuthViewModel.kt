@@ -24,6 +24,7 @@ data class AuthUiState(
 
 sealed interface AuthUiEvent {
     data object AuthSuccess : AuthUiEvent
+    data class ShowMessage(val message: String) : AuthUiEvent
     data class ShowError(val message: String) : AuthUiEvent
 }
 
@@ -72,7 +73,10 @@ class AuthViewModel @Inject constructor(
             val result = authRepository.signInWithEmail(state.email.trim(), state.password)
             _uiState.update { it.copy(isLoading = false) }
             result.fold(
-                onSuccess = { _events.send(AuthUiEvent.AuthSuccess) },
+                onSuccess = {
+                    _uiState.update { it.copy(password = "") }
+                    _events.send(AuthUiEvent.AuthSuccess)
+                },
                 onFailure = { e ->
                     val msg = e.message ?: "Error al iniciar sesion"
                     _uiState.update { it.copy(error = msg) }
@@ -97,7 +101,11 @@ class AuthViewModel @Inject constructor(
             val result = authRepository.signUpWithEmail(state.email.trim(), state.password)
             _uiState.update { it.copy(isLoading = false) }
             result.fold(
-                onSuccess = { _events.send(AuthUiEvent.AuthSuccess) },
+                onSuccess = {
+                    _uiState.update { it.copy(password = "") }
+                    _events.send(AuthUiEvent.ShowMessage("Cuenta creada exitosamente"))
+                    _events.send(AuthUiEvent.AuthSuccess)
+                },
                 onFailure = { e ->
                     val msg = e.message ?: "Error al crear cuenta"
                     _uiState.update { it.copy(error = msg) }
