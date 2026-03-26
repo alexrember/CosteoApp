@@ -30,6 +30,7 @@ import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
 import com.mg.costeoapp.feature.auth.data.AuthState
 import com.mg.costeoapp.feature.auth.ui.AuthViewModel
 import com.mg.costeoapp.feature.settings.ThemeMode
+import androidx.compose.material.icons.filled.Notifications
 
 @Composable
 fun SettingsScreen(
@@ -38,6 +39,7 @@ fun SettingsScreen(
     onNavigateToProductos: () -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
+    onNavigateToAlertPreferences: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -126,6 +128,28 @@ fun SettingsScreen(
                                 Text("Sincroniza tus datos entre dispositivos", style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
+                        }
+                    }
+                }
+            }
+
+            if (authState is AuthState.LoggedIn) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onNavigateToAlertPreferences),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.Notifications, contentDescription = "Alertas de precios", tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Alertas de precios", style = MaterialTheme.typography.bodyLarge)
+                            Text("Configurar notificaciones de cambios de precio", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

@@ -37,3 +37,6 @@ import kotlinx.serialization.Serializable
 // --- Fase 7: Auth ---
 @Serializable object LoginRoute
 @Serializable object ProfileRoute
+
+// --- Fase 8: Alert Preferences ---
+@Serializable object AlertPreferencesRoute

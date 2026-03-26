@@ -23,6 +23,7 @@ import com.mg.costeoapp.feature.inventario.data.mapper.parseContenidoFromName
 import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
 import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrator
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
+import com.mg.costeoapp.feature.sync.data.ProductContributionService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -62,6 +63,7 @@ class ProductoRegistroViewModel @Inject constructor(
     private val searchOrchestrator: StoreSearchOrchestrator,
     private val nutritionRepository: NutritionRepository,
     private val compraManager: CompraManager,
+    private val productContributionService: ProductContributionService,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -408,6 +410,10 @@ class ProductoRegistroViewModel @Inject constructor(
 
         val productoId = productoResult.getOrThrow()
         val productoCreado = producto.copy(id = productoId)
+
+        if (!productoCreado.codigoBarras.isNullOrBlank()) {
+            viewModelScope.launch { productContributionService.contribute(productoCreado) }
+        }
 
         if (tienda != null) {
             productoRepository.insertPrecio(

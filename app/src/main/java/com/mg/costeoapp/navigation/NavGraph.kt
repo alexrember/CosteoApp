@@ -56,6 +56,7 @@ import com.mg.costeoapp.feature.export.PdfExportService
 import com.mg.costeoapp.feature.platos.data.PlatoRepository
 import com.mg.costeoapp.feature.auth.ui.LoginScreen
 import com.mg.costeoapp.feature.auth.ui.ProfileScreen
+import com.mg.costeoapp.feature.settings.ui.AlertPreferencesScreen
 import com.mg.costeoapp.feature.settings.ui.SettingsScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaFormScreen
 import com.mg.costeoapp.feature.tiendas.ui.TiendaListScreen
@@ -430,7 +431,8 @@ fun CosteoNavGraph(
                     onNavigateToTiendas = { navController.navigate(TiendaListRoute) },
                     onNavigateToProductos = { navController.navigate(ProductoListRoute) },
                     onNavigateToLogin = { navController.navigate(LoginRoute) },
-                    onNavigateToProfile = { navController.navigate(ProfileRoute) }
+                    onNavigateToProfile = { navController.navigate(ProfileRoute) },
+                    onNavigateToAlertPreferences = { navController.navigate(AlertPreferencesRoute) }
                 )
             }
 
@@ -451,6 +453,14 @@ fun CosteoNavGraph(
                     onSignedOut = {
                         navController.popBackStack(SettingsRoute, inclusive = false)
                     }
+                )
+            }
+
+            // --- Fase 8: Alert Preferences ---
+
+            composable<AlertPreferencesRoute> {
+                AlertPreferencesScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
