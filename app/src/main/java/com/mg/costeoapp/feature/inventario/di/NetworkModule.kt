@@ -12,6 +12,7 @@ import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrat
 import com.mg.costeoapp.feature.inventario.data.repository.SuperSelectosRepository
 import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
 import com.mg.costeoapp.feature.settings.SettingsRepository
+import io.github.jan.supabase.SupabaseClient
 import javax.inject.Named
 import dagger.Module
 import dagger.Provides
@@ -110,8 +111,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideCosteoBackendRepository(client: OkHttpClient, json: Json): CosteoBackendRepository {
-        return CosteoBackendRepository(client, json)
+    fun provideCosteoBackendRepository(client: OkHttpClient, json: Json, supabaseClient: SupabaseClient): CosteoBackendRepository {
+        return CosteoBackendRepository(client, json, supabaseClient)
     }
 
     // --- Orquestador de busqueda paralela ---

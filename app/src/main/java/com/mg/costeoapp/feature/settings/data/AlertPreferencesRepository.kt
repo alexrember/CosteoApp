@@ -3,6 +3,8 @@ package com.mg.costeoapp.feature.settings.data
 import com.mg.costeoapp.feature.auth.data.AuthRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
@@ -41,30 +43,34 @@ class AlertPreferencesRepository @Inject constructor(
     }
 
     suspend fun load(): Result<AlertPreferences> = runCatching {
-        val user = authRepository.getCurrentUser()
-            ?: throw IllegalStateException("Usuario no autenticado")
+        withContext(Dispatchers.IO) {
+            val user = authRepository.getCurrentUser()
+                ?: throw IllegalStateException("Usuario no autenticado")
 
-        val dto = supabase.from(TABLE)
-            .select { filter { eq("user_id", user.id) } }
-            .decodeSingleOrNull<AlertPreferencesDto>()
+            val dto = supabase.from(TABLE)
+                .select { filter { eq("user_id", user.id) } }
+                .decodeSingleOrNull<AlertPreferencesDto>()
 
-        dto?.toDomain() ?: AlertPreferences()
+            dto?.toDomain() ?: AlertPreferences()
+        }
     }
 
     suspend fun save(prefs: AlertPreferences): Result<Unit> = runCatching {
-        val user = authRepository.getCurrentUser()
-            ?: throw IllegalStateException("Usuario no autenticado")
+        withContext(Dispatchers.IO) {
+            val user = authRepository.getCurrentUser()
+                ?: throw IllegalStateException("Usuario no autenticado")
 
-        val dto = AlertPreferencesDto(
-            userId = user.id,
-            priceDropThreshold = prefs.priceDropThreshold,
-            quietHoursStart = prefs.quietHoursStart,
-            quietHoursEnd = prefs.quietHoursEnd,
-            alertsEnabled = prefs.alertsEnabled
-        )
+            val dto = AlertPreferencesDto(
+                userId = user.id,
+                priceDropThreshold = prefs.priceDropThreshold,
+                quietHoursStart = prefs.quietHoursStart,
+                quietHoursEnd = prefs.quietHoursEnd,
+                alertsEnabled = prefs.alertsEnabled
+            )
 
-        supabase.from(TABLE).upsert(dto) {
-            onConflict = "user_id"
+            supabase.from(TABLE).upsert(dto) {
+                onConflict = "user_id"
+            }
         }
     }
 }

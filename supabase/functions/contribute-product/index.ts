@@ -69,6 +69,51 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Input validation
+    if (!/^\d{8,14}$/.test(body.ean)) {
+      return new Response(
+        JSON.stringify({ error: 'EAN debe ser entre 8 y 14 digitos numericos' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    body.nombre = body.nombre.trim()
+    if (body.nombre.length > 500) {
+      return new Response(
+        JSON.stringify({ error: 'Nombre no puede exceder 500 caracteres' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    if (body.imagen_url && !body.imagen_url.startsWith('https://')) {
+      return new Response(
+        JSON.stringify({ error: 'imagen_url debe iniciar con https://' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    if (body.cantidad_por_empaque != null && body.cantidad_por_empaque <= 0) {
+      return new Response(
+        JSON.stringify({ error: 'cantidad_por_empaque debe ser mayor a 0' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // Rate limiting: max 50 contributions per user per 24 hours
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { count: recentCount } = await supabaseAdmin
+      .from('product_contributions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', twentyFourHoursAgo)
+
+    if (recentCount != null && recentCount >= 50) {
+      return new Response(
+        JSON.stringify({ error: 'Limite de contribuciones alcanzado. Intenta de nuevo en 24 horas.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
     // 1. Check if this user already contributed this EAN
     const { data: existing } = await supabaseAdmin
       .from('product_contributions')

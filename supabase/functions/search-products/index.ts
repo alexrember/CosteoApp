@@ -128,7 +128,7 @@ interface BloomreachProduct {
 async function searchPriceSmart(query: string): Promise<UnifiedResult[]> {
   const params = new URLSearchParams({
     account_id: '7024',
-    auth_key: 'ev7libhybjg5h1d1',
+    auth_key: Deno.env.get('BLOOMREACH_AUTH_KEY') ?? 'ev7libhybjg5h1d1',
     domain_key: 'pricesmart_bloomreach_io_es',
     view_id: 'SV',
     request_type: 'search',
@@ -237,10 +237,18 @@ async function cacheResults(
     }
   })
 
-  const { error } = await supabase.from('price_cache').upsert(rows, {
-    onConflict: 'id',
-    ignoreDuplicates: false,
-  })
+  // Delete stale cache entries for this query/barcode + store before inserting fresh results
+  // to avoid cache poisoning (the old upsert on 'id' always inserted new rows).
+  for (const r of rows) {
+    const deleteBuilder = supabase.from('price_cache').delete()
+    if (r.ean) {
+      await deleteBuilder.eq('ean', r.ean).eq('store_name', r.store_name)
+    } else {
+      await deleteBuilder.eq('search_query', r.search_query).eq('store_name', r.store_name)
+    }
+  }
+
+  const { error } = await supabase.from('price_cache').insert(rows)
 
   if (error) {
     console.error('Cache write error:', error.message)
@@ -338,6 +346,35 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authenticate the user via the JWT in the Authorization header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Se requiere autenticacion' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+
+    // User-scoped client to verify JWT
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseUser.auth.getUser()
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Token invalido o expirado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
     const { query, barcode } = (await req.json()) as SearchRequest
 
     if (!query && !barcode) {
@@ -347,8 +384,9 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Service-role client for cache reads/writes only
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
+      supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 

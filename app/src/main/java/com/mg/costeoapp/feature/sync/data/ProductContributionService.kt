@@ -6,6 +6,7 @@ import com.mg.costeoapp.core.security.NativeSecrets
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -22,7 +23,7 @@ class ProductContributionService @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) {
 
-    suspend fun contribute(producto: Producto): Result<Boolean> = withContext(Dispatchers.IO) {
+    suspend fun contribute(producto: Producto): Result<Boolean> = withContext(Dispatchers.IO + NonCancellable) {
         try {
             val ean = producto.codigoBarras
             if (ean.isNullOrBlank()) {

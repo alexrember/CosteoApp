@@ -3,6 +3,8 @@ package com.mg.costeoapp.feature.inventario.data.repository
 import android.util.Log
 import com.mg.costeoapp.core.domain.model.StoreSearchResult
 import com.mg.costeoapp.core.security.NativeSecrets
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -36,7 +38,8 @@ private data class BackendSearchResultDto(
 
 class CosteoBackendRepository @Inject constructor(
     private val client: OkHttpClient,
-    private val json: Json
+    private val json: Json,
+    private val supabaseClient: SupabaseClient
 ) {
     companion object {
         private const val TAG = "CosteoBackend"
@@ -62,43 +65,46 @@ class CosteoBackendRepository @Inject constructor(
             val body = json.encodeToString(BackendSearchRequest.serializer(), searchRequest)
                 .toRequestBody("application/json".toMediaType())
 
+            val bearerToken = supabaseClient.auth.currentSessionOrNull()?.accessToken ?: anonKey
+
             val request = Request.Builder()
                 .url(url)
                 .post(body)
-                .header("Authorization", "Bearer $anonKey")
+                .header("Authorization", "Bearer $bearerToken")
+                .header("apikey", anonKey)
                 .header("Content-Type", "application/json")
                 .build()
 
             val response = client.newCall(request).execute()
+            response.use { resp ->
+                if (!resp.isSuccessful) {
+                    Log.w(TAG, "Backend respondio con codigo ${resp.code}")
+                    return@withContext Result.failure(
+                        Exception("Backend respondio con codigo ${resp.code}")
+                    )
+                }
 
-            if (!response.isSuccessful) {
-                Log.w(TAG, "Backend respondio con codigo ${response.code}")
-                return@withContext Result.failure(
-                    Exception("Backend respondio con codigo ${response.code}")
-                )
+                val responseBody = resp.body.string()
+
+                val dtos = json.decodeFromString<List<BackendSearchResultDto>>(responseBody)
+                val results = dtos.map { dto ->
+                    StoreSearchResult(
+                        storeName = dto.storeName,
+                        productName = dto.productName,
+                        brand = dto.brand,
+                        ean = dto.ean,
+                        price = dto.price,
+                        listPrice = dto.listPrice,
+                        isAvailable = dto.isAvailable,
+                        imageUrl = dto.imageUrl,
+                        measurementUnit = dto.measurementUnit,
+                        unitMultiplier = dto.unitMultiplier,
+                        source = dto.source
+                    )
+                }
+
+                Result.success(results)
             }
-
-            val responseBody = response.body.string()
-                ?: return@withContext Result.failure(Exception("Respuesta vacia del backend"))
-
-            val dtos = json.decodeFromString<List<BackendSearchResultDto>>(responseBody)
-            val results = dtos.map { dto ->
-                StoreSearchResult(
-                    storeName = dto.storeName,
-                    productName = dto.productName,
-                    brand = dto.brand,
-                    ean = dto.ean,
-                    price = dto.price,
-                    listPrice = dto.listPrice,
-                    isAvailable = dto.isAvailable,
-                    imageUrl = dto.imageUrl,
-                    measurementUnit = dto.measurementUnit,
-                    unitMultiplier = dto.unitMultiplier,
-                    source = dto.source
-                )
-            }
-
-            Result.success(results)
         } catch (e: Exception) {
             Log.e(TAG, "Error en busqueda backend: ${e.message}", e)
             Result.failure(e)
