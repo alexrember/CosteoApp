@@ -18,10 +18,10 @@ Java_com_mg_costeoapp_core_security_NativeSecrets_getSupabaseUrl(JNIEnv *env, jo
 
 JNIEXPORT jstring JNICALL
 Java_com_mg_costeoapp_core_security_NativeSecrets_getSupabaseAnonKey(JNIEnv *env, jobject) {
-    std::string key = "sb_publishable_";
-    key += "pZzAYfr2kd";
-    key += "KQeCm-eUK5";
-    key += "Gw_N9t6ToTn";
+    std::string key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.";
+    key += "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3anB2Y25hdW9pYnJuZW5kaG1nIiw";
+    key += "icm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMjMwOTIsImV4cCI6MjA4OTY5OTA5Mn0.";
+    key += "ircTPqAZlm8GbQqoFjdoR9UUXsmL-piqdFNmFSk4wkY";
     return env->NewStringUTF(key.c_str());
 }
 
