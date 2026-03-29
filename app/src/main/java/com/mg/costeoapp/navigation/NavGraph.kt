@@ -346,7 +346,7 @@ fun CosteoNavGraph(
                     onNavigateBack = { navController.popBackStack() },
                     onCreated = { newId ->
                         navController.navigate(RecetaDetailRoute(recetaId = newId)) {
-                            popUpTo(RecetaListRoute) { inclusive = false }
+                            popUpTo<RecetaFormRoute> { inclusive = true }
                         }
                     }
                 )
@@ -428,7 +428,7 @@ fun CosteoNavGraph(
                     onNavigateBack = { navController.popBackStack() },
                     onCreated = { newId ->
                         navController.navigate(PlatoDetailRoute(platoId = newId)) {
-                            popUpTo(PlatoListRoute) { inclusive = false }
+                            popUpTo<PlatoFormRoute> { inclusive = true }
                         }
                     }
                 )
