@@ -116,8 +116,9 @@ class PlatoFormViewModel @Inject constructor(
             it.copy(
                 componentes = it.componentes + ComponenteFormItem(prefabricado = pref, nombre = pref.nombre),
                 showComponentePicker = false
-            ).also { _ -> recalculateCost() }
+            )
         }
+        recalculateCost()
     }
 
     fun onAddProducto(prod: com.mg.costeoapp.core.database.entity.Producto) {
@@ -126,8 +127,9 @@ class PlatoFormViewModel @Inject constructor(
             it.copy(
                 componentes = it.componentes + ComponenteFormItem(producto = prod, nombre = prod.nombre),
                 showComponentePicker = false
-            ).also { _ -> recalculateCost() }
+            )
         }
+        recalculateCost()
     }
 
     fun onUpdateCantidad(index: Int, cantidad: String) {
