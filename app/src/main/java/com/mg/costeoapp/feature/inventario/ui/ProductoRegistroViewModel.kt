@@ -64,6 +64,7 @@ class ProductoRegistroViewModel @Inject constructor(
     private val nutritionRepository: NutritionRepository,
     private val compraManager: CompraManager,
     private val productContributionService: ProductContributionService,
+    private val syncManager: com.mg.costeoapp.feature.sync.data.SyncManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -442,6 +443,7 @@ class ProductoRegistroViewModel @Inject constructor(
         }
 
         _uiState.update { it.copy(isSaving = false) }
+        syncManager.pushInBackground()
         _events.send(UiEvent.SaveSuccess)
     }
 

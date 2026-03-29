@@ -13,6 +13,7 @@ import com.mg.costeoapp.core.util.UnidadMedida
 import com.mg.costeoapp.core.util.ValidationUtils
 import com.mg.costeoapp.feature.prefabricados.data.PrefabricadoRepository
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
+import com.mg.costeoapp.feature.sync.data.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,7 @@ class PrefabricadoFormViewModel @Inject constructor(
     private val repository: PrefabricadoRepository,
     private val productoRepository: ProductoRepository,
     private val pricingEngine: PricingEngine,
+    private val syncManager: SyncManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -235,6 +237,7 @@ class PrefabricadoFormViewModel @Inject constructor(
                 repository.update(prefabricado, ingredientes).fold(
                     onSuccess = {
                         _uiState.update { it.copy(isSaving = false) }
+                        syncManager.pushInBackground()
                         _events.send(UiEvent.SaveSuccess)
                     },
                     onFailure = { e ->
@@ -246,6 +249,7 @@ class PrefabricadoFormViewModel @Inject constructor(
                 repository.create(prefabricado, ingredientes).fold(
                     onSuccess = { newId ->
                         _uiState.update { it.copy(isSaving = false) }
+                        syncManager.pushInBackground()
                         _events.send(UiEvent.SaveSuccessWithId(newId))
                     },
                     onFailure = { e ->

@@ -13,6 +13,7 @@ import com.mg.costeoapp.core.domain.engine.PricingEngine
 import com.mg.costeoapp.feature.platos.data.PlatoRepository
 import com.mg.costeoapp.feature.prefabricados.data.PrefabricadoRepository
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
+import com.mg.costeoapp.feature.sync.data.SyncManager
 import kotlin.math.roundToLong
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -31,6 +32,7 @@ class PlatoFormViewModel @Inject constructor(
     private val prefabricadoRepository: PrefabricadoRepository,
     private val productoRepository: ProductoRepository,
     private val pricingEngine: PricingEngine,
+    private val syncManager: SyncManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -224,6 +226,7 @@ class PlatoFormViewModel @Inject constructor(
                 platoRepository.updatePlato(plato, componentes).fold(
                     onSuccess = {
                         _uiState.update { it.copy(isSaving = false) }
+                        syncManager.pushInBackground()
                         _events.send(UiEvent.SaveSuccess)
                     },
                     onFailure = { e ->
@@ -235,6 +238,7 @@ class PlatoFormViewModel @Inject constructor(
                 platoRepository.createPlato(plato, componentes).fold(
                     onSuccess = { newId ->
                         _uiState.update { it.copy(isSaving = false) }
+                        syncManager.pushInBackground()
                         _events.send(UiEvent.SaveSuccessWithId(newId))
                     },
                     onFailure = { e ->

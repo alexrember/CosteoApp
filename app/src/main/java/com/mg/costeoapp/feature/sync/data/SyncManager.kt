@@ -14,6 +14,7 @@ import com.mg.costeoapp.core.database.entity.PlatoComponente
 import com.mg.costeoapp.core.database.entity.Prefabricado
 import com.mg.costeoapp.core.database.entity.PrefabricadoIngrediente
 import com.mg.costeoapp.core.database.entity.ProductoTienda
+import kotlinx.coroutines.launch
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
@@ -148,8 +149,24 @@ class SyncManager @Inject constructor(
     private val platoDao: PlatoDao,
     private val platoComponenteDao: PlatoComponenteDao
 ) {
+    private val bgScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob()
+    )
+
     companion object {
         private const val TAG = "SyncManager"
+    }
+
+    fun pushInBackground() {
+        bgScope.launch {
+            try {
+                val userId = supabase.auth.currentSessionOrNull()?.user?.id ?: return@launch
+                val result = pushAll(userId)
+                Log.d(TAG, "Auto-push: pushed=${result.pushedCount}, errors=${result.errors}")
+            } catch (e: Exception) {
+                Log.w(TAG, "Auto-push failed: ${e.message}")
+            }
+        }
     }
 
     suspend fun syncAll(userId: String): SyncResult {
