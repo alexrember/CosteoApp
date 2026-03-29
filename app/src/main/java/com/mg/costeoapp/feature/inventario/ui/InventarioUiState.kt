@@ -33,7 +33,7 @@ sealed class BarcodeLookupState {
     ) : BarcodeLookupState()
     data class EncontradoApi(val barcode: String, val resultados: List<StoreSearchResult>) : BarcodeLookupState()
     data class NoEncontrado(val barcode: String) : BarcodeLookupState()
-    data class NeedItemNumber(val barcode: String) : BarcodeLookupState()
+    data class NeedItemNumber(val barcode: String, val lastScannedCode: String? = null) : BarcodeLookupState()
 }
 
 data class CarritoItem(

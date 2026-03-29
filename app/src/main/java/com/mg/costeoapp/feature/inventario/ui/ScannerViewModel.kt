@@ -81,6 +81,13 @@ class ScannerViewModel @Inject constructor(
 
         val currentState = _uiState.value.lookupState
         if (currentState is BarcodeLookupState.NeedItemNumber) {
+            // Show what was scanned before processing
+            _uiState.update {
+                it.copy(lookupState = BarcodeLookupState.NeedItemNumber(
+                    barcode = currentState.barcode,
+                    lastScannedCode = barcode
+                ))
+            }
             processItemNumber(barcode, currentState.barcode)
         } else {
             processBarcode(barcode)
@@ -97,6 +104,11 @@ class ScannerViewModel @Inject constructor(
 
     private fun isValidItemNumber(code: String): Boolean =
         code.matches(Regex("^\\d{4,14}$"))
+
+    fun onManualItemNumber(itemNumber: String) {
+        val ean = pendingEanForItemNumber ?: return
+        processItemNumber(itemNumber, ean)
+    }
 
     private fun processItemNumber(itemNumber: String, originalEan: String) {
         if (!isValidItemNumber(itemNumber)) return

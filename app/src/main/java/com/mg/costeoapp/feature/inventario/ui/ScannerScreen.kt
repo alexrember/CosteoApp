@@ -159,8 +159,13 @@ fun ScannerScreen(
                     )
                 }
                 if (uiState.lookupState is BarcodeLookupState.NeedItemNumber) {
+                    val needState = uiState.lookupState as BarcodeLookupState.NeedItemNumber
                     NeedItemNumberOverlay(
-                        barcode = (uiState.lookupState as BarcodeLookupState.NeedItemNumber).barcode,
+                        barcode = needState.barcode,
+                        lastScannedCode = needState.lastScannedCode,
+                        onItemNumberEntered = { itemNumber ->
+                            viewModel.onManualItemNumber(itemNumber)
+                        },
                         modifier = Modifier.align(Alignment.BottomCenter)
                     )
                 }
@@ -272,8 +277,13 @@ private fun SearchingOverlay(
 @Composable
 private fun NeedItemNumberOverlay(
     barcode: String,
+    lastScannedCode: String? = null,
+    onItemNumberEntered: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var manualInput by remember { mutableStateOf("") }
+    var showManualField by remember { mutableStateOf(false) }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -305,17 +315,65 @@ private fun NeedItemNumberOverlay(
             )
 
             Text(
-                text = "Escanea el codigo Item# del producto",
+                text = if (!showManualField) "Escanea el codigo Item# del producto" else "Escribe el Item# manualmente",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 textAlign = TextAlign.Center
             )
+
+            if (showManualField) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = manualInput,
+                    onValueChange = { manualInput = it.filter { c -> c.isDigit() } },
+                    label = { Text("Item#") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onDone = { if (manualInput.length >= 4) onItemNumberEntered(manualInput) }
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.onErrorContainer,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f),
+                        focusedLabelColor = MaterialTheme.colorScheme.onErrorContainer,
+                        cursorColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                )
+                Button(
+                    onClick = { if (manualInput.length >= 4) onItemNumberEntered(manualInput) },
+                    enabled = manualInput.length >= 4,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Buscar Item#")
+                }
+            } else {
+                androidx.compose.material3.TextButton(
+                    onClick = { showManualField = true }
+                ) {
+                    Text(
+                        text = "No puedo escanear, escribir manualmente",
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
 
             Text(
                 text = "EAN: $barcode",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
             )
+
+            if (lastScannedCode != null) {
+                Text(
+                    text = "Detectado: $lastScannedCode",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
