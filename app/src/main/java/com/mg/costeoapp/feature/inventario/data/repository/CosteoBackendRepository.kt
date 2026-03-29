@@ -82,7 +82,11 @@ class CosteoBackendRepository @Inject constructor(
             val body = json.encodeToString(BackendSearchRequest.serializer(), searchRequest)
                 .toRequestBody("application/json".toMediaType())
 
-            val bearerToken = supabaseClient.auth.currentSessionOrNull()?.accessToken ?: anonKey
+            // Try to get current session, refresh if needed
+            val session = supabaseClient.auth.currentSessionOrNull()
+                ?: try { supabaseClient.auth.refreshCurrentSession(); supabaseClient.auth.currentSessionOrNull() } catch (_: Exception) { null }
+            val bearerToken = session?.accessToken ?: anonKey
+            if (session == null) Log.w(TAG, "No auth session, using anon key")
 
             val request = Request.Builder()
                 .url(url)

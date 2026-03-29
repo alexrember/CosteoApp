@@ -769,33 +769,20 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Authenticate the user via the JWT in the Authorization header
+    // Auth is optional for search — products are public data
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Se requiere autenticacion' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
 
-    // User-scoped client to verify JWT
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    })
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseUser.auth.getUser()
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Token invalido o expirado' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
+    let userId: string | null = null
+    if (authHeader) {
+      try {
+        const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: authHeader } },
+        })
+        const { data: { user } } = await supabaseUser.auth.getUser()
+        userId = user?.id ?? null
+      } catch (_) { /* auth failed, continue as anonymous */ }
     }
 
     const { query, barcode } = (await req.json()) as SearchRequest
@@ -821,7 +808,7 @@ Deno.serve(async (req) => {
 
       const storesFound = [...new Set(results.map(r => r.storeName))]
       await supabase.from('search_logs').insert({
-        user_id: user.id,
+        user_id: userId,
         barcode,
         stores_searched: ['walmart_vtex', 'pricesmart_bloomreach'],
         stores_found: storesFound,
@@ -878,7 +865,7 @@ Deno.serve(async (req) => {
 
     const storesFound = storeResults.filter(s => s.ok && s.results.length > 0).map(s => s.store)
     await supabase.from('search_logs').insert({
-      user_id: user.id,
+      user_id: userId,
       query,
       stores_searched: storeResults.map(s => s.store),
       stores_found: storesFound,
