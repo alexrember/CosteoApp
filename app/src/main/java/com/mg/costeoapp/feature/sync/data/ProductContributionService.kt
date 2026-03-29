@@ -23,7 +23,10 @@ class ProductContributionService @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) {
 
-    suspend fun contribute(producto: Producto): Result<Boolean> = withContext(Dispatchers.IO + NonCancellable) {
+    suspend fun contribute(
+        producto: Producto,
+        globalProductId: String? = null
+    ): Result<Boolean> = withContext(Dispatchers.IO + NonCancellable) {
         try {
             val ean = producto.codigoBarras
             if (ean.isNullOrBlank()) {
@@ -41,6 +44,9 @@ class ProductContributionService @Inject constructor(
                 put("nombre", producto.nombre)
                 put("unidad_medida", producto.unidadMedida)
                 put("cantidad_por_empaque", producto.cantidadPorEmpaque)
+                if (!globalProductId.isNullOrBlank()) {
+                    put("global_product_id", globalProductId)
+                }
             }
 
             val url = "${NativeSecrets.getSupabaseUrl()}/functions/v1/contribute-product"

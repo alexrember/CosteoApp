@@ -74,6 +74,7 @@ class ProductoRegistroViewModel @Inject constructor(
     val events = _events.receiveAsFlow()
 
     private var nutricionExterna: NutricionExterna? = null
+    private var cachedGlobalProductId: String? = null
     private var searchJob: Job? = null
 
     init {
@@ -93,6 +94,7 @@ class ProductoRegistroViewModel @Inject constructor(
             // Usar cache del scanner si disponible (evita doble llamada API)
             val cachedResults = compraManager.lastSearchResults
             val cachedNutricion = compraManager.lastNutricion
+            cachedGlobalProductId = compraManager.lastGlobalProductId
             if (cachedResults != null) {
                 aplicarResultados(cachedResults, cachedNutricion)
                 compraManager.clearSearchCache()
@@ -120,6 +122,9 @@ class ProductoRegistroViewModel @Inject constructor(
 
             val storeResults = deferredStores.await()?.results ?: emptyList()
             val nutricion = deferredNutricion.await()
+            if (cachedGlobalProductId == null) {
+                cachedGlobalProductId = storeResults.firstNotNullOfOrNull { it.globalProductId }
+            }
             aplicarResultados(storeResults, nutricion)
         }
     }
@@ -412,7 +417,8 @@ class ProductoRegistroViewModel @Inject constructor(
         val productoCreado = producto.copy(id = productoId)
 
         if (!productoCreado.codigoBarras.isNullOrBlank()) {
-            viewModelScope.launch { productContributionService.contribute(productoCreado) }
+            val gpId = cachedGlobalProductId
+            viewModelScope.launch { productContributionService.contribute(productoCreado, gpId) }
         }
 
         if (tienda != null) {

@@ -11,5 +11,7 @@ data class StoreSearchResult(
     val imageUrl: String?,
     val measurementUnit: String?,
     val unitMultiplier: Double?,
-    val source: String
+    val source: String,
+    val globalProductId: String? = null,
+    val fetchUrl: String? = null
 )

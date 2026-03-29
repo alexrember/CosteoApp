@@ -14,8 +14,6 @@ interface ContributionRequest {
   imagen_url?: string
 }
 
-const PROMOTION_THRESHOLD = 3
-
 // ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------
@@ -44,7 +42,7 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     })
 
-    // Service client for writes that bypass RLS (promotion logic)
+    // Service client for writes that bypass RLS
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
     // Verify the user
@@ -129,7 +127,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // 2. Insert contribution
+    // 2. Insert contribution record (always keep for audit trail)
     const { error: insertError } = await supabaseAdmin
       .from('product_contributions')
       .insert({
@@ -151,70 +149,88 @@ Deno.serve(async (req) => {
       )
     }
 
-    // 3. Check if EAN already exists in shared_products
-    const { data: sharedRow } = await supabaseAdmin
-      .from('shared_products')
+    // 3. Check if EAN already exists in global_products
+    const { data: globalRow } = await supabaseAdmin
+      .from('global_products')
       .select('id, confirmations')
       .eq('ean', body.ean)
       .single()
 
-    let promoted = false
+    let created = false
 
-    if (sharedRow) {
-      // EAN already shared — increment confirmations
-      const newCount = (sharedRow.confirmations as number) + 1
+    if (globalRow) {
+      // Product already exists — increment confirmations
+      const newCount = (globalRow.confirmations as number) + 1
       await supabaseAdmin
-        .from('shared_products')
-        .update({
-          confirmations: newCount,
-          last_confirmed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', sharedRow.id)
-    } else {
-      // Count total contributions for this EAN (including the one we just inserted)
-      const { count } = await supabaseAdmin
+        .from('global_products')
+        .update({ confirmations: newCount })
+        .eq('id', globalRow.id)
+
+      // Mark this contribution as approved
+      await supabaseAdmin
         .from('product_contributions')
-        .select('id', { count: 'exact', head: true })
+        .update({ status: 'approved' })
+        .eq('user_id', user.id)
         .eq('ean', body.ean)
-        .eq('status', 'pending')
+    } else {
+      // Product doesn't exist — create it directly in global_products
+      const { error: createError } = await supabaseAdmin
+        .from('global_products')
+        .insert({
+          ean: body.ean,
+          nombre: body.nombre,
+          marca: body.marca ?? null,
+          unidad_medida: body.unidad_medida ?? 'unidad',
+          cantidad_por_empaque: body.cantidad_por_empaque ?? 1,
+          imagen_url: body.imagen_url ?? null,
+          confirmations: 1,
+        })
 
-      if (count != null && count >= PROMOTION_THRESHOLD) {
-        // Auto-promote to shared_products
-        const { error: promoteError } = await supabaseAdmin
-          .from('shared_products')
-          .insert({
-            ean: body.ean,
-            nombre: body.nombre,
-            marca: body.marca ?? null,
-            unidad_medida: body.unidad_medida ?? null,
-            cantidad_por_empaque: body.cantidad_por_empaque ?? null,
-            imagen_url: body.imagen_url ?? null,
-            confirmations: count,
-          })
+      if (!createError) {
+        created = true
 
-        if (!promoteError) {
-          promoted = true
+        // Mark this contribution as approved
+        await supabaseAdmin
+          .from('product_contributions')
+          .update({ status: 'approved' })
+          .eq('user_id', user.id)
+          .eq('ean', body.ean)
 
-          // Mark all contributions for this EAN as approved
+        // Also approve any other pending contributions for this EAN
+        const { data: otherPending } = await supabaseAdmin
+          .from('product_contributions')
+          .select('id')
+          .eq('ean', body.ean)
+          .eq('status', 'pending')
+
+        if (otherPending && otherPending.length > 0) {
           await supabaseAdmin
             .from('product_contributions')
             .update({ status: 'approved' })
             .eq('ean', body.ean)
             .eq('status', 'pending')
-        } else {
-          console.error('Promote error:', promoteError.message)
+
+          // Update confirmations count
+          await supabaseAdmin
+            .from('global_products')
+            .update({ confirmations: 1 + otherPending.length })
+            .eq('ean', body.ean)
         }
+      } else {
+        console.error('Create global_product error:', createError.message)
       }
     }
 
     return new Response(
       JSON.stringify({
         ok: true,
-        promoted,
-        message: promoted
-          ? 'Producto promovido al catalogo compartido'
-          : 'Contribucion registrada',
+        created,
+        existed: !!globalRow,
+        message: created
+          ? 'Producto creado en catalogo global'
+          : globalRow
+            ? 'Confirmacion registrada'
+            : 'Contribucion registrada',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )

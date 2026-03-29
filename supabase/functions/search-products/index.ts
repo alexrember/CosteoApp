@@ -24,12 +24,42 @@ interface UnifiedResult {
   source: string
 }
 
+interface GlobalProduct {
+  id: string
+  ean: string
+  nombre: string
+  marca: string | null
+  unidad_medida: string
+  cantidad_por_empaque: number
+  unidades_por_empaque: number
+  imagen_url: string | null
+  categoria: string | null
+}
+
+interface ProductPrice {
+  id: string
+  product_id: string
+  store_name: string
+  price: number | null
+  list_price: number | null
+  is_available: boolean
+  fetch_url: string | null
+  fetch_params: Record<string, unknown> | null
+  source: string
+  fetched_at: string
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const PRICE_TTL_MS = 5 * 60 * 60 * 1000 // 5 hours
+
 // ---------------------------------------------------------------------------
 // Walmart VTEX helpers
 // ---------------------------------------------------------------------------
 
 const WALMART_BASE = 'https://www.walmart.com.sv/api/catalog_system/pub/products/search'
-const WALMART_TTL_MS = 60 * 60 * 1000 // 1 hour
 
 interface VtexProduct {
   productName?: string
@@ -57,13 +87,60 @@ interface VtexSeller {
   }
 }
 
-async function searchWalmart(
-  query: string,
-  barcode?: string,
-): Promise<UnifiedResult[]> {
-  const url = barcode
-    ? `${WALMART_BASE}?fq=alternateIds_Ean:${encodeURIComponent(barcode)}`
-    : `${WALMART_BASE}?ft=${encodeURIComponent(query)}`
+interface WalmartPriceResult {
+  storeName: string
+  price: number | null
+  listPrice: number | null
+  isAvailable: boolean
+  fetchUrl: string
+  source: string
+  // Product metadata (only used when creating new global_products)
+  productName?: string
+  brand?: string
+  imageUrl?: string
+  measurementUnit?: string
+  unitMultiplier?: number
+}
+
+async function fetchWalmartByBarcode(barcode: string): Promise<WalmartPriceResult | null> {
+  const url = `${WALMART_BASE}?fq=alternateIds_Ean:${encodeURIComponent(barcode)}`
+
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json' },
+  })
+
+  if (!res.ok) {
+    console.error(`Walmart API error: ${res.status}`)
+    return null
+  }
+
+  const products: VtexProduct[] = await res.json()
+  if (products.length === 0) return null
+
+  const product = products[0]
+  const item = product.items?.[0]
+  const seller = item?.sellers?.[0]
+  const offer = seller?.commertialOffer
+
+  if (!offer) return null
+
+  return {
+    storeName: seller?.sellerName ?? 'Walmart SV',
+    price: offer.Price != null ? Math.round(offer.Price * 100) : null,
+    listPrice: offer.ListPrice != null ? Math.round(offer.ListPrice * 100) : null,
+    isAvailable: offer.IsAvailable ?? false,
+    fetchUrl: url,
+    source: 'walmart_vtex',
+    productName: product.productName ?? item?.nameComplete ?? undefined,
+    brand: product.brand ?? undefined,
+    imageUrl: item?.images?.[0]?.imageUrl ?? undefined,
+    measurementUnit: item?.measurementUnit ?? undefined,
+    unitMultiplier: item?.unitMultiplier ?? undefined,
+  }
+}
+
+async function searchWalmartGeneral(query: string): Promise<UnifiedResult[]> {
+  const url = `${WALMART_BASE}?ft=${encodeURIComponent(query)}`
 
   const res = await fetch(url, {
     headers: { Accept: 'application/json' },
@@ -107,7 +184,6 @@ async function searchWalmart(
 // ---------------------------------------------------------------------------
 
 const PRICESMART_BASE = 'https://core.dxpapi.com/api/v1/core/'
-const PRICESMART_TTL_MS = 4 * 60 * 60 * 1000 // 4 hours
 
 interface BloomreachResponse {
   response?: {
@@ -125,8 +201,8 @@ interface BloomreachProduct {
   availability_SV?: string
 }
 
-async function searchPriceSmart(query: string): Promise<UnifiedResult[]> {
-  const params = new URLSearchParams({
+function buildPriceSmartParams(query: string): URLSearchParams {
+  return new URLSearchParams({
     account_id: '7024',
     auth_key: Deno.env.get('BLOOMREACH_AUTH_KEY') ?? 'ev7libhybjg5h1d1',
     domain_key: 'pricesmart_bloomreach_io_es',
@@ -140,6 +216,57 @@ async function searchPriceSmart(query: string): Promise<UnifiedResult[]> {
     url: 'https://www.pricesmart.com/es-sv/busqueda',
     ref_url: 'https://www.pricesmart.com/es-sv',
   })
+}
+
+interface PriceSmartPriceResult {
+  storeName: string
+  price: number | null
+  listPrice: number | null
+  isAvailable: boolean
+  fetchUrl: string
+  fetchParams: Record<string, string>
+  source: string
+  productName?: string
+  brand?: string
+  imageUrl?: string
+}
+
+async function fetchPriceSmartByQuery(query: string): Promise<PriceSmartPriceResult | null> {
+  const params = buildPriceSmartParams(query)
+  const fullUrl = `${PRICESMART_BASE}?${params.toString()}`
+
+  const res = await fetch(fullUrl, {
+    headers: { Accept: 'application/json' },
+  })
+
+  if (!res.ok) {
+    console.error(`PriceSmart API error: ${res.status}`)
+    return null
+  }
+
+  const data: BloomreachResponse = await res.json()
+  const doc = data.response?.docs?.[0]
+  if (!doc) return null
+
+  const paramsObj: Record<string, string> = {}
+  params.forEach((value, key) => { paramsObj[key] = value })
+
+  return {
+    storeName: 'PriceSmart SV',
+    price: doc.price_SV != null ? Math.round(doc.price_SV * 100) : null,
+    listPrice: null,
+    isAvailable: doc.availability_SV === 'true' || doc.availability_SV === 'in_stock',
+    fetchUrl: fullUrl,
+    fetchParams: paramsObj,
+    source: 'pricesmart_bloomreach',
+    productName: doc.title ?? undefined,
+    brand: doc.brand ?? undefined,
+    imageUrl: doc.thumb_image ?? undefined,
+  }
+}
+
+async function searchPriceSmartGeneral(query: string): Promise<UnifiedResult[]> {
+  const params = buildPriceSmartParams(query)
 
   const res = await fetch(`${PRICESMART_BASE}?${params.toString()}`, {
     headers: { Accept: 'application/json' },
@@ -157,7 +284,7 @@ async function searchPriceSmart(query: string): Promise<UnifiedResult[]> {
     storeName: 'PriceSmart SV',
     productName: doc.title ?? 'Sin nombre',
     brand: doc.brand ?? null,
-    ean: null, // Bloomreach does not return EAN
+    ean: null,
     price: doc.price_SV != null ? Math.round(doc.price_SV * 100) : null,
     listPrice: null,
     isAvailable: doc.availability_SV === 'true' || doc.availability_SV === 'in_stock',
@@ -169,120 +296,177 @@ async function searchPriceSmart(query: string): Promise<UnifiedResult[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Cache helpers
+// Refresh price using stored fetch_url
 // ---------------------------------------------------------------------------
 
-async function getCachedResults(
-  supabase: ReturnType<typeof createClient>,
-  query: string,
-  barcode?: string,
-): Promise<UnifiedResult[]> {
-  let builder = supabase
-    .from('price_cache')
-    .select('*')
-    .gt('expires_at', new Date().toISOString())
+async function refreshPriceFromUrl(
+  cachedPrice: ProductPrice,
+): Promise<{ price: number | null; listPrice: number | null; isAvailable: boolean } | null> {
+  if (!cachedPrice.fetch_url) return null
 
-  if (barcode) {
-    builder = builder.eq('ean', barcode)
-  } else {
-    builder = builder.eq('search_query', query)
-  }
-
-  const { data, error } = await builder
-
-  if (error || !data || data.length === 0) return []
-
-  return data.map((row: Record<string, unknown>) => ({
-    storeName: row.store_name as string,
-    productName: row.product_name as string,
-    brand: (row.brand as string) ?? null,
-    ean: (row.ean as string) ?? null,
-    price: row.price != null ? Number(row.price) : null,
-    listPrice: row.list_price != null ? Number(row.list_price) : null,
-    isAvailable: (row.is_available as boolean) ?? true,
-    imageUrl: (row.image_url as string) ?? null,
-    measurementUnit: (row.measurement_unit as string) ?? null,
-    unitMultiplier: (row.unit_multiplier as number) ?? null,
-    source: row.source as string,
-  }))
-}
-
-async function cacheResults(
-  supabase: ReturnType<typeof createClient>,
-  results: UnifiedResult[],
-  query: string,
-  barcode?: string,
-): Promise<void> {
-  if (results.length === 0) return
-
-  const rows = results.map((r) => {
-    const ttlMs = r.source === 'walmart_vtex' ? WALMART_TTL_MS : PRICESMART_TTL_MS
-    const expiresAt = new Date(Date.now() + ttlMs).toISOString()
-
-    return {
-      ean: barcode ?? r.ean ?? null,
-      search_query: query,
-      store_name: r.storeName,
-      product_name: r.productName,
-      brand: r.brand,
-      price: r.price,
-      list_price: r.listPrice,
-      is_available: r.isAvailable,
-      image_url: r.imageUrl,
-      measurement_unit: r.measurementUnit,
-      unit_multiplier: r.unitMultiplier,
-      source: r.source,
-      expires_at: expiresAt,
-      updated_at: new Date().toISOString(),
+  try {
+    if (cachedPrice.source === 'walmart_vtex') {
+      const res = await fetch(cachedPrice.fetch_url, {
+        headers: { Accept: 'application/json' },
+      })
+      if (!res.ok) return null
+      const products: VtexProduct[] = await res.json()
+      const offer = products[0]?.items?.[0]?.sellers?.[0]?.commertialOffer
+      if (!offer) return null
+      return {
+        price: offer.Price != null ? Math.round(offer.Price * 100) : null,
+        listPrice: offer.ListPrice != null ? Math.round(offer.ListPrice * 100) : null,
+        isAvailable: offer.IsAvailable ?? false,
+      }
     }
-  })
 
-  // Delete stale cache entries for this query/barcode + store before inserting fresh results
-  // to avoid cache poisoning (the old upsert on 'id' always inserted new rows).
-  for (const r of rows) {
-    const deleteBuilder = supabase.from('price_cache').delete()
-    if (r.ean) {
-      await deleteBuilder.eq('ean', r.ean).eq('store_name', r.store_name)
-    } else {
-      await deleteBuilder.eq('search_query', r.search_query).eq('store_name', r.store_name)
+    if (cachedPrice.source === 'pricesmart_bloomreach') {
+      const res = await fetch(cachedPrice.fetch_url, {
+        headers: { Accept: 'application/json' },
+      })
+      if (!res.ok) return null
+      const data: BloomreachResponse = await res.json()
+      const doc = data.response?.docs?.[0]
+      if (!doc) return null
+      return {
+        price: doc.price_SV != null ? Math.round(doc.price_SV * 100) : null,
+        listPrice: null,
+        isAvailable: doc.availability_SV === 'true' || doc.availability_SV === 'in_stock',
+      }
     }
+  } catch (e) {
+    console.error(`Error refreshing price from ${cachedPrice.fetch_url}:`, e)
   }
 
-  const { error } = await supabase.from('price_cache').insert(rows)
-
-  if (error) {
-    console.error('Cache write error:', error.message)
-  }
+  return null
 }
 
 // ---------------------------------------------------------------------------
-// Shared products lookup
+// Global product + price helpers
 // ---------------------------------------------------------------------------
 
-async function getSharedProducts(
+async function getGlobalProduct(
   supabase: ReturnType<typeof createClient>,
   barcode: string,
-): Promise<UnifiedResult[]> {
+): Promise<GlobalProduct | null> {
   const { data, error } = await supabase
-    .from('shared_products')
+    .from('global_products')
     .select('*')
     .eq('ean', barcode)
+    .single()
 
-  if (error || !data || data.length === 0) return []
+  if (error || !data) return null
+  return data as GlobalProduct
+}
 
-  return data.map((row: Record<string, unknown>) => ({
-    storeName: 'CosteoApp Comunidad',
-    productName: row.nombre as string,
-    brand: (row.marca as string) ?? null,
-    ean: row.ean as string,
-    price: null,
-    listPrice: null,
-    isAvailable: true,
-    imageUrl: (row.imagen_url as string) ?? null,
-    measurementUnit: (row.unidad_medida as string) ?? null,
-    unitMultiplier: null,
-    source: 'shared_products',
-  }))
+async function getCachedPrices(
+  supabase: ReturnType<typeof createClient>,
+  productId: string,
+): Promise<ProductPrice[]> {
+  const { data, error } = await supabase
+    .from('product_prices')
+    .select('*')
+    .eq('product_id', productId)
+
+  if (error || !data) return []
+  return data as ProductPrice[]
+}
+
+function isPriceFresh(price: ProductPrice): boolean {
+  const fetchedAt = new Date(price.fetched_at).getTime()
+  return (Date.now() - fetchedAt) < PRICE_TTL_MS
+}
+
+async function upsertProductPrice(
+  supabase: ReturnType<typeof createClient>,
+  productId: string,
+  storeName: string,
+  price: number | null,
+  listPrice: number | null,
+  isAvailable: boolean,
+  fetchUrl: string | null,
+  fetchParams: Record<string, unknown> | null,
+  source: string,
+): Promise<void> {
+  const now = new Date().toISOString()
+  const { error } = await supabase
+    .from('product_prices')
+    .upsert(
+      {
+        product_id: productId,
+        store_name: storeName,
+        price,
+        list_price: listPrice,
+        is_available: isAvailable,
+        fetch_url: fetchUrl,
+        fetch_params: fetchParams,
+        source,
+        fetched_at: now,
+        updated_at: now,
+      },
+      { onConflict: 'product_id,store_name' },
+    )
+
+  if (error) {
+    console.error(`Error upserting product_price for ${storeName}:`, error.message)
+  }
+}
+
+async function createGlobalProduct(
+  supabase: ReturnType<typeof createClient>,
+  ean: string,
+  nombre: string,
+  marca: string | null,
+  imagenUrl: string | null,
+  unidadMedida: string | null,
+  cantidadPorEmpaque: number | null,
+): Promise<GlobalProduct | null> {
+  const { data, error } = await supabase
+    .from('global_products')
+    .insert({
+      ean,
+      nombre,
+      marca,
+      imagen_url: imagenUrl,
+      unidad_medida: unidadMedida ?? 'unidad',
+      cantidad_por_empaque: cantidadPorEmpaque ?? 1,
+      confirmations: 1,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating global_product:', error.message)
+    return null
+  }
+
+  return data as GlobalProduct
+}
+
+async function autoPromoteContributions(
+  supabase: ReturnType<typeof createClient>,
+  ean: string,
+  globalProduct: GlobalProduct,
+): Promise<void> {
+  const { data: contributions } = await supabase
+    .from('product_contributions')
+    .select('id')
+    .eq('ean', ean)
+    .eq('status', 'pending')
+
+  if (contributions && contributions.length > 0) {
+    const newConfirmations = globalProduct.confirmations + contributions.length
+    await supabase
+      .from('global_products')
+      .update({ confirmations: newConfirmations })
+      .eq('id', globalProduct.id)
+
+    await supabase
+      .from('product_contributions')
+      .update({ status: 'approved' })
+      .eq('ean', ean)
+      .eq('status', 'pending')
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -312,7 +496,6 @@ async function updateScraperStatus(
         { onConflict: 'store_name' },
       )
   } else {
-    // Increment failures — read current first
     const { data } = await supabase
       .from('scraper_status')
       .select('consecutive_failures')
@@ -334,6 +517,275 @@ async function updateScraperStatus(
         { onConflict: 'store_name' },
       )
   }
+}
+
+// ---------------------------------------------------------------------------
+// Barcode search flow (global_products + product_prices)
+// ---------------------------------------------------------------------------
+
+async function handleBarcodeSearch(
+  supabase: ReturnType<typeof createClient>,
+  barcode: string,
+): Promise<{ results: UnifiedResult[]; fromCache: boolean }> {
+  // 1. Check if product exists in global_products
+  let globalProduct = await getGlobalProduct(supabase, barcode)
+
+  if (globalProduct) {
+    // 2. Check cached prices
+    const cachedPrices = await getCachedPrices(supabase, globalProduct.id)
+    const freshPrices = cachedPrices.filter(isPriceFresh)
+    const stalePrices = cachedPrices.filter((p) => !isPriceFresh(p))
+
+    // If all prices are fresh, return cached
+    if (freshPrices.length > 0 && stalePrices.length === 0) {
+      const results: UnifiedResult[] = freshPrices.map((p) => ({
+        storeName: p.store_name,
+        productName: globalProduct!.nombre,
+        brand: globalProduct!.marca,
+        ean: globalProduct!.ean,
+        price: p.price != null ? Number(p.price) : null,
+        listPrice: p.list_price != null ? Number(p.list_price) : null,
+        isAvailable: p.is_available ?? true,
+        imageUrl: globalProduct!.imagen_url,
+        measurementUnit: globalProduct!.unidad_medida,
+        unitMultiplier: globalProduct!.cantidad_por_empaque,
+        source: p.source,
+      }))
+
+      return { results, fromCache: true }
+    }
+
+    // 3. Refresh stale prices using stored fetch_url
+    const refreshPromises: Promise<void>[] = []
+
+    for (const stalePrice of stalePrices) {
+      refreshPromises.push(
+        (async () => {
+          const refreshed = await refreshPriceFromUrl(stalePrice)
+          if (refreshed) {
+            await upsertProductPrice(
+              supabase,
+              globalProduct!.id,
+              stalePrice.store_name,
+              refreshed.price,
+              refreshed.listPrice,
+              refreshed.isAvailable,
+              stalePrice.fetch_url,
+              stalePrice.fetch_params,
+              stalePrice.source,
+            )
+          }
+        })(),
+      )
+    }
+
+    // Also fetch from stores that don't have a cached price yet
+    const cachedStores = new Set(cachedPrices.map((p) => p.store_name))
+    const fetchNewPromises = fetchMissingStorePrices(supabase, barcode, globalProduct, cachedStores)
+
+    await Promise.all([...refreshPromises, ...fetchNewPromises])
+
+    // 4. Re-read all prices after refresh
+    const updatedPrices = await getCachedPrices(supabase, globalProduct.id)
+    const results: UnifiedResult[] = updatedPrices.map((p) => ({
+      storeName: p.store_name,
+      productName: globalProduct!.nombre,
+      brand: globalProduct!.marca,
+      ean: globalProduct!.ean,
+      price: p.price != null ? Number(p.price) : null,
+      listPrice: p.list_price != null ? Number(p.list_price) : null,
+      isAvailable: p.is_available ?? true,
+      imageUrl: globalProduct!.imagen_url,
+      measurementUnit: globalProduct!.unidad_medida,
+      unitMultiplier: globalProduct!.cantidad_por_empaque,
+      source: p.source,
+    }))
+
+    // Include fresh cached prices in the "fromCache" determination
+    return { results, fromCache: freshPrices.length > 0 && stalePrices.length === 0 }
+  }
+
+  // 5. Product NOT in global_products — call store APIs to discover it
+  const [walmartResult, priceSmartResult] = await Promise.all([
+    (async () => {
+      const start = Date.now()
+      try {
+        const r = await fetchWalmartByBarcode(barcode)
+        await updateScraperStatus(supabase, 'walmart_vtex', true, Date.now() - start)
+        return r
+      } catch (e) {
+        console.error('Walmart fetch failed:', e)
+        await updateScraperStatus(supabase, 'walmart_vtex', false, Date.now() - start)
+        return null
+      }
+    })(),
+    (async () => {
+      const start = Date.now()
+      try {
+        const r = await fetchPriceSmartByQuery(barcode)
+        await updateScraperStatus(supabase, 'pricesmart_bloomreach', true, Date.now() - start)
+        return r
+      } catch (e) {
+        console.error('PriceSmart fetch failed:', e)
+        await updateScraperStatus(supabase, 'pricesmart_bloomreach', false, Date.now() - start)
+        return null
+      }
+    })(),
+  ])
+
+  // Pick best data source to create the global product
+  const bestSource = walmartResult ?? priceSmartResult
+  if (!bestSource) {
+    return { results: [], fromCache: false }
+  }
+
+  // Create global_product from API data
+  globalProduct = await createGlobalProduct(
+    supabase,
+    barcode,
+    bestSource.productName ?? 'Sin nombre',
+    bestSource.brand ?? null,
+    bestSource.imageUrl ?? null,
+    bestSource.measurementUnit ?? null,
+    bestSource.unitMultiplier ?? null,
+  )
+
+  if (!globalProduct) {
+    return { results: [], fromCache: false }
+  }
+
+  // Auto-promote any pending contributions for this EAN
+  await autoPromoteContributions(supabase, barcode, globalProduct)
+
+  // Save prices from both stores
+  const priceUpserts: Promise<void>[] = []
+  const results: UnifiedResult[] = []
+
+  if (walmartResult) {
+    priceUpserts.push(
+      upsertProductPrice(
+        supabase,
+        globalProduct.id,
+        walmartResult.storeName,
+        walmartResult.price,
+        walmartResult.listPrice,
+        walmartResult.isAvailable,
+        walmartResult.fetchUrl,
+        null,
+        walmartResult.source,
+      ),
+    )
+    results.push({
+      storeName: walmartResult.storeName,
+      productName: globalProduct.nombre,
+      brand: globalProduct.marca,
+      ean: globalProduct.ean,
+      price: walmartResult.price,
+      listPrice: walmartResult.listPrice,
+      isAvailable: walmartResult.isAvailable,
+      imageUrl: globalProduct.imagen_url,
+      measurementUnit: globalProduct.unidad_medida,
+      unitMultiplier: globalProduct.cantidad_por_empaque,
+      source: walmartResult.source,
+    })
+  }
+
+  if (priceSmartResult) {
+    priceUpserts.push(
+      upsertProductPrice(
+        supabase,
+        globalProduct.id,
+        priceSmartResult.storeName,
+        priceSmartResult.price,
+        priceSmartResult.listPrice,
+        priceSmartResult.isAvailable,
+        priceSmartResult.fetchUrl,
+        priceSmartResult.fetchParams,
+        priceSmartResult.source,
+      ),
+    )
+    results.push({
+      storeName: priceSmartResult.storeName,
+      productName: globalProduct.nombre,
+      brand: globalProduct.marca,
+      ean: globalProduct.ean,
+      price: priceSmartResult.price,
+      listPrice: priceSmartResult.listPrice,
+      isAvailable: priceSmartResult.isAvailable,
+      imageUrl: globalProduct.imagen_url,
+      measurementUnit: globalProduct.unidad_medida,
+      unitMultiplier: globalProduct.cantidad_por_empaque,
+      source: priceSmartResult.source,
+    })
+  }
+
+  await Promise.all(priceUpserts)
+
+  return { results, fromCache: false }
+}
+
+function fetchMissingStorePrices(
+  supabase: ReturnType<typeof createClient>,
+  barcode: string,
+  globalProduct: GlobalProduct,
+  cachedStores: Set<string>,
+): Promise<void>[] {
+  const promises: Promise<void>[] = []
+
+  // Walmart — fetch if no cached price exists for any Walmart seller
+  const hasWalmart = Array.from(cachedStores).some((s) => s.toLowerCase().includes('walmart'))
+  if (!hasWalmart) {
+    promises.push(
+      (async () => {
+        try {
+          const result = await fetchWalmartByBarcode(barcode)
+          if (result) {
+            await upsertProductPrice(
+              supabase,
+              globalProduct.id,
+              result.storeName,
+              result.price,
+              result.listPrice,
+              result.isAvailable,
+              result.fetchUrl,
+              null,
+              result.source,
+            )
+          }
+        } catch (e) {
+          console.error('Walmart missing-store fetch failed:', e)
+        }
+      })(),
+    )
+  }
+
+  // PriceSmart — fetch if no cached price exists
+  if (!cachedStores.has('PriceSmart SV')) {
+    promises.push(
+      (async () => {
+        try {
+          const result = await fetchPriceSmartByQuery(barcode)
+          if (result) {
+            await upsertProductPrice(
+              supabase,
+              globalProduct.id,
+              result.storeName,
+              result.price,
+              result.listPrice,
+              result.isAvailable,
+              result.fetchUrl,
+              result.fetchParams,
+              result.source,
+            )
+          }
+        } catch (e) {
+          console.error('PriceSmart missing-store fetch failed:', e)
+        }
+      })(),
+    )
+  }
+
+  return promises
 }
 
 // ---------------------------------------------------------------------------
@@ -384,39 +836,30 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Service-role client for cache reads/writes only
+    // Service-role client for DB reads/writes
     const supabase = createClient(
       supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    const searchTerm = barcode ?? query
-
-    // 1. Check cache first
-    const cached = await getCachedResults(supabase, searchTerm, barcode)
-    if (cached.length > 0) {
-      // If barcode, also attach shared_products info
-      let shared: UnifiedResult[] = []
-      if (barcode) {
-        shared = await getSharedProducts(supabase, barcode)
-      }
-      const all = [...cached, ...shared]
+    // --- BARCODE SEARCH: global_products + product_prices flow ---
+    if (barcode) {
+      const { results, fromCache } = await handleBarcodeSearch(supabase, barcode)
 
       return new Response(
-        JSON.stringify({ results: all, fromCache: true }),
+        JSON.stringify({ results, fromCache }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
-    // 2. Cache miss — call store APIs in parallel
+    // --- TEXT SEARCH: call store APIs directly (no global caching for text) ---
     const storePromises: Promise<{ store: string; results: UnifiedResult[]; ms: number; ok: boolean }>[] = []
 
-    // Walmart
     storePromises.push(
       (async () => {
         const start = Date.now()
         try {
-          const results = await searchWalmart(searchTerm, barcode)
+          const results = await searchWalmartGeneral(query)
           const ms = Date.now() - start
           await updateScraperStatus(supabase, 'walmart_vtex', true, ms)
           return { store: 'walmart_vtex', results, ms, ok: true }
@@ -429,12 +872,11 @@ Deno.serve(async (req) => {
       })(),
     )
 
-    // PriceSmart
     storePromises.push(
       (async () => {
         const start = Date.now()
         try {
-          const results = await searchPriceSmart(searchTerm)
+          const results = await searchPriceSmartGeneral(query)
           const ms = Date.now() - start
           await updateScraperStatus(supabase, 'pricesmart_bloomreach', true, ms)
           return { store: 'pricesmart_bloomreach', results, ms, ok: true }
@@ -448,24 +890,11 @@ Deno.serve(async (req) => {
     )
 
     const storeResults = await Promise.all(storePromises)
-
-    // Flatten all store results
     const allStoreResults = storeResults.flatMap((s) => s.results)
-
-    // 3. Cache fresh results
-    await cacheResults(supabase, allStoreResults, searchTerm, barcode)
-
-    // 4. If barcode, also look up shared_products
-    let shared: UnifiedResult[] = []
-    if (barcode) {
-      shared = await getSharedProducts(supabase, barcode)
-    }
-
-    const finalResults = [...allStoreResults, ...shared]
 
     return new Response(
       JSON.stringify({
-        results: finalResults,
+        results: allStoreResults,
         fromCache: false,
         stores: storeResults.map((s) => ({
           store: s.store,

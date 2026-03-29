@@ -50,17 +50,23 @@ class CompraManager @Inject constructor(
     var lastNutricion: com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna? = null
         private set
 
+    @Volatile
+    var lastGlobalProductId: String? = null
+        private set
+
     fun cacheSearchResults(
         results: List<com.mg.costeoapp.core.domain.model.StoreSearchResult>,
         nutricion: com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna?
     ) {
         lastSearchResults = results
         lastNutricion = nutricion
+        lastGlobalProductId = results.firstNotNullOfOrNull { it.globalProductId }
     }
 
     fun clearSearchCache() {
         lastSearchResults = null
         lastNutricion = null
+        lastGlobalProductId = null
     }
 
     suspend fun restaurarDesdeDb() {

@@ -33,7 +33,24 @@ private data class BackendSearchResultDto(
     val imageUrl: String? = null,
     val measurementUnit: String? = null,
     val unitMultiplier: Double? = null,
-    val source: String
+    val source: String,
+    val globalProductId: String? = null,
+    val fetchUrl: String? = null
+)
+
+@Serializable
+private data class BackendGlobalResponseDto(
+    val globalProductId: String? = null,
+    val product: BackendProductDto? = null,
+    val prices: List<BackendSearchResultDto> = emptyList()
+)
+
+@Serializable
+private data class BackendProductDto(
+    val name: String? = null,
+    val brand: String? = null,
+    val unit: String? = null,
+    val ean: String? = null
 )
 
 class CosteoBackendRepository @Inject constructor(
@@ -85,29 +102,58 @@ class CosteoBackendRepository @Inject constructor(
                 }
 
                 val responseBody = resp.body.string()
-
-                val dtos = json.decodeFromString<List<BackendSearchResultDto>>(responseBody)
-                val results = dtos.map { dto ->
-                    StoreSearchResult(
-                        storeName = dto.storeName,
-                        productName = dto.productName,
-                        brand = dto.brand,
-                        ean = dto.ean,
-                        price = dto.price,
-                        listPrice = dto.listPrice,
-                        isAvailable = dto.isAvailable,
-                        imageUrl = dto.imageUrl,
-                        measurementUnit = dto.measurementUnit,
-                        unitMultiplier = dto.unitMultiplier,
-                        source = dto.source
-                    )
-                }
-
+                val results = parseResponse(responseBody)
                 Result.success(results)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error en busqueda backend: ${e.message}", e)
             Result.failure(e)
         }
+    }
+
+    private fun parseResponse(responseBody: String): List<StoreSearchResult> {
+        val trimmed = responseBody.trimStart()
+
+        // Nuevo formato: objeto con globalProductId + prices array
+        if (trimmed.startsWith("{")) {
+            return try {
+                val global = json.decodeFromString<BackendGlobalResponseDto>(responseBody)
+                global.prices.map { dto ->
+                    mapDto(dto, globalProductId = global.globalProductId)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Error parseando formato global, intentando formato legacy: ${e.message}")
+                parseLegacyArray(responseBody)
+            }
+        }
+
+        // Formato legacy: array de resultados
+        return parseLegacyArray(responseBody)
+    }
+
+    private fun parseLegacyArray(responseBody: String): List<StoreSearchResult> {
+        val dtos = json.decodeFromString<List<BackendSearchResultDto>>(responseBody)
+        return dtos.map { mapDto(it) }
+    }
+
+    private fun mapDto(
+        dto: BackendSearchResultDto,
+        globalProductId: String? = null
+    ): StoreSearchResult {
+        return StoreSearchResult(
+            storeName = dto.storeName,
+            productName = dto.productName,
+            brand = dto.brand,
+            ean = dto.ean,
+            price = dto.price,
+            listPrice = dto.listPrice,
+            isAvailable = dto.isAvailable,
+            imageUrl = dto.imageUrl,
+            measurementUnit = dto.measurementUnit,
+            unitMultiplier = dto.unitMultiplier,
+            source = dto.source,
+            globalProductId = dto.globalProductId ?: globalProductId,
+            fetchUrl = dto.fetchUrl
+        )
     }
 }
