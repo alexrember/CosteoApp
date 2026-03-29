@@ -7,6 +7,7 @@ import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.feature.inventario.data.CompraManager
 import com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna
+import com.mg.costeoapp.feature.inventario.data.repository.CosteoBackendRepository
 import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
 import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrator
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +27,7 @@ class ScannerViewModel @Inject constructor(
     private val productoTiendaDao: ProductoTiendaDao,
     private val searchOrchestrator: StoreSearchOrchestrator,
     private val nutritionRepository: NutritionRepository,
+    private val backendRepository: CosteoBackendRepository,
     val compraManager: CompraManager
 ) : ViewModel() {
 
@@ -49,6 +51,7 @@ class ScannerViewModel @Inject constructor(
     private val requiredDetections = 3
     private var processingBarcode: String? = null
     private val scanLock = Any()
+    private var pendingEanForItemNumber: String? = null
 
     init {
         _uiState.update {
@@ -75,11 +78,59 @@ class ScannerViewModel @Inject constructor(
             candidateCount = 0
             processingBarcode = barcode
         }
-        processBarcode(barcode)
+
+        val currentState = _uiState.value.lookupState
+        if (currentState is BarcodeLookupState.NeedItemNumber) {
+            processItemNumber(barcode, currentState.barcode)
+        } else {
+            processBarcode(barcode)
+        }
+    }
+
+    private fun isPriceSmart(): Boolean {
+        val tienda = compraManager.getTienda() ?: return false
+        return tienda.nombre.contains("PriceSmart", ignoreCase = true)
     }
 
     private fun isValidBarcode(barcode: String): Boolean =
         barcode.matches(Regex("^\\d{8,14}$"))
+
+    private fun isValidItemNumber(code: String): Boolean =
+        code.matches(Regex("^\\d{4,14}$"))
+
+    private fun processItemNumber(itemNumber: String, originalEan: String) {
+        if (!isValidItemNumber(itemNumber)) return
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    scannedBarcode = itemNumber,
+                    isProcessing = true,
+                    lookupState = BarcodeLookupState.Buscando
+                )
+            }
+
+            // Link EAN to PriceSmart Item# via backend
+            val linkResult = backendRepository.linkBarcodeToItemNumber(originalEan, itemNumber)
+            val storeResults = linkResult.getOrDefault(emptyList())
+            lastNutricion = nutritionRepository.searchByBarcode(originalEan)
+
+            compraManager.cacheSearchResults(storeResults, lastNutricion)
+            pendingEanForItemNumber = null
+
+            _uiState.update {
+                it.copy(
+                    isProcessing = false,
+                    scannedBarcode = originalEan,
+                    lookupState = if (storeResults.isNotEmpty())
+                        BarcodeLookupState.EncontradoApi(originalEan, storeResults)
+                    else
+                        BarcodeLookupState.NoEncontrado(originalEan)
+                )
+            }
+            _navEvents.send(ScannerNavEvent.GoToRegistro(originalEan))
+        }
+    }
 
     private fun processBarcode(barcode: String) {
         if (!isValidBarcode(barcode)) return
@@ -106,10 +157,8 @@ class ScannerViewModel @Inject constructor(
 
                 compraManager.agregarProducto(productoLocal, 1.0, precio)
 
-                // Buscar precios de comparacion en paralelo
                 val preciosComparados = mutableListOf<PrecioComparado>()
 
-                // Precio local registrado
                 if (precio > 0 && tienda != null) {
                     preciosComparados.add(PrecioComparado(
                         tiendaNombre = tienda.nombre,
@@ -119,7 +168,6 @@ class ScannerViewModel @Inject constructor(
                     ))
                 }
 
-                // Buscar precios en todas las tiendas en paralelo
                 if (productoLocal.codigoBarras != null) {
                     val orchestrated = searchOrchestrator.searchByBarcode(productoLocal.codigoBarras)
                     orchestrated.results.filter { it.isAvailable && it.price != null }.forEach { result ->
@@ -160,6 +208,21 @@ class ScannerViewModel @Inject constructor(
             val storeResults = orchestrated.results
             lastNutricion = deferredNutricion.await()
 
+            // PriceSmart: si no hay resultados con precio, pedir Item#
+            if (isPriceSmart() && storeResults.none { it.price != null && it.price > 0 }) {
+                pendingEanForItemNumber = barcode
+                synchronized(scanLock) { processingBarcode = null }
+                candidateBarcode = null
+                candidateCount = 0
+                _uiState.update {
+                    it.copy(
+                        isProcessing = false,
+                        lookupState = BarcodeLookupState.NeedItemNumber(barcode)
+                    )
+                }
+                return@launch
+            }
+
             compraManager.cacheSearchResults(storeResults, lastNutricion)
 
             _uiState.update {
@@ -171,7 +234,6 @@ class ScannerViewModel @Inject constructor(
                         BarcodeLookupState.NoEncontrado(barcode)
                 )
             }
-            // Navegar al registro via channel one-shot
             _navEvents.send(ScannerNavEvent.GoToRegistro(barcode))
         }
     }

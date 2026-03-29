@@ -22,12 +22,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -156,6 +158,12 @@ fun ScannerScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+                if (uiState.lookupState is BarcodeLookupState.NeedItemNumber) {
+                    NeedItemNumberOverlay(
+                        barcode = (uiState.lookupState as BarcodeLookupState.NeedItemNumber).barcode,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
+                }
             } else {
                 Column(
                     modifier = Modifier
@@ -256,6 +264,57 @@ private fun SearchingOverlay(
                 text = "Walmart  ·  PriceSmart  ·  Open Food Facts",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun NeedItemNumberOverlay(
+    barcode: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Numbers,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onErrorContainer
+            )
+
+            Text(
+                text = "Producto no encontrado en PriceSmart",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = "Escanea el codigo Item# del producto",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = "EAN: $barcode",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
             )
         }
     }
