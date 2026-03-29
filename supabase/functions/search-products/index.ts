@@ -813,9 +813,22 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
+    const searchStart = Date.now()
+
     // --- BARCODE SEARCH: global_products + product_prices flow ---
     if (barcode) {
       const { results, fromCache } = await handleBarcodeSearch(supabase, barcode)
+
+      const storesFound = [...new Set(results.map(r => r.storeName))]
+      await supabase.from('search_logs').insert({
+        user_id: user.id,
+        barcode,
+        stores_searched: ['walmart_vtex', 'pricesmart_bloomreach'],
+        stores_found: storesFound,
+        results_count: results.length,
+        from_cache: fromCache,
+        response_ms: Date.now() - searchStart,
+      })
 
       return new Response(
         JSON.stringify({ results, fromCache }),
@@ -862,6 +875,17 @@ Deno.serve(async (req) => {
 
     const storeResults = await Promise.all(storePromises)
     const allStoreResults = storeResults.flatMap((s) => s.results)
+
+    const storesFound = storeResults.filter(s => s.ok && s.results.length > 0).map(s => s.store)
+    await supabase.from('search_logs').insert({
+      user_id: user.id,
+      query,
+      stores_searched: storeResults.map(s => s.store),
+      stores_found: storesFound,
+      results_count: allStoreResults.length,
+      from_cache: false,
+      response_ms: Date.now() - searchStart,
+    })
 
     return new Response(
       JSON.stringify({
