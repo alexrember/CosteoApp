@@ -53,6 +53,7 @@ class ProductContributionService @Inject constructor(
                 put("nombre", producto.nombre)
                 put("unidad_medida", producto.unidadMedida)
                 put("cantidad_por_empaque", producto.cantidadPorEmpaque)
+                put("unidades_por_empaque", producto.unidadesPorEmpaque)
                 put("factor_merma", producto.factorMerma)
                 if (!globalProductId.isNullOrBlank()) {
                     put("global_product_id", globalProductId)
