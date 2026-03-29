@@ -83,6 +83,7 @@ class PricingEngineImpl @Inject constructor(
                     costoIngredientes += calcularCostoIngrediente(
                         precioUnitario = precio.precioUnitario!!,
                         cantidadPorEmpaque = producto.cantidadPorEmpaque,
+                        unidadesPorEmpaque = producto.unidadesPorEmpaque,
                         cantidadUsada = item.ingrediente.cantidadUsada,
                         factorMerma = producto.factorMerma
                     )
@@ -91,6 +92,7 @@ class PricingEngineImpl @Inject constructor(
                     costoIngredientes += calcularCostoIngrediente(
                         precioUnitario = precio.precioUnitario!!,
                         cantidadPorEmpaque = producto.cantidadPorEmpaque,
+                        unidadesPorEmpaque = producto.unidadesPorEmpaque,
                         cantidadUsada = item.ingrediente.cantidadUsada,
                         factorMerma = producto.factorMerma
                     )
@@ -114,11 +116,13 @@ class PricingEngineImpl @Inject constructor(
     private fun calcularCostoIngrediente(
         precioUnitario: Long,
         cantidadPorEmpaque: Double,
+        unidadesPorEmpaque: Int = 1,
         cantidadUsada: Double,
         factorMerma: Int
     ): Long {
         if (cantidadPorEmpaque <= 0) return 0L
-        val precioPorUnidad = precioUnitario.toDouble() / cantidadPorEmpaque
+        val contenidoTotal = cantidadPorEmpaque * maxOf(unidadesPorEmpaque, 1)
+        val precioPorUnidad = precioUnitario.toDouble() / contenidoTotal
         val costo = precioPorUnidad * cantidadUsada
         return if (factorMerma in 1..99) {
             (costo / (1.0 - factorMerma / 100.0)).roundToLong()
