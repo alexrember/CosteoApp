@@ -17,9 +17,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.text.font.FontWeight
 import com.mg.costeoapp.core.ui.components.CosteoTextField
 import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
+import com.mg.costeoapp.core.util.CurrencyFormatter
 
 @Composable
 fun PlatoFormScreen(
@@ -48,7 +50,41 @@ fun PlatoFormScreen(
                 onNavigateBack = onNavigateBack
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            if (uiState.componentes.isNotEmpty() && uiState.costoEnVivo != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Costo total", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text(CurrencyFormatter.fromCents(uiState.costoEnVivo!!),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                        if (uiState.precioVentaSugerido != null) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("Precio venta sugerido", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Text(CurrencyFormatter.fromCents(uiState.precioVentaSugerido!!),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             item {

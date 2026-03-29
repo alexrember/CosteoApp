@@ -9,9 +9,11 @@ import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.core.util.CurrencyFormatter
 import com.mg.costeoapp.core.util.ErrorMapper
 import com.mg.costeoapp.core.util.ValidationUtils
+import com.mg.costeoapp.core.domain.engine.PricingEngine
 import com.mg.costeoapp.feature.platos.data.PlatoRepository
 import com.mg.costeoapp.feature.prefabricados.data.PrefabricadoRepository
 import com.mg.costeoapp.feature.productos.data.ProductoRepository
+import kotlin.math.roundToLong
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +30,7 @@ class PlatoFormViewModel @Inject constructor(
     private val platoRepository: PlatoRepository,
     private val prefabricadoRepository: PrefabricadoRepository,
     private val productoRepository: ProductoRepository,
+    private val pricingEngine: PricingEngine,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -85,7 +88,7 @@ class PlatoFormViewModel @Inject constructor(
 
     fun onNombreChanged(v: String) { _uiState.update { it.copy(nombre = v, fieldErrors = it.fieldErrors - "nombre") } }
     fun onDescripcionChanged(v: String) { _uiState.update { it.copy(descripcion = v) } }
-    fun onMargenChanged(v: String) { _uiState.update { it.copy(margenPorcentaje = v) } }
+    fun onMargenChanged(v: String) { _uiState.update { it.copy(margenPorcentaje = v) }; recalculateCost() }
     fun onPrecioVentaManualChanged(v: String) { _uiState.update { it.copy(precioVentaManual = v) } }
 
     fun onShowComponentePicker() {
@@ -113,7 +116,7 @@ class PlatoFormViewModel @Inject constructor(
             it.copy(
                 componentes = it.componentes + ComponenteFormItem(prefabricado = pref, nombre = pref.nombre),
                 showComponentePicker = false
-            )
+            ).also { _ -> recalculateCost() }
         }
     }
 
@@ -123,7 +126,7 @@ class PlatoFormViewModel @Inject constructor(
             it.copy(
                 componentes = it.componentes + ComponenteFormItem(producto = prod, nombre = prod.nombre),
                 showComponentePicker = false
-            )
+            ).also { _ -> recalculateCost() }
         }
     }
 
@@ -133,11 +136,52 @@ class PlatoFormViewModel @Inject constructor(
                 this[index] = this[index].copy(cantidad = cantidad)
             })
         }
+        recalculateCost()
     }
 
     fun onRemoveComponente(index: Int) {
         _uiState.update {
             it.copy(componentes = it.componentes.toMutableList().apply { removeAt(index) })
+        }
+        recalculateCost()
+    }
+
+    private var costJob: kotlinx.coroutines.Job? = null
+
+    private fun recalculateCost() {
+        costJob?.cancel()
+        costJob = viewModelScope.launch {
+            val state = _uiState.value
+            if (state.componentes.isEmpty()) {
+                _uiState.update { it.copy(costoEnVivo = null, precioVentaSugerido = null) }
+                return@launch
+            }
+
+            var costoTotal = 0L
+            for (item in state.componentes) {
+                val cantidad = item.cantidad.toDoubleOrNull() ?: continue
+                if (cantidad <= 0) continue
+
+                if (item.prefabricado != null) {
+                    val result = pricingEngine.calculatePrefabricadoCost(item.prefabricado.id)
+                    val costoPorPorcion = result.costoPorPorcion ?: result.costoTotal
+                    costoTotal += (costoPorPorcion * cantidad).roundToLong()
+                } else if (item.producto != null) {
+                    val precio = pricingEngine.resolvePrice(item.producto.id)
+                    val precioUnitario = precio.precioUnitario ?: continue
+                    val contenidoTotal = item.producto.cantidadPorEmpaque * maxOf(item.producto.unidadesPorEmpaque, 1)
+                    if (contenidoTotal <= 0) continue
+                    val precioPorUnidad = precioUnitario.toDouble() / contenidoTotal
+                    costoTotal += (precioPorUnidad * cantidad).roundToLong()
+                }
+            }
+
+            val margen = state.margenPorcentaje.toDoubleOrNull()
+            val precioVenta = if (margen != null && margen > 0 && margen < 100 && costoTotal > 0) {
+                (costoTotal.toDouble() / (margen / 100.0)).roundToLong()
+            } else null
+
+            _uiState.update { it.copy(costoEnVivo = costoTotal, precioVentaSugerido = precioVenta) }
         }
     }
 

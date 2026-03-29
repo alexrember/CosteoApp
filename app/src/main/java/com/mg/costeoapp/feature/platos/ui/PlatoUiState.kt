@@ -53,7 +53,9 @@ data class PlatoFormUiState(
     val pickerSearchQuery: String = "",
     val pickerTab: Int = 0,
     val fieldErrors: Map<String, String> = emptyMap(),
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val costoEnVivo: Long? = null,
+    val precioVentaSugerido: Long? = null
 ) {
     val isEditMode: Boolean get() = plato != null
 }
