@@ -1,0 +1,2 @@
+-- User-owned data tables referencing global_products and global_stores
+-- See migration applied in Supabase: user_inventory, user_recipes, user_recipe_ingredients, user_dishes, user_dish_components
