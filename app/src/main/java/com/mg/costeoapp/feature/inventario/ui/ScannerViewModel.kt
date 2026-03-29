@@ -150,6 +150,7 @@ class ScannerViewModel @Inject constructor(
             }
 
             val productoLocal = productoDao.getByCodigoBarras(barcode)
+            android.util.Log.d("Scanner", "Barcode=$barcode localFound=${productoLocal != null}")
 
             if (productoLocal != null) {
                 val tienda = compraManager.getTienda()
@@ -174,14 +175,21 @@ class ScannerViewModel @Inject constructor(
                 }
 
                 if (productoLocal.codigoBarras != null) {
+                    val tiendaNombreLocal = tienda?.nombre?.lowercase() ?: ""
                     val orchestrated = searchOrchestrator.searchByBarcode(productoLocal.codigoBarras)
                     orchestrated.results.filter { it.isAvailable && it.price != null }.forEach { result ->
-                        preciosComparados.add(PrecioComparado(
-                            tiendaNombre = result.storeName,
-                            precio = result.price!!,
-                            fecha = null,
-                            fuente = result.source
-                        ))
+                        val yaExiste = preciosComparados.any { existing ->
+                            existing.tiendaNombre.lowercase().contains(result.storeName.lowercase().take(8)) ||
+                            result.storeName.lowercase().contains(existing.tiendaNombre.lowercase().take(8))
+                        }
+                        if (!yaExiste) {
+                            preciosComparados.add(PrecioComparado(
+                                tiendaNombre = result.storeName,
+                                precio = result.price!!,
+                                fecha = null,
+                                fuente = result.source
+                            ))
+                        }
                     }
                 }
 
@@ -195,9 +203,11 @@ class ScannerViewModel @Inject constructor(
                 }
                 _events.send(UiEvent.ShowError("${productoLocal.nombre} agregado al carrito"))
 
-                kotlinx.coroutines.delay(2000)
+                kotlinx.coroutines.delay(1500)
                 synchronized(scanLock) { processingBarcode = null }
-                _uiState.update { it.copy(lookupState = BarcodeLookupState.Idle) }
+                if (preciosComparados.size <= 1) {
+                    _uiState.update { it.copy(lookupState = BarcodeLookupState.Idle) }
+                }
                 return@launch
             }
 
@@ -242,6 +252,10 @@ class ScannerViewModel @Inject constructor(
             }
             _navEvents.send(ScannerNavEvent.GoToRegistro(barcode))
         }
+    }
+
+    fun dismissPriceComparison() {
+        _uiState.update { it.copy(lookupState = BarcodeLookupState.Idle) }
     }
 
     /** Llamar al volver del registro. Permite re-escanear cualquier codigo. */

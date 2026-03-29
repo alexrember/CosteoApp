@@ -32,9 +32,23 @@ class ProductContributionService @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) {
 
+    suspend fun getAccessToken(): String? {
+        return try {
+            val session = supabaseClient.auth.currentSessionOrNull()
+            if (session != null) {
+                // Refresh to get a fresh token
+                try {
+                    supabaseClient.auth.refreshCurrentSession()
+                } catch (_: Exception) { }
+                supabaseClient.auth.currentSessionOrNull()?.accessToken ?: session.accessToken
+            } else null
+        } catch (_: Exception) { null }
+    }
+
     suspend fun contribute(
         producto: Producto,
-        globalProductId: String? = null
+        globalProductId: String? = null,
+        accessToken: String? = null
     ): Result<Boolean> = withContext(Dispatchers.IO + NonCancellable) {
         try {
             val ean = producto.codigoBarras
@@ -42,11 +56,15 @@ class ProductContributionService @Inject constructor(
                 return@withContext Result.success(false)
             }
 
-            val accessToken = supabaseClient.auth.currentSessionOrNull()?.accessToken
-            if (accessToken.isNullOrBlank()) {
-                Log.d(TAG, "No auth session, skipping contribution")
+            val token = accessToken
+                ?: supabaseClient.auth.currentSessionOrNull()?.accessToken
+                ?: try { supabaseClient.auth.refreshCurrentSession(); supabaseClient.auth.currentSessionOrNull()?.accessToken } catch (_: Exception) { null }
+
+            if (token.isNullOrBlank()) {
+                Log.w(TAG, "No auth token available, skipping contribution")
                 return@withContext Result.success(false)
             }
+            Log.d(TAG, "contribute() ean=$ean, gpId=$globalProductId, hasToken=true")
 
             val body = buildJsonObject {
                 put("ean", ean)
@@ -65,7 +83,7 @@ class ProductContributionService @Inject constructor(
             val request = Request.Builder()
                 .url(url)
                 .post(body.toString().toRequestBody("application/json".toMediaType()))
-                .header("Authorization", "Bearer $accessToken")
+                .header("Authorization", "Bearer $token")
                 .header("apikey", NativeSecrets.getSupabaseAnonKey())
                 .build()
 

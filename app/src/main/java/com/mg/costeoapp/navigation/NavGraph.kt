@@ -24,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import io.github.jan.supabase.auth.auth
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -63,10 +64,17 @@ import com.mg.costeoapp.feature.tiendas.ui.TiendaListScreen
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
+interface SupabaseEntryPoint {
+    fun supabaseClient(): io.github.jan.supabase.SupabaseClient
+}
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
 interface NavGraphEntryPoint {
     fun csvExportService(): CsvExportService
     fun pdfExportService(): PdfExportService
     fun platoRepository(): PlatoRepository
+    fun compraManager(): com.mg.costeoapp.feature.inventario.data.CompraManager
 }
 
 private val bottomNavItems = listOf(
@@ -104,7 +112,13 @@ fun CosteoNavGraph(
     navController: NavHostController = rememberNavController()
 ) {
     val context = LocalContext.current
-    val startDestination: Any = if (isOnboardingCompleted(context)) DashboardRoute else OnboardingRoute
+    val supabaseClient = EntryPointAccessors.fromApplication(context, SupabaseEntryPoint::class.java).supabaseClient()
+    val hasSession = supabaseClient.auth.currentSessionOrNull() != null
+    val startDestination: Any = when {
+        !isOnboardingCompleted(context) -> OnboardingRoute
+        !hasSession -> LoginRoute
+        else -> DashboardRoute
+    }
 
     // TODO: Mover logica de export a un ViewModel dedicado (ExportViewModel) en vez de tenerla en NavGraph
     val scope = rememberCoroutineScope()
@@ -112,6 +126,7 @@ fun CosteoNavGraph(
     val csvExportService = entryPoint.csvExportService()
     val pdfExportService = entryPoint.pdfExportService()
     val platoRepository = entryPoint.platoRepository()
+    val compraManager = entryPoint.compraManager()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -150,7 +165,7 @@ fun CosteoNavGraph(
                 OnboardingScreen(
                     onFinish = {
                         setOnboardingCompleted(context)
-                        navController.navigate(DashboardRoute) {
+                        navController.navigate(LoginRoute) {
                             popUpTo(OnboardingRoute) { inclusive = true }
                         }
                     }
@@ -160,7 +175,11 @@ fun CosteoNavGraph(
             composable<DashboardRoute> {
                 DashboardScreen(
                     onNavigateToCompras = {
-                        navController.navigate(SeleccionTiendaCompraRoute)
+                        if (compraManager.hayCompraEnCurso()) {
+                            navController.navigate(ScannerRoute)
+                        } else {
+                            navController.navigate(SeleccionTiendaCompraRoute)
+                        }
                     },
                     onNavigateToNuevaReceta = {
                         navController.navigate(RecetaFormRoute())
@@ -439,11 +458,17 @@ fun CosteoNavGraph(
             // --- Fase 7: Auth ---
 
             composable<LoginRoute> {
+                val canGoBack = navController.previousBackStackEntry != null
                 LoginScreen(
-                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateBack = {
+                        if (canGoBack) navController.popBackStack()
+                    },
                     onAuthSuccess = {
-                        navController.popBackStack(SettingsRoute, inclusive = false)
-                    }
+                        navController.navigate(DashboardRoute) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    showBackButton = canGoBack
                 )
             }
 

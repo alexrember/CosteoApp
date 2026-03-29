@@ -211,7 +211,7 @@ fun ScannerScreen(
         PriceComparisonSheet(
             productoNombre = lookupState.producto.nombre,
             precios = lookupState.preciosComparados,
-            onDismiss = { /* Se cierra solo con el cooldown */ }
+            onDismiss = { viewModel.dismissPriceComparison() }
         )
     }
 }

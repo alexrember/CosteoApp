@@ -52,6 +52,7 @@ import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
 fun LoginScreen(
     onNavigateBack: () -> Unit,
     onAuthSuccess: () -> Unit,
+    showBackButton: Boolean = true,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -73,7 +74,7 @@ fun LoginScreen(
         topBar = {
             CosteoTopAppBar(
                 title = if (uiState.isLoginMode) "Iniciar sesion" else "Crear cuenta",
-                onNavigateBack = onNavigateBack
+                onNavigateBack = if (showBackButton) onNavigateBack else null
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }

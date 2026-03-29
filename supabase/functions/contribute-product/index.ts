@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
         .from('user_product_aliases')
         .select('id')
         .eq('user_id', user.id)
-        .eq('global_product_id', globalRow.id)
+        .eq('product_id', globalRow.id)
         .limit(1)
 
       if (existingAlias && existingAlias.length > 0) {
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
         .from('user_product_aliases')
         .insert({
           user_id: user.id,
-          global_product_id: globalRow.id,
+          product_id: globalRow.id,
           contributed: true,
           contribution_status: 'approved',
         })
@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
         .from('user_product_aliases')
         .insert({
           user_id: user.id,
-          global_product_id: newProduct.id,
+          product_id: newProduct.id,
           contributed: true,
           contribution_status: 'approved',
         })
