@@ -182,7 +182,7 @@ class PlatoFormViewModel @Inject constructor(
 
             val margen = state.margenPorcentaje.toDoubleOrNull()
             val precioVenta = if (margen != null && margen > 0 && margen < 100 && costoTotal > 0) {
-                (costoTotal.toDouble() / (margen / 100.0)).roundToLong()
+                (costoTotal.toDouble() / (1.0 - margen / 100.0)).roundToLong()
             } else null
 
             _uiState.update { it.copy(componentes = updatedComponentes, costoEnVivo = costoTotal, precioVentaSugerido = precioVenta) }
