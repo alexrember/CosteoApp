@@ -26,14 +26,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Numbers
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -284,14 +287,16 @@ private fun NeedItemNumberOverlay(
     modifier: Modifier = Modifier
 ) {
     var manualInput by remember { mutableStateOf("") }
+    val isValid = manualInput.length >= 4
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        shape = MaterialTheme.shapes.extraLarge
     ) {
         Column(
             modifier = Modifier
@@ -303,22 +308,22 @@ private fun NeedItemNumberOverlay(
             Icon(
                 imageVector = Icons.Filled.Numbers,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onErrorContainer
+                modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
 
             Text(
                 text = "Producto no encontrado en PriceSmart",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
 
             Text(
                 text = "Escribe el Item# del producto",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
 
@@ -332,33 +337,36 @@ private fun NeedItemNumberOverlay(
                     imeAction = androidx.compose.ui.text.input.ImeAction.Done
                 ),
                 keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                    onDone = { if (manualInput.length >= 4) onItemNumberEntered(manualInput) }
+                    onDone = { if (isValid) onItemNumberEntered(manualInput) }
                 ),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = MaterialTheme.colorScheme.onErrorContainer,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onErrorContainer,
-                    focusedBorderColor = MaterialTheme.colorScheme.onErrorContainer,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f),
-                    focusedLabelColor = MaterialTheme.colorScheme.onErrorContainer,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f),
-                    focusedPlaceholderColor = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f),
-                    cursorColor = MaterialTheme.colorScheme.onErrorContainer
-                )
-            )
-            Button(
-                onClick = { if (manualInput.length >= 4) onItemNumberEntered(manualInput) },
-                enabled = manualInput.length >= 4,
                 modifier = Modifier.fillMaxWidth()
+            )
+
+            Button(
+                onClick = { onItemNumberEntered(manualInput) },
+                enabled = isValid,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                )
             ) {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text("Buscar Item#")
             }
 
             Text(
                 text = "EAN: $barcode",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
 
             if (lastScannedCode != null) {
