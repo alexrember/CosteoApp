@@ -1,9 +1,19 @@
 package com.mg.costeoapp.feature.sync.data
 
 import android.util.Log
+import com.mg.costeoapp.core.database.dao.PlatoComponenteDao
+import com.mg.costeoapp.core.database.dao.PlatoDao
+import com.mg.costeoapp.core.database.dao.PrefabricadoDao
+import com.mg.costeoapp.core.database.dao.PrefabricadoIngredienteDao
 import com.mg.costeoapp.core.database.dao.ProductoDao
+import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
 import com.mg.costeoapp.core.database.dao.SyncMetadataDao
 import com.mg.costeoapp.core.database.dao.TiendaDao
+import com.mg.costeoapp.core.database.entity.Plato
+import com.mg.costeoapp.core.database.entity.PlatoComponente
+import com.mg.costeoapp.core.database.entity.Prefabricado
+import com.mg.costeoapp.core.database.entity.PrefabricadoIngrediente
+import com.mg.costeoapp.core.database.entity.ProductoTienda
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
@@ -40,6 +50,15 @@ private data class UserProductAliasDto(
 )
 
 @Serializable
+private data class ProductPriceRow(
+    val id: String,
+    @SerialName("product_id") val productId: String,
+    @SerialName("store_name") val storeName: String,
+    val price: Long,
+    @SerialName("is_available") val isAvailable: Boolean = true
+)
+
+@Serializable
 private data class UserProductAliasWithProduct(
     val id: String,
     @SerialName("product_id") val productId: String,
@@ -54,6 +73,57 @@ private data class UserStoreAliasDto(
     @SerialName("user_id") val userId: String,
     @SerialName("global_store_id") val globalStoreId: String,
     val alias: String
+)
+
+@Serializable
+private data class UserRecipeDto(
+    val id: String? = null,
+    @SerialName("user_id") val userId: String,
+    val nombre: String,
+    val descripcion: String? = null,
+    @SerialName("costo_fijo") val costoFijo: Long = 0,
+    @SerialName("rendimiento_porciones") val rendimientoPorciones: Double = 1.0,
+    val activo: Boolean = true,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null
+)
+
+@Serializable
+private data class UserRecipeIngredientDto(
+    val id: String? = null,
+    @SerialName("user_id") val userId: String,
+    @SerialName("recipe_id") val recipeId: String,
+    @SerialName("product_id") val productId: String,
+    @SerialName("cantidad_usada") val cantidadUsada: Double,
+    @SerialName("unidad_usada") val unidadUsada: String,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null
+)
+
+@Serializable
+private data class UserDishDto(
+    val id: String? = null,
+    @SerialName("user_id") val userId: String,
+    val nombre: String,
+    val descripcion: String? = null,
+    @SerialName("margen_porcentaje") val margenPorcentaje: Double? = null,
+    @SerialName("precio_venta_manual") val precioVentaManual: Long? = null,
+    val activo: Boolean = true,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null
+)
+
+@Serializable
+private data class UserDishComponentDto(
+    val id: String? = null,
+    @SerialName("user_id") val userId: String,
+    @SerialName("dish_id") val dishId: String,
+    @SerialName("recipe_id") val recipeId: String? = null,
+    @SerialName("product_id") val productId: String? = null,
+    val cantidad: Double,
+    val notas: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null
 )
 
 /**
@@ -71,7 +141,12 @@ class SyncManager @Inject constructor(
     private val supabase: SupabaseClient,
     private val syncMetadataDao: SyncMetadataDao,
     private val productoDao: ProductoDao,
-    private val tiendaDao: TiendaDao
+    private val productoTiendaDao: ProductoTiendaDao,
+    private val tiendaDao: TiendaDao,
+    private val prefabricadoDao: PrefabricadoDao,
+    private val prefabricadoIngredienteDao: PrefabricadoIngredienteDao,
+    private val platoDao: PlatoDao,
+    private val platoComponenteDao: PlatoComponenteDao
 ) {
     companion object {
         private const val TAG = "SyncManager"
@@ -91,6 +166,8 @@ class SyncManager @Inject constructor(
         result = result + linkStores()
         result = result + pushProductAliases(userId)
         result = result + pushStoreAliases(userId)
+        result = result + pushRecipes(userId)
+        result = result + pushDishes(userId)
         return result
     }
 
@@ -108,6 +185,8 @@ class SyncManager @Inject constructor(
         result = result + linkStores()
         result = result + pushProductAliases(userId)
         result = result + pushStoreAliases(userId)
+        result = result + pushRecipes(userId)
+        result = result + pushDishes(userId)
         return result
     }
 
@@ -123,6 +202,8 @@ class SyncManager @Inject constructor(
         var result = SyncResult(success = true)
         result = result + linkProducts()
         result = result + linkStores()
+        result = result + pullRecipes(userId)
+        result = result + pullDishes(userId)
         return result
     }
 
@@ -311,8 +392,47 @@ class SyncManager @Inject constructor(
                 Log.d(TAG, "Created local producto from cloud: ${gp.nombre} (${gp.ean})")
             }
 
-            Log.d(TAG, "pullUserData: $created productos created from ${aliases.size} aliases")
-            SyncResult(success = true, pulledCount = created)
+            // Fetch prices for all pulled products
+            var pricesCreated = 0
+            if (productIds.isNotEmpty()) {
+                try {
+                    val prices = supabase.from("product_prices")
+                        .select { filter { isIn("product_id", productIds) } }
+                        .decodeList<ProductPriceRow>()
+
+                    val allLocalProducts = productoDao.getAllOnce()
+                    val allLocalStores = tiendaDao.getAllOnce()
+
+                    for (pp in prices) {
+                        if (!pp.isAvailable || pp.price <= 0) continue
+                        val gp = globalProducts.find { it.id == pp.productId } ?: continue
+                        val localProduct = allLocalProducts.find { it.codigoBarras == gp.ean } ?: continue
+                        val localStore = allLocalStores.find {
+                            it.nombre.contains(pp.storeName.take(8), ignoreCase = true) ||
+                            pp.storeName.contains(it.nombre.take(8), ignoreCase = true)
+                        } ?: continue
+
+                        val existingPrice = productoTiendaDao.getPrecioActivo(localProduct.id, localStore.id)
+                        if (existingPrice == null) {
+                            productoTiendaDao.insert(ProductoTienda(
+                                productoId = localProduct.id,
+                                tiendaId = localStore.id,
+                                precio = pp.price
+                            ))
+                            pricesCreated++
+                            Log.d(TAG, "Created price: ${gp.nombre} @ ${pp.storeName} = ${pp.price}")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error fetching prices: ${e.message}")
+                }
+            }
+
+            Log.d(TAG, "pullUserData: $created productos, $pricesCreated precios from ${aliases.size} aliases")
+            var result = SyncResult(success = true, pulledCount = created + pricesCreated)
+            result = result + pullRecipes(userId)
+            result = result + pullDishes(userId)
+            result
         } catch (e: Exception) {
             Log.e(TAG, "pullUserData failed: ${e.message}", e)
             SyncResult(success = false, errors = listOf("Error descargando datos: ${e.message}"))
@@ -348,6 +468,427 @@ class SyncManager @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "pushStoreAliases failed: ${e.message}")
             SyncResult(success = false, errors = listOf("Error subiendo alias de tiendas: ${e.message}"))
+        }
+    }
+
+    /**
+     * Build a map of local product Long ID -> global UUID for all linked products.
+     */
+    private suspend fun buildProductIdMap(): Map<Long, String> {
+        return productoDao.getAllOnce()
+            .filter { it.globalProductId != null }
+            .associate { it.id to it.globalProductId!! }
+    }
+
+    /**
+     * Build a reverse map of global product UUID -> local Long ID.
+     */
+    private suspend fun buildProductUuidToLocalMap(): Map<String, Long> {
+        return productoDao.getAllOnce()
+            .filter { it.globalProductId != null }
+            .associate { it.globalProductId!! to it.id }
+    }
+
+    /**
+     * Push all local recipes (prefabricados) and their ingredients to Supabase.
+     * Uses recipe name + user_id as conflict key for upsert.
+     */
+    private suspend fun pushRecipes(userId: String): SyncResult {
+        return try {
+            val allRecipes = prefabricadoDao.getAllOnce()
+            if (allRecipes.isEmpty()) return SyncResult(success = true)
+
+            val productIdMap = buildProductIdMap()
+            var pushed = 0
+
+            for (recipe in allRecipes) {
+                try {
+                    val recipeDto = UserRecipeDto(
+                        userId = userId,
+                        nombre = recipe.nombre,
+                        descripcion = recipe.descripcion,
+                        costoFijo = recipe.costoFijo,
+                        rendimientoPorciones = recipe.rendimientoPorciones,
+                        activo = recipe.activo
+                    )
+
+                    supabase.from("user_recipes").upsert(recipeDto) {
+                        onConflict = "user_id,nombre"
+                    }
+
+                    val insertedRecipes = supabase.from("user_recipes")
+                        .select {
+                            filter {
+                                eq("user_id", userId)
+                                eq("nombre", recipe.nombre)
+                            }
+                        }
+                        .decodeList<UserRecipeDto>()
+
+                    val remoteRecipeId = insertedRecipes.firstOrNull()?.id ?: continue
+
+                    val ingredients = prefabricadoIngredienteDao.getAllOnce()
+                        .filter { it.prefabricadoId == recipe.id }
+
+                    if (ingredients.isNotEmpty()) {
+                        supabase.from("user_recipe_ingredients")
+                            .delete {
+                                filter {
+                                    eq("user_id", userId)
+                                    eq("recipe_id", remoteRecipeId)
+                                }
+                            }
+
+                        val ingredientDtos = ingredients.mapNotNull { ing ->
+                            val globalProductId = productIdMap[ing.productoId] ?: return@mapNotNull null
+                            UserRecipeIngredientDto(
+                                userId = userId,
+                                recipeId = remoteRecipeId,
+                                productId = globalProductId,
+                                cantidadUsada = ing.cantidadUsada,
+                                unidadUsada = ing.unidadUsada
+                            )
+                        }
+
+                        if (ingredientDtos.isNotEmpty()) {
+                            supabase.from("user_recipe_ingredients").insert(ingredientDtos)
+                        }
+                    }
+
+                    pushed++
+                    Log.d(TAG, "Pushed recipe '${recipe.nombre}' with ${ingredients.size} ingredients")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error pushing recipe '${recipe.nombre}': ${e.message}")
+                }
+            }
+
+            Log.d(TAG, "pushRecipes: $pushed/${allRecipes.size} pushed")
+            SyncResult(success = true, pushedCount = pushed)
+        } catch (e: Exception) {
+            Log.e(TAG, "pushRecipes failed: ${e.message}")
+            SyncResult(success = false, errors = listOf("Error subiendo recetas: ${e.message}"))
+        }
+    }
+
+    /**
+     * Push all local dishes (platos) and their components to Supabase.
+     */
+    private suspend fun pushDishes(userId: String): SyncResult {
+        return try {
+            val allDishes = platoDao.getAllPlatos()
+            if (allDishes.isEmpty()) return SyncResult(success = true)
+
+            val productIdMap = buildProductIdMap()
+
+            val allRecipesLocal = prefabricadoDao.getAllOnce()
+            val remoteRecipes = supabase.from("user_recipes")
+                .select { filter { eq("user_id", userId) } }
+                .decodeList<UserRecipeDto>()
+            val recipeNameToUuid = remoteRecipes.associate { it.nombre to it.id }
+
+            var pushed = 0
+
+            for (dish in allDishes) {
+                try {
+                    val dishDto = UserDishDto(
+                        userId = userId,
+                        nombre = dish.nombre,
+                        descripcion = dish.descripcion,
+                        margenPorcentaje = dish.margenPorcentaje,
+                        precioVentaManual = dish.precioVentaManual,
+                        activo = dish.activo
+                    )
+
+                    supabase.from("user_dishes").upsert(dishDto) {
+                        onConflict = "user_id,nombre"
+                    }
+
+                    val insertedDishes = supabase.from("user_dishes")
+                        .select {
+                            filter {
+                                eq("user_id", userId)
+                                eq("nombre", dish.nombre)
+                            }
+                        }
+                        .decodeList<UserDishDto>()
+
+                    val remoteDishId = insertedDishes.firstOrNull()?.id ?: continue
+
+                    val components = platoComponenteDao.getAllOnce()
+                        .filter { it.platoId == dish.id }
+
+                    if (components.isNotEmpty()) {
+                        supabase.from("user_dish_components")
+                            .delete {
+                                filter {
+                                    eq("user_id", userId)
+                                    eq("dish_id", remoteDishId)
+                                }
+                            }
+
+                        val componentDtos = components.mapNotNull { comp ->
+                            val globalProductId = comp.productoId?.let { productIdMap[it] }
+                            val recipeUuid = comp.prefabricadoId?.let { prefId ->
+                                val localRecipe = allRecipesLocal.find { it.id == prefId }
+                                localRecipe?.let { recipeNameToUuid[it.nombre] }
+                            }
+
+                            if (globalProductId == null && recipeUuid == null) return@mapNotNull null
+
+                            UserDishComponentDto(
+                                userId = userId,
+                                dishId = remoteDishId,
+                                recipeId = recipeUuid,
+                                productId = globalProductId,
+                                cantidad = comp.cantidad,
+                                notas = comp.notas
+                            )
+                        }
+
+                        if (componentDtos.isNotEmpty()) {
+                            supabase.from("user_dish_components").insert(componentDtos)
+                        }
+                    }
+
+                    pushed++
+                    Log.d(TAG, "Pushed dish '${dish.nombre}' with ${components.size} components")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error pushing dish '${dish.nombre}': ${e.message}")
+                }
+            }
+
+            Log.d(TAG, "pushDishes: $pushed/${allDishes.size} pushed")
+            SyncResult(success = true, pushedCount = pushed)
+        } catch (e: Exception) {
+            Log.e(TAG, "pushDishes failed: ${e.message}")
+            SyncResult(success = false, errors = listOf("Error subiendo platos: ${e.message}"))
+        }
+    }
+
+    /**
+     * Pull user's recipes and their ingredients from Supabase into local Room.
+     * Skips recipes that already exist locally (matched by name).
+     */
+    private suspend fun pullRecipes(userId: String): SyncResult {
+        return try {
+            val remoteRecipes = supabase.from("user_recipes")
+                .select { filter { eq("user_id", userId) } }
+                .decodeList<UserRecipeDto>()
+
+            if (remoteRecipes.isEmpty()) {
+                Log.d(TAG, "pullRecipes: no remote recipes found")
+                return SyncResult(success = true)
+            }
+
+            val existingRecipes = prefabricadoDao.getAllOnce()
+            val existingNames = existingRecipes.map { it.nombre.lowercase() }.toSet()
+            val productUuidToLocal = buildProductUuidToLocalMap()
+
+            var created = 0
+            var ingredientsCreated = 0
+
+            val remoteRecipeUuidToLocalId = mutableMapOf<String, Long>()
+
+            for (remote in remoteRecipes) {
+                try {
+                    if (remote.nombre.lowercase() in existingNames) {
+                        val existing = existingRecipes.first { it.nombre.equals(remote.nombre, ignoreCase = true) }
+                        remote.id?.let { remoteRecipeUuidToLocalId[it] = existing.id }
+
+                        if (!existing.activo && remote.activo) {
+                            prefabricadoDao.restore(existing.id)
+                        } else if (existing.activo && !remote.activo) {
+                            prefabricadoDao.softDelete(existing.id)
+                        }
+                        continue
+                    }
+
+                    val localId = prefabricadoDao.insert(
+                        Prefabricado(
+                            nombre = remote.nombre,
+                            descripcion = remote.descripcion,
+                            costoFijo = remote.costoFijo,
+                            rendimientoPorciones = remote.rendimientoPorciones,
+                            activo = remote.activo
+                        )
+                    )
+
+                    remote.id?.let { remoteRecipeUuidToLocalId[it] = localId }
+                    created++
+                    Log.d(TAG, "Created local recipe from cloud: ${remote.nombre}")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error pulling recipe '${remote.nombre}': ${e.message}")
+                }
+            }
+
+            for (remote in remoteRecipes) {
+                val remoteId = remote.id ?: continue
+                val localRecipeId = remoteRecipeUuidToLocalId[remoteId] ?: continue
+
+                try {
+                    val remoteIngredients = supabase.from("user_recipe_ingredients")
+                        .select {
+                            filter {
+                                eq("user_id", userId)
+                                eq("recipe_id", remoteId)
+                            }
+                        }
+                        .decodeList<UserRecipeIngredientDto>()
+
+                    if (remoteIngredients.isEmpty()) continue
+
+                    val existingIngredients = prefabricadoIngredienteDao.getAllOnce()
+                        .filter { it.prefabricadoId == localRecipeId }
+                    val existingProductIds = existingIngredients.map { it.productoId }.toSet()
+
+                    val newIngredients = remoteIngredients.mapNotNull { ri ->
+                        val localProductId = productUuidToLocal[ri.productId] ?: return@mapNotNull null
+                        if (localProductId in existingProductIds) return@mapNotNull null
+
+                        PrefabricadoIngrediente(
+                            prefabricadoId = localRecipeId,
+                            productoId = localProductId,
+                            cantidadUsada = ri.cantidadUsada,
+                            unidadUsada = ri.unidadUsada
+                        )
+                    }
+
+                    if (newIngredients.isNotEmpty()) {
+                        prefabricadoIngredienteDao.insertAll(newIngredients)
+                        ingredientsCreated += newIngredients.size
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error pulling ingredients for recipe '$remoteId': ${e.message}")
+                }
+            }
+
+            Log.d(TAG, "pullRecipes: $created recetas, $ingredientsCreated ingredientes")
+            SyncResult(success = true, pulledCount = created + ingredientsCreated)
+        } catch (e: Exception) {
+            Log.e(TAG, "pullRecipes failed: ${e.message}")
+            SyncResult(success = false, errors = listOf("Error descargando recetas: ${e.message}"))
+        }
+    }
+
+    /**
+     * Pull user's dishes and their components from Supabase into local Room.
+     * Skips dishes that already exist locally (matched by name).
+     * Must be called after pullRecipes so recipe mappings are available.
+     */
+    private suspend fun pullDishes(userId: String): SyncResult {
+        return try {
+            val remoteDishes = supabase.from("user_dishes")
+                .select { filter { eq("user_id", userId) } }
+                .decodeList<UserDishDto>()
+
+            if (remoteDishes.isEmpty()) {
+                Log.d(TAG, "pullDishes: no remote dishes found")
+                return SyncResult(success = true)
+            }
+
+            val existingDishes = platoDao.getAllPlatos()
+            val existingNames = existingDishes.map { it.nombre.lowercase() }.toSet()
+            val productUuidToLocal = buildProductUuidToLocalMap()
+
+            val remoteRecipes = supabase.from("user_recipes")
+                .select { filter { eq("user_id", userId) } }
+                .decodeList<UserRecipeDto>()
+            val allLocalRecipes = prefabricadoDao.getAllOnce()
+            val recipeUuidToLocalId = mutableMapOf<String, Long>()
+            for (rr in remoteRecipes) {
+                val localMatch = allLocalRecipes.find { it.nombre.equals(rr.nombre, ignoreCase = true) }
+                if (localMatch != null && rr.id != null) {
+                    recipeUuidToLocalId[rr.id] = localMatch.id
+                }
+            }
+
+            var created = 0
+            var componentsCreated = 0
+
+            val remoteDishUuidToLocalId = mutableMapOf<String, Long>()
+
+            for (remote in remoteDishes) {
+                try {
+                    if (remote.nombre.lowercase() in existingNames) {
+                        val existing = existingDishes.first { it.nombre.equals(remote.nombre, ignoreCase = true) }
+                        remote.id?.let { remoteDishUuidToLocalId[it] = existing.id }
+
+                        if (!existing.activo && remote.activo) {
+                            platoDao.restore(existing.id)
+                        } else if (existing.activo && !remote.activo) {
+                            platoDao.softDelete(existing.id)
+                        }
+                        continue
+                    }
+
+                    val localId = platoDao.insert(
+                        Plato(
+                            nombre = remote.nombre,
+                            descripcion = remote.descripcion,
+                            margenPorcentaje = remote.margenPorcentaje,
+                            precioVentaManual = remote.precioVentaManual,
+                            activo = remote.activo
+                        )
+                    )
+
+                    remote.id?.let { remoteDishUuidToLocalId[it] = localId }
+                    created++
+                    Log.d(TAG, "Created local dish from cloud: ${remote.nombre}")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error pulling dish '${remote.nombre}': ${e.message}")
+                }
+            }
+
+            for (remote in remoteDishes) {
+                val remoteId = remote.id ?: continue
+                val localDishId = remoteDishUuidToLocalId[remoteId] ?: continue
+
+                try {
+                    val remoteComponents = supabase.from("user_dish_components")
+                        .select {
+                            filter {
+                                eq("user_id", userId)
+                                eq("dish_id", remoteId)
+                            }
+                        }
+                        .decodeList<UserDishComponentDto>()
+
+                    if (remoteComponents.isEmpty()) continue
+
+                    val existingComponents = platoComponenteDao.getAllOnce()
+                        .filter { it.platoId == localDishId }
+
+                    if (existingComponents.isNotEmpty()) continue
+
+                    val newComponents = remoteComponents.mapNotNull { rc ->
+                        val localProductId = rc.productId?.let { productUuidToLocal[it] }
+                        val localRecipeId = rc.recipeId?.let { recipeUuidToLocalId[it] }
+
+                        if (localProductId == null && localRecipeId == null) return@mapNotNull null
+
+                        PlatoComponente(
+                            platoId = localDishId,
+                            prefabricadoId = localRecipeId,
+                            productoId = localProductId,
+                            cantidad = rc.cantidad,
+                            notas = rc.notas
+                        )
+                    }
+
+                    if (newComponents.isNotEmpty()) {
+                        platoComponenteDao.insertAll(newComponents)
+                        componentsCreated += newComponents.size
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error pulling components for dish '$remoteId': ${e.message}")
+                }
+            }
+
+            Log.d(TAG, "pullDishes: $created platos, $componentsCreated componentes")
+            SyncResult(success = true, pulledCount = created + componentsCreated)
+        } catch (e: Exception) {
+            Log.e(TAG, "pullDishes failed: ${e.message}")
+            SyncResult(success = false, errors = listOf("Error descargando platos: ${e.message}"))
         }
     }
 }

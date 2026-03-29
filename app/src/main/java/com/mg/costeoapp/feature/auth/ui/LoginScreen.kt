@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -169,14 +170,19 @@ fun LoginScreen(
             Button(
                 onClick = { if (uiState.isLoginMode) viewModel.signIn() else viewModel.signUp() },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading
+                enabled = !uiState.isLoading && uiState.syncMessage == null
             ) {
-                if (uiState.isLoading) {
+                if (uiState.isLoading || uiState.syncMessage != null) {
                     CircularProgressIndicator(
                         modifier = Modifier.height(20.dp),
                         strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
+                    val msg = uiState.syncMessage
+                    if (msg != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(msg)
+                    }
                 } else {
                     Text(if (uiState.isLoginMode) "Iniciar sesion" else "Crear cuenta")
                 }

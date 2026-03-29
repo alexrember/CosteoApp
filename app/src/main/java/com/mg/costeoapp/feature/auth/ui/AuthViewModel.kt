@@ -20,7 +20,8 @@ data class AuthUiState(
     val password: String = "",
     val isLoginMode: Boolean = true,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val syncMessage: String? = null
 )
 
 sealed interface AuthUiEvent {
@@ -76,8 +77,11 @@ class AuthViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = false) }
             result.fold(
                 onSuccess = { user ->
-                    _uiState.update { it.copy(password = "") }
-                    pullUserDataInBackground(user.id)
+                    _uiState.update { it.copy(password = "", syncMessage = "Sincronizando datos...") }
+                    val syncResult = try {
+                        syncManager.pullUserData(user.id)
+                    } catch (_: Exception) { null }
+                    _uiState.update { it.copy(isLoading = false, syncMessage = null) }
                     _events.send(AuthUiEvent.AuthSuccess)
                 },
                 onFailure = { e ->
@@ -86,17 +90,6 @@ class AuthViewModel @Inject constructor(
                     _events.send(AuthUiEvent.ShowError(msg))
                 }
             )
-        }
-    }
-
-    private fun pullUserDataInBackground(userId: String) {
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob()).launch {
-            try {
-                val result = syncManager.pullUserData(userId)
-                android.util.Log.d("AuthViewModel", "pullUserData: pulled=${result.pulledCount}, errors=${result.errors}")
-            } catch (e: Exception) {
-                android.util.Log.e("AuthViewModel", "pullUserData failed: ${e.message}")
-            }
         }
     }
 
