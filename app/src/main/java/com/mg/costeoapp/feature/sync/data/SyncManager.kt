@@ -15,7 +15,13 @@ import javax.inject.Singleton
 @Serializable
 private data class GlobalProductRow(
     val id: String,
-    val ean: String
+    val ean: String,
+    val nombre: String? = null,
+    @SerialName("unidad_medida") val unidadMedida: String? = null,
+    @SerialName("cantidad_por_empaque") val cantidadPorEmpaque: Double? = null,
+    @SerialName("unidades_por_empaque") val unidadesPorEmpaque: Int? = null,
+    val marca: String? = null,
+    @SerialName("imagen_url") val imagenUrl: String? = null
 )
 
 @Serializable
@@ -31,6 +37,16 @@ private data class UserProductAliasDto(
     val alias: String? = null,
     @SerialName("factor_merma") val factorMerma: Int = 0,
     val notes: String? = null
+)
+
+@Serializable
+private data class UserProductAliasWithProduct(
+    val id: String,
+    @SerialName("product_id") val productId: String,
+    val alias: String? = null,
+    @SerialName("factor_merma") val factorMerma: Int = 0,
+    val notas: String? = null,
+    @SerialName("global_products") val product: GlobalProductRow? = null
 )
 
 @Serializable
@@ -232,6 +248,74 @@ class SyncManager @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "pushProductAliases failed: ${e.message}")
             SyncResult(success = false, errors = listOf("Error subiendo alias de productos: ${e.message}"))
+        }
+    }
+
+    /**
+     * Pull user's products from Supabase and create local Room entries.
+     * Called after login to restore the user's catalog.
+     */
+    suspend fun pullUserData(userId: String): SyncResult {
+        val session = supabase.auth.currentSessionOrNull()
+        if (session == null) {
+            return SyncResult(success = false, errors = listOf("No hay sesion activa"))
+        }
+
+        return try {
+            val aliases = supabase.from("user_product_aliases")
+                .select { filter { eq("user_id", userId) } }
+                .decodeList<UserProductAliasWithProduct>()
+
+            if (aliases.isEmpty()) {
+                Log.d(TAG, "pullUserData: no aliases found for user")
+                return SyncResult(success = true)
+            }
+
+            // Get all product IDs from aliases
+            val productIds = aliases.mapNotNull { it.productId }
+            if (productIds.isEmpty()) return SyncResult(success = true)
+
+            // Fetch global products
+            val globalProducts = supabase.from("global_products")
+                .select { filter { isIn("id", productIds) } }
+                .decodeList<GlobalProductRow>()
+
+            val existingProducts = productoDao.getAllOnce()
+            val existingEans = existingProducts.mapNotNull { it.codigoBarras }.toSet()
+
+            var created = 0
+            for (gp in globalProducts) {
+                if (gp.ean in existingEans) {
+                    // Already exists locally, just link globalProductId
+                    val local = existingProducts.first { it.codigoBarras == gp.ean }
+                    if (local.globalProductId == null) {
+                        productoDao.update(local.copy(globalProductId = gp.id, updatedAt = System.currentTimeMillis()))
+                    }
+                    continue
+                }
+
+                val alias = aliases.find { it.productId == gp.id }
+                val producto = com.mg.costeoapp.core.database.entity.Producto(
+                    nombre = gp.nombre ?: "Producto ${gp.ean}",
+                    codigoBarras = gp.ean,
+                    unidadMedida = gp.unidadMedida ?: "unidad",
+                    cantidadPorEmpaque = gp.cantidadPorEmpaque ?: 1.0,
+                    unidadesPorEmpaque = gp.unidadesPorEmpaque ?: 1,
+                    factorMerma = alias?.factorMerma ?: 0,
+                    notas = alias?.notas,
+                    alias = alias?.alias,
+                    globalProductId = gp.id
+                )
+                productoDao.insert(producto)
+                created++
+                Log.d(TAG, "Created local producto from cloud: ${gp.nombre} (${gp.ean})")
+            }
+
+            Log.d(TAG, "pullUserData: $created productos created from ${aliases.size} aliases")
+            SyncResult(success = true, pulledCount = created)
+        } catch (e: Exception) {
+            Log.e(TAG, "pullUserData failed: ${e.message}", e)
+            SyncResult(success = false, errors = listOf("Error descargando datos: ${e.message}"))
         }
     }
 

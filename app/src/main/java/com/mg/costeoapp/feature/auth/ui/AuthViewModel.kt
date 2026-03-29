@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mg.costeoapp.feature.auth.data.AuthRepository
 import com.mg.costeoapp.feature.auth.data.AuthState
+import com.mg.costeoapp.feature.sync.data.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +31,8 @@ sealed interface AuthUiEvent {
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -73,8 +75,9 @@ class AuthViewModel @Inject constructor(
             val result = authRepository.signInWithEmail(state.email.trim(), state.password)
             _uiState.update { it.copy(isLoading = false) }
             result.fold(
-                onSuccess = {
+                onSuccess = { user ->
                     _uiState.update { it.copy(password = "") }
+                    pullUserDataInBackground(user.id)
                     _events.send(AuthUiEvent.AuthSuccess)
                 },
                 onFailure = { e ->
@@ -83,6 +86,17 @@ class AuthViewModel @Inject constructor(
                     _events.send(AuthUiEvent.ShowError(msg))
                 }
             )
+        }
+    }
+
+    private fun pullUserDataInBackground(userId: String) {
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob()).launch {
+            try {
+                val result = syncManager.pullUserData(userId)
+                android.util.Log.d("AuthViewModel", "pullUserData: pulled=${result.pulledCount}, errors=${result.errors}")
+            } catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "pullUserData failed: ${e.message}")
+            }
         }
     }
 
