@@ -337,9 +337,13 @@ private fun NeedItemNumberOverlay(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onErrorContainer,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onErrorContainer,
                     focusedBorderColor = MaterialTheme.colorScheme.onErrorContainer,
                     unfocusedBorderColor = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f),
                     focusedLabelColor = MaterialTheme.colorScheme.onErrorContainer,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f),
+                    focusedPlaceholderColor = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f),
                     cursorColor = MaterialTheme.colorScheme.onErrorContainer
                 )
             )

@@ -47,7 +47,9 @@ private data class BackendSearchResultDto(
 private data class BackendGlobalResponseDto(
     val globalProductId: String? = null,
     val product: BackendProductDto? = null,
-    val prices: List<BackendSearchResultDto> = emptyList()
+    val prices: List<BackendSearchResultDto> = emptyList(),
+    val results: List<BackendSearchResultDto> = emptyList(),
+    val fromCache: Boolean? = null
 )
 
 @Serializable
@@ -176,7 +178,8 @@ class CosteoBackendRepository @Inject constructor(
         if (trimmed.startsWith("{")) {
             return try {
                 val global = json.decodeFromString<BackendGlobalResponseDto>(responseBody)
-                global.prices.map { dto ->
+                val allResults = global.results.ifEmpty { global.prices }
+                allResults.map { dto ->
                     mapDto(dto, globalProductId = global.globalProductId)
                 }
             } catch (e: Exception) {
