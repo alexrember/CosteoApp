@@ -9,10 +9,13 @@ class PricingEngineTest {
 	private fun calcularCostoIngrediente(
 		precioUnitario: Long,
 		cantidadPorEmpaque: Double,
+		unidadesPorEmpaque: Int = 1,
 		cantidadUsada: Double,
 		factorMerma: Int
 	): Long {
-		val precioPorUnidad = precioUnitario.toDouble() / cantidadPorEmpaque
+		if (cantidadPorEmpaque <= 0) return 0L
+		val contenidoTotal = cantidadPorEmpaque * maxOf(unidadesPorEmpaque, 1)
+		val precioPorUnidad = precioUnitario.toDouble() / contenidoTotal
 		val costo = precioPorUnidad * cantidadUsada
 		return if (factorMerma > 0 && factorMerma < 100) {
 			(costo / (1.0 - factorMerma / 100.0)).roundToLong()
@@ -21,48 +24,152 @@ class PricingEngineTest {
 		}
 	}
 
+	// =====================================================================
+	// Flujo completo: Registrar receta con chicle PriceSmart
+	// Producto: Chicle Extra Spearmint 10 Unidades x 15 unidades c/u
+	//   - Precio PriceSmart: $11.29 (1129 centavos)
+	//   - unidades_por_empaque: 10 (paquetes individuales)
+	//   - cantidad_por_empaque: 15 (chicles por paquete)
+	//   - Total chicles: 10 * 15 = 150
+	//   - Precio por chicle: $11.29 / 150 = $0.0753
+	// =====================================================================
+
+	@Test
+	fun `chicle PriceSmart - 5 unidades debe costar 0_38`() {
+		val resultado = calcularCostoIngrediente(
+			precioUnitario = 1129,      // $11.29
+			cantidadPorEmpaque = 15.0,  // 15 chicles por paquete individual
+			unidadesPorEmpaque = 10,    // 10 paquetes en el paqueton
+			cantidadUsada = 5.0,        // uso 5 chicles
+			factorMerma = 0
+		)
+		// 1129 / (15 * 10) * 5 = 1129 / 150 * 5 = 37.63 -> 38
+		assertEquals(38L, resultado)
+	}
+
+	@Test
+	fun `chicle PriceSmart - 1 unidad debe costar 0_08`() {
+		val resultado = calcularCostoIngrediente(
+			precioUnitario = 1129,
+			cantidadPorEmpaque = 15.0,
+			unidadesPorEmpaque = 10,
+			cantidadUsada = 1.0,
+			factorMerma = 0
+		)
+		// 1129 / 150 * 1 = 7.527 -> 8
+		assertEquals(8L, resultado)
+	}
+
+	@Test
+	fun `chicle PriceSmart - paquete completo 150 unidades cuesta 11_29`() {
+		val resultado = calcularCostoIngrediente(
+			precioUnitario = 1129,
+			cantidadPorEmpaque = 15.0,
+			unidadesPorEmpaque = 10,
+			cantidadUsada = 150.0,
+			factorMerma = 0
+		)
+		assertEquals(1129L, resultado)
+	}
+
+	@Test
+	fun `chicle PriceSmart - 1 paquete individual 15 chicles`() {
+		val resultado = calcularCostoIngrediente(
+			precioUnitario = 1129,
+			cantidadPorEmpaque = 15.0,
+			unidadesPorEmpaque = 10,
+			cantidadUsada = 15.0,
+			factorMerma = 0
+		)
+		// 1129 / 150 * 15 = 112.9 -> 113
+		assertEquals(113L, resultado)
+	}
+
+	@Test
+	fun `receta test2 - chicle 5 unidades porciones 1 costo total 0_38`() {
+		val costoFijo = 0L
+		val costoIngrediente = calcularCostoIngrediente(
+			precioUnitario = 1129,
+			cantidadPorEmpaque = 15.0,
+			unidadesPorEmpaque = 10,
+			cantidadUsada = 5.0,
+			factorMerma = 0
+		)
+		val costoTotal = costoFijo + costoIngrediente
+		val porciones = 1.0
+		val costoPorPorcion = (costoTotal.toDouble() / porciones).roundToLong()
+
+		assertEquals(38L, costoTotal)
+		assertEquals(38L, costoPorPorcion)
+	}
+
+	@Test
+	fun `receta con 2 ingredientes PriceSmart`() {
+		// Chicle: $11.29 paquete (10 x 15 = 150 unidades), uso 10
+		val costoChicle = calcularCostoIngrediente(
+			precioUnitario = 1129,
+			cantidadPorEmpaque = 15.0,
+			unidadesPorEmpaque = 10,
+			cantidadUsada = 10.0,
+			factorMerma = 0
+		)
+		// 1129 / 150 * 10 = 75.27 -> 75
+
+		// Agua 24 pack: $11.29 (1129c), 503ml x 24 = 12072ml, uso 1000ml
+		val costoAgua = calcularCostoIngrediente(
+			precioUnitario = 1129,
+			cantidadPorEmpaque = 503.0,
+			unidadesPorEmpaque = 24,
+			cantidadUsada = 1000.0,
+			factorMerma = 0
+		)
+		// 1129 / (503 * 24) * 1000 = 1129 / 12072 * 1000 = 93.51 -> 94
+
+		val costoTotal = costoChicle + costoAgua
+		assertEquals(75L, costoChicle)
+		assertEquals(94L, costoAgua)
+		assertEquals(169L, costoTotal)
+	}
+
+	// =====================================================================
+	// Tests originales actualizados (unidadesPorEmpaque = 1 por defecto)
+	// =====================================================================
+
 	@Test
 	fun costoSinMerma_calculaCorrectamente() {
-		// Producto: $5.00 (500 centavos), empaque 1000g, usa 200g, merma 0%
 		val resultado = calcularCostoIngrediente(
 			precioUnitario = 500,
 			cantidadPorEmpaque = 1000.0,
 			cantidadUsada = 200.0,
 			factorMerma = 0
 		)
-		// (500 / 1000) * 200 = 100 centavos = $1.00
 		assertEquals(100L, resultado)
 	}
 
 	@Test
 	fun costoConMerma20_calculaCorrectamente() {
-		// Producto: $5.00 (500 centavos), empaque 1000g, usa 200g, merma 20%
 		val resultado = calcularCostoIngrediente(
 			precioUnitario = 500,
 			cantidadPorEmpaque = 1000.0,
 			cantidadUsada = 200.0,
 			factorMerma = 20
 		)
-		// (500 / 1000) * 200 = 100; 100 / (1 - 0.20) = 100 / 0.8 = 125
 		assertEquals(125L, resultado)
 	}
 
 	@Test
 	fun costoConMerma99_caseTodoDespericio() {
-		// Merma extrema 99%: casi todo se desperdicia
 		val resultado = calcularCostoIngrediente(
 			precioUnitario = 1000,
 			cantidadPorEmpaque = 1.0,
 			cantidadUsada = 1.0,
 			factorMerma = 99
 		)
-		// 1000 / (1 - 0.99) = 1000 / 0.01 = 100000
 		assertEquals(100000L, resultado)
 	}
 
 	@Test
 	fun costoConMerma100_noAplicaMerma() {
-		// factorMerma 100 no es < 100, asi que no aplica merma
 		val resultado = calcularCostoIngrediente(
 			precioUnitario = 1000,
 			cantidadPorEmpaque = 1.0,
@@ -74,7 +181,6 @@ class PricingEngineTest {
 
 	@Test
 	fun costoConMermaNegativa_noAplicaMerma() {
-		// factorMerma negativo no es > 0, no aplica merma
 		val resultado = calcularCostoIngrediente(
 			precioUnitario = 1000,
 			cantidadPorEmpaque = 1.0,
@@ -97,36 +203,29 @@ class PricingEngineTest {
 
 	@Test
 	fun cantidadUsadaFraccionaria_calculaCorrectamente() {
-		// Producto: $3.00 (300 centavos), empaque 12 unidades, usa 0.5, merma 0%
 		val resultado = calcularCostoIngrediente(
 			precioUnitario = 300,
 			cantidadPorEmpaque = 12.0,
 			cantidadUsada = 0.5,
 			factorMerma = 0
 		)
-		// (300 / 12) * 0.5 = 12.5 -> rounds to 13
 		assertEquals(13L, resultado)
 	}
 
 	@Test
 	fun multiplesIngredientes_sumaTotalCorrecta() {
-		// Ingrediente 1: harina $2.50 (250c), 1000g, usa 500g, merma 0%
 		val costo1 = calcularCostoIngrediente(
 			precioUnitario = 250,
 			cantidadPorEmpaque = 1000.0,
 			cantidadUsada = 500.0,
 			factorMerma = 0
 		)
-		// (250/1000)*500 = 125
-
-		// Ingrediente 2: carne $8.00 (800c), 1lb (453.592g), usa 200g, merma 15%
 		val costo2 = calcularCostoIngrediente(
 			precioUnitario = 800,
 			cantidadPorEmpaque = 453.592,
 			cantidadUsada = 200.0,
 			factorMerma = 15
 		)
-		// (800/453.592)*200 = 352.74; / 0.85 = 415.0
 		val costoTotal = costo1 + costo2
 		assertEquals(125L, costo1)
 		assertEquals(415L, costo2)
@@ -135,7 +234,7 @@ class PricingEngineTest {
 
 	@Test
 	fun costoFijoReceta_sumadoCorrectamente() {
-		val costoFijo = 500L // $5.00 gas
+		val costoFijo = 500L
 		val costoIngrediente = calcularCostoIngrediente(
 			precioUnitario = 300,
 			cantidadPorEmpaque = 1.0,
@@ -159,20 +258,89 @@ class PricingEngineTest {
 		val costoTotal = 1000L
 		val porciones = 3.0
 		val costoPorPorcion = (costoTotal.toDouble() / porciones).roundToLong()
-		// 1000 / 3 = 333.33... rounds to 333
 		assertEquals(333L, costoPorPorcion)
 	}
 
 	@Test
 	fun empaqueGrande_precioChico() {
-		// Producto barato, empaque grande: $1.00 (100c) por 5000g, usa 10g
 		val resultado = calcularCostoIngrediente(
 			precioUnitario = 100,
 			cantidadPorEmpaque = 5000.0,
 			cantidadUsada = 10.0,
 			factorMerma = 0
 		)
-		// (100/5000)*10 = 0.2 -> rounds to 0
 		assertEquals(0L, resultado)
+	}
+
+	// =====================================================================
+	// Producto individual (unidadesPorEmpaque = 1) vs paquete
+	// =====================================================================
+
+	@Test
+	fun `producto individual unidadesPorEmpaque 1 calcula igual que antes`() {
+		// Leche 946ml, $1.99, usa 200ml
+		val resultado = calcularCostoIngrediente(
+			precioUnitario = 199,
+			cantidadPorEmpaque = 946.0,
+			unidadesPorEmpaque = 1,
+			cantidadUsada = 200.0,
+			factorMerma = 0
+		)
+		// 199 / 946 * 200 = 42.07 -> 42
+		assertEquals(42L, resultado)
+	}
+
+	@Test
+	fun `pack 12 leches vs leche individual`() {
+		// Pack: $18.00 (1800c), 946ml x 12 = 11352ml, uso 946ml (1 leche)
+		val costoPack = calcularCostoIngrediente(
+			precioUnitario = 1800,
+			cantidadPorEmpaque = 946.0,
+			unidadesPorEmpaque = 12,
+			cantidadUsada = 946.0,
+			factorMerma = 0
+		)
+		// 1800 / (946 * 12) * 946 = 1800 / 12 = 150
+
+		// Individual: $1.99 (199c), 946ml, uso 946ml
+		val costoIndividual = calcularCostoIngrediente(
+			precioUnitario = 199,
+			cantidadPorEmpaque = 946.0,
+			unidadesPorEmpaque = 1,
+			cantidadUsada = 946.0,
+			factorMerma = 0
+		)
+		// 199 / 946 * 946 = 199
+
+		assertEquals(150L, costoPack)
+		assertEquals(199L, costoIndividual)
+		// El pack es mas barato por unidad
+		assert(costoPack < costoIndividual)
+	}
+
+	@Test
+	fun `unidadesPorEmpaque 0 se trata como 1`() {
+		val resultado = calcularCostoIngrediente(
+			precioUnitario = 1000,
+			cantidadPorEmpaque = 10.0,
+			unidadesPorEmpaque = 0,
+			cantidadUsada = 5.0,
+			factorMerma = 0
+		)
+		// maxOf(0, 1) = 1, so 1000 / (10 * 1) * 5 = 500
+		assertEquals(500L, resultado)
+	}
+
+	@Test
+	fun `chicle con merma 10 porciento`() {
+		val resultado = calcularCostoIngrediente(
+			precioUnitario = 1129,
+			cantidadPorEmpaque = 15.0,
+			unidadesPorEmpaque = 10,
+			cantidadUsada = 5.0,
+			factorMerma = 10
+		)
+		// 1129 / 150 * 5 = 37.63; / 0.9 = 41.81 -> 42
+		assertEquals(42L, resultado)
 	}
 }
