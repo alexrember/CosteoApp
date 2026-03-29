@@ -158,22 +158,24 @@ class PlatoFormViewModel @Inject constructor(
             }
 
             var costoTotal = 0L
-            for (item in state.componentes) {
-                val cantidad = item.cantidad.toDoubleOrNull() ?: continue
-                if (cantidad <= 0) continue
+            val updatedComponentes = state.componentes.map { item ->
+                val cantidad = item.cantidad.toDoubleOrNull()
+                if (cantidad == null || cantidad <= 0) return@map item.copy(costoCalculado = null)
 
-                if (item.prefabricado != null) {
+                val costoItem = if (item.prefabricado != null) {
                     val result = pricingEngine.calculatePrefabricadoCost(item.prefabricado.id)
                     val costoPorPorcion = result.costoPorPorcion ?: result.costoTotal
-                    costoTotal += (costoPorPorcion * cantidad).roundToLong()
+                    (costoPorPorcion * cantidad).roundToLong()
                 } else if (item.producto != null) {
                     val precio = pricingEngine.resolvePrice(item.producto.id)
-                    val precioUnitario = precio.precioUnitario ?: continue
+                    val precioUnitario = precio.precioUnitario ?: 0L
                     val contenidoTotal = item.producto.cantidadPorEmpaque * maxOf(item.producto.unidadesPorEmpaque, 1)
-                    if (contenidoTotal <= 0) continue
-                    val precioPorUnidad = precioUnitario.toDouble() / contenidoTotal
-                    costoTotal += (precioPorUnidad * cantidad).roundToLong()
-                }
+                    if (contenidoTotal <= 0) 0L
+                    else (precioUnitario.toDouble() / contenidoTotal * cantidad).roundToLong()
+                } else 0L
+
+                costoTotal += costoItem
+                item.copy(costoCalculado = costoItem)
             }
 
             val margen = state.margenPorcentaje.toDoubleOrNull()
@@ -181,7 +183,7 @@ class PlatoFormViewModel @Inject constructor(
                 (costoTotal.toDouble() / (margen / 100.0)).roundToLong()
             } else null
 
-            _uiState.update { it.copy(costoEnVivo = costoTotal, precioVentaSugerido = precioVenta) }
+            _uiState.update { it.copy(componentes = updatedComponentes, costoEnVivo = costoTotal, precioVentaSugerido = precioVenta) }
         }
     }
 

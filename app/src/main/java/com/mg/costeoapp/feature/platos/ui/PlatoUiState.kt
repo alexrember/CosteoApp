@@ -35,7 +35,8 @@ data class ComponenteFormItem(
     val prefabricado: Prefabricado? = null,
     val producto: Producto? = null,
     val cantidad: String = "1",
-    val nombre: String = ""
+    val nombre: String = "",
+    val costoCalculado: Long? = null
 ) {
     val esPrefabricado: Boolean get() = prefabricado != null
 }

@@ -130,9 +130,19 @@ fun PlatoFormScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(item.nombre, style = MaterialTheme.typography.bodyMedium)
-                            Text(if (item.esPrefabricado) "Receta" else "Producto",
-                                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(item.nombre, style = MaterialTheme.typography.bodyMedium)
+                                    Text(if (item.esPrefabricado) "Receta" else "Producto",
+                                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                if (item.costoCalculado != null) {
+                                    Text(CurrencyFormatter.fromCents(item.costoCalculado),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
                             CosteoTextField(value = item.cantidad,
                                 onValueChange = { viewModel.onUpdateCantidad(index, it) },
                                 label = "Cantidad", keyboardType = KeyboardType.Decimal,
