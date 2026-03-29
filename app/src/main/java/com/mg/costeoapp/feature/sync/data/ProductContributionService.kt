@@ -17,6 +17,15 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Calls the contribute-product Edge Function.
+ *
+ * The Edge Function now creates a user_product_alias row (instead of the
+ * old product_contributions table).  The request body includes:
+ *   - ean, nombre, unidad_medida, cantidad_por_empaque (product data)
+ *   - factor_merma (user alias data)
+ *   - global_product_id (optional, if already known)
+ */
 @Singleton
 class ProductContributionService @Inject constructor(
     private val okHttpClient: OkHttpClient,
@@ -44,6 +53,7 @@ class ProductContributionService @Inject constructor(
                 put("nombre", producto.nombre)
                 put("unidad_medida", producto.unidadMedida)
                 put("cantidad_por_empaque", producto.cantidadPorEmpaque)
+                put("factor_merma", producto.factorMerma)
                 if (!globalProductId.isNullOrBlank()) {
                     put("global_product_id", globalProductId)
                 }
@@ -62,9 +72,9 @@ class ProductContributionService @Inject constructor(
             response.use {
                 if (it.isSuccessful) {
                     val responseBody = it.body.string()
-                    val promoted = responseBody.contains("\"promoted\":true", ignoreCase = true)
-                    Log.d(TAG, "Contribution OK for EAN=$ean, promoted=$promoted")
-                    Result.success(promoted)
+                    val aliasCreated = responseBody.contains("\"alias_created\":true", ignoreCase = true)
+                    Log.d(TAG, "Contribution OK for EAN=$ean, alias_created=$aliasCreated")
+                    Result.success(aliasCreated)
                 } else {
                     Log.w(TAG, "Contribution failed: ${it.code} ${it.message}")
                     Result.success(false)

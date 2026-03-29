@@ -100,9 +100,10 @@ Deno.serve(async (req) => {
     // Rate limiting: max 50 contributions per user per 24 hours
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     const { count: recentCount } = await supabaseAdmin
-      .from('product_contributions')
+      .from('user_product_aliases')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
+      .eq('contributed', true)
       .gte('created_at', twentyFourHoursAgo)
 
     if (recentCount != null && recentCount >= 50) {
@@ -112,69 +113,59 @@ Deno.serve(async (req) => {
       )
     }
 
-    // 1. Check if this user already contributed this EAN
-    const { data: existing } = await supabaseAdmin
-      .from('product_contributions')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('ean', body.ean)
-      .limit(1)
-
-    if (existing && existing.length > 0) {
-      return new Response(
-        JSON.stringify({ error: 'Ya contribuiste este producto', code: 'DUPLICATE' }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
-    }
-
-    // 2. Insert contribution record (always keep for audit trail)
-    const { error: insertError } = await supabaseAdmin
-      .from('product_contributions')
-      .insert({
-        user_id: user.id,
-        ean: body.ean,
-        nombre: body.nombre,
-        marca: body.marca ?? null,
-        unidad_medida: body.unidad_medida ?? null,
-        cantidad_por_empaque: body.cantidad_por_empaque ?? null,
-        imagen_url: body.imagen_url ?? null,
-        status: 'pending',
-      })
-
-    if (insertError) {
-      console.error('Insert contribution error:', insertError.message)
-      return new Response(
-        JSON.stringify({ error: 'Error al guardar contribucion' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
-    }
-
-    // 3. Check if EAN already exists in global_products
+    // 1. Check if EAN already exists in global_products
     const { data: globalRow } = await supabaseAdmin
       .from('global_products')
       .select('id, confirmations')
       .eq('ean', body.ean)
       .single()
 
+    // 2. Check if user already has an alias for this EAN's global_product
+    if (globalRow) {
+      const { data: existingAlias } = await supabaseAdmin
+        .from('user_product_aliases')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('global_product_id', globalRow.id)
+        .limit(1)
+
+      if (existingAlias && existingAlias.length > 0) {
+        return new Response(
+          JSON.stringify({ error: 'Ya contribuiste este producto', code: 'DUPLICATE' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+    }
+
     let created = false
 
     if (globalRow) {
-      // Product already exists — increment confirmations
+      // 3a. Product already exists — increment confirmations and create alias
       const newCount = (globalRow.confirmations as number) + 1
       await supabaseAdmin
         .from('global_products')
         .update({ confirmations: newCount })
         .eq('id', globalRow.id)
 
-      // Mark this contribution as approved
-      await supabaseAdmin
-        .from('product_contributions')
-        .update({ status: 'approved' })
-        .eq('user_id', user.id)
-        .eq('ean', body.ean)
+      const { error: aliasError } = await supabaseAdmin
+        .from('user_product_aliases')
+        .insert({
+          user_id: user.id,
+          global_product_id: globalRow.id,
+          contributed: true,
+          contribution_status: 'approved',
+        })
+
+      if (aliasError) {
+        console.error('Insert alias error:', aliasError.message)
+        return new Response(
+          JSON.stringify({ error: 'Error al guardar contribucion' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
     } else {
-      // Product doesn't exist — create it directly in global_products
-      const { error: createError } = await supabaseAdmin
+      // 3b. Product doesn't exist — create it in global_products, then create alias
+      const { data: newProduct, error: createError } = await supabaseAdmin
         .from('global_products')
         .insert({
           ean: body.ean,
@@ -185,39 +176,30 @@ Deno.serve(async (req) => {
           imagen_url: body.imagen_url ?? null,
           confirmations: 1,
         })
+        .select('id')
+        .single()
 
-      if (!createError) {
-        created = true
+      if (createError || !newProduct) {
+        console.error('Create global_product error:', createError?.message)
+        return new Response(
+          JSON.stringify({ error: 'Error al crear producto global' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
 
-        // Mark this contribution as approved
-        await supabaseAdmin
-          .from('product_contributions')
-          .update({ status: 'approved' })
-          .eq('user_id', user.id)
-          .eq('ean', body.ean)
+      created = true
 
-        // Also approve any other pending contributions for this EAN
-        const { data: otherPending } = await supabaseAdmin
-          .from('product_contributions')
-          .select('id')
-          .eq('ean', body.ean)
-          .eq('status', 'pending')
+      const { error: aliasError } = await supabaseAdmin
+        .from('user_product_aliases')
+        .insert({
+          user_id: user.id,
+          global_product_id: newProduct.id,
+          contributed: true,
+          contribution_status: 'approved',
+        })
 
-        if (otherPending && otherPending.length > 0) {
-          await supabaseAdmin
-            .from('product_contributions')
-            .update({ status: 'approved' })
-            .eq('ean', body.ean)
-            .eq('status', 'pending')
-
-          // Update confirmations count
-          await supabaseAdmin
-            .from('global_products')
-            .update({ confirmations: 1 + otherPending.length })
-            .eq('ean', body.ean)
-        }
-      } else {
-        console.error('Create global_product error:', createError.message)
+      if (aliasError) {
+        console.error('Insert alias error:', aliasError.message)
       }
     }
 
@@ -228,9 +210,7 @@ Deno.serve(async (req) => {
         existed: !!globalRow,
         message: created
           ? 'Producto creado en catalogo global'
-          : globalRow
-            ? 'Confirmacion registrada'
-            : 'Contribucion registrada',
+          : 'Confirmacion registrada',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )

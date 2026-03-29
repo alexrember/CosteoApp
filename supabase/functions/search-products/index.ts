@@ -443,32 +443,6 @@ async function createGlobalProduct(
   return data as GlobalProduct
 }
 
-async function autoPromoteContributions(
-  supabase: ReturnType<typeof createClient>,
-  ean: string,
-  globalProduct: GlobalProduct,
-): Promise<void> {
-  const { data: contributions } = await supabase
-    .from('product_contributions')
-    .select('id')
-    .eq('ean', ean)
-    .eq('status', 'pending')
-
-  if (contributions && contributions.length > 0) {
-    const newConfirmations = globalProduct.confirmations + contributions.length
-    await supabase
-      .from('global_products')
-      .update({ confirmations: newConfirmations })
-      .eq('id', globalProduct.id)
-
-    await supabase
-      .from('product_contributions')
-      .update({ status: 'approved' })
-      .eq('ean', ean)
-      .eq('status', 'pending')
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Scraper status tracking
 // ---------------------------------------------------------------------------
@@ -653,9 +627,6 @@ async function handleBarcodeSearch(
   if (!globalProduct) {
     return { results: [], fromCache: false }
   }
-
-  // Auto-promote any pending contributions for this EAN
-  await autoPromoteContributions(supabase, barcode, globalProduct)
 
   // Save prices from both stores
   const priceUpserts: Promise<void>[] = []
