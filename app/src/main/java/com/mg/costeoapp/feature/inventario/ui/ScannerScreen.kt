@@ -189,13 +189,15 @@ fun ScannerScreen(
                 }
             }
 
-            Button(
-                onClick = { onNavigateToRegistro(null) },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp)
-            ) {
-                Text("Registro manual")
+            if (uiState.lookupState !is BarcodeLookupState.NeedItemNumber) {
+                Button(
+                    onClick = { onNavigateToRegistro(null) },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 24.dp)
+                ) {
+                    Text("Registro manual")
+                }
             }
         }
     }
@@ -282,7 +284,6 @@ private fun NeedItemNumberOverlay(
     modifier: Modifier = Modifier
 ) {
     var manualInput by remember { mutableStateOf("") }
-    var showManualField by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier
@@ -315,49 +316,39 @@ private fun NeedItemNumberOverlay(
             )
 
             Text(
-                text = if (!showManualField) "Escanea el codigo Item# del producto" else "Escribe el Item# manualmente",
+                text = "Escribe el Item# del producto",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 textAlign = TextAlign.Center
             )
 
-            if (showManualField) {
-                androidx.compose.material3.OutlinedTextField(
-                    value = manualInput,
-                    onValueChange = { manualInput = it.filter { c -> c.isDigit() } },
-                    label = { Text("Item#") },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
-                        imeAction = androidx.compose.ui.text.input.ImeAction.Done
-                    ),
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                        onDone = { if (manualInput.length >= 4) onItemNumberEntered(manualInput) }
-                    ),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.onErrorContainer,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f),
-                        focusedLabelColor = MaterialTheme.colorScheme.onErrorContainer,
-                        cursorColor = MaterialTheme.colorScheme.onErrorContainer
-                    )
+            androidx.compose.material3.OutlinedTextField(
+                value = manualInput,
+                onValueChange = { manualInput = it.filter { c -> c.isDigit() } },
+                label = { Text("Item#") },
+                placeholder = { Text("Ej: 495359") },
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                    imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                ),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                    onDone = { if (manualInput.length >= 4) onItemNumberEntered(manualInput) }
+                ),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.onErrorContainer,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f),
+                    focusedLabelColor = MaterialTheme.colorScheme.onErrorContainer,
+                    cursorColor = MaterialTheme.colorScheme.onErrorContainer
                 )
-                Button(
-                    onClick = { if (manualInput.length >= 4) onItemNumberEntered(manualInput) },
-                    enabled = manualInput.length >= 4,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Buscar Item#")
-                }
-            } else {
-                androidx.compose.material3.TextButton(
-                    onClick = { showManualField = true }
-                ) {
-                    Text(
-                        text = "No puedo escanear, escribir manualmente",
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
+            )
+            Button(
+                onClick = { if (manualInput.length >= 4) onItemNumberEntered(manualInput) },
+                enabled = manualInput.length >= 4,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Buscar Item#")
             }
 
             Text(
