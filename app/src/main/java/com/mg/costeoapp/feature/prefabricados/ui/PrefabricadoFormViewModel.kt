@@ -175,7 +175,8 @@ class PrefabricadoFormViewModel @Inject constructor(
             val cantidadPorEmpaque = item.producto.cantidadPorEmpaque
             if (cantidadPorEmpaque <= 0) continue
 
-            val precioPorUnidad = precioUnitario.toDouble() / cantidadPorEmpaque
+            val contenidoTotal = cantidadPorEmpaque * maxOf(item.producto.unidadesPorEmpaque, 1)
+            val precioPorUnidad = precioUnitario.toDouble() / contenidoTotal
             val costo = precioPorUnidad * cantidad
             val costoConMerma = if (item.producto.factorMerma in 1..99) {
                 (costo / (1.0 - item.producto.factorMerma / 100.0)).roundToLong()
