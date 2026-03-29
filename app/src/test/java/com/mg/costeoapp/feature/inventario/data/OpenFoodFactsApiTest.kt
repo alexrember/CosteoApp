@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit
  * - 7622210449283 (Prince/LU) - tiene nutricion completa
  * - 7441001601132 (Leche Dos Pinos SV) - producto existe pero sin nutricion
  */
+@org.junit.Ignore("External API test — requires internet, run manually")
 class OpenFoodFactsApiTest {
 
     private lateinit var api: OpenFoodFactsApi

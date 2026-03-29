@@ -73,5 +73,11 @@ data class Producto(
     val factorMerma: Int = 0,
 
     @ColumnInfo(name = "version", defaultValue = "1")
-    val version: Int = 1
+    val version: Int = 1,
+
+    @ColumnInfo(name = "global_product_id")
+    val globalProductId: String? = null,
+
+    @ColumnInfo(name = "alias")
+    val alias: String? = null
 )

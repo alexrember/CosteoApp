@@ -74,3 +74,37 @@ internal fun jsonOf(vararg pairs: Pair<String, Any?>): JsonObject {
     }
     return JsonObject(map)
 }
+
+/**
+ * Maps a Producto to a user_product_aliases JSON row.
+ * Requires the product to be linked (globalProductId != null).
+ */
+fun productoToUserProductAlias(
+    producto: com.mg.costeoapp.core.database.entity.Producto,
+    userId: String
+): JsonObject? {
+    val globalId = producto.globalProductId ?: return null
+    return jsonOf(
+        "user_id" to userId,
+        "global_product_id" to globalId,
+        "alias" to producto.alias,
+        "factor_merma" to producto.factorMerma,
+        "notes" to producto.notas
+    )
+}
+
+/**
+ * Maps a Tienda to a user_store_aliases JSON row.
+ * Requires the store to be linked (globalStoreId != null).
+ */
+fun tiendaToUserStoreAlias(
+    tienda: com.mg.costeoapp.core.database.entity.Tienda,
+    userId: String
+): JsonObject? {
+    val globalId = tienda.globalStoreId ?: return null
+    return jsonOf(
+        "user_id" to userId,
+        "global_store_id" to globalId,
+        "alias" to tienda.nombre
+    )
+}

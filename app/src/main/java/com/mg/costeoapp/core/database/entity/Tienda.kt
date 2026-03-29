@@ -26,5 +26,8 @@ data class Tienda(
     val updatedAt: Long = System.currentTimeMillis(),
 
     @ColumnInfo(name = "version", defaultValue = "1")
-    val version: Int = 1
+    val version: Int = 1,
+
+    @ColumnInfo(name = "global_store_id")
+    val globalStoreId: String? = null
 )
