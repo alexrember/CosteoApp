@@ -81,17 +81,10 @@ class ScannerViewModel @Inject constructor(
 
         val currentState = _uiState.value.lookupState
         if (currentState is BarcodeLookupState.NeedItemNumber) {
-            // Show what was scanned before processing
-            _uiState.update {
-                it.copy(lookupState = BarcodeLookupState.NeedItemNumber(
-                    barcode = currentState.barcode,
-                    lastScannedCode = barcode
-                ))
-            }
-            processItemNumber(barcode, currentState.barcode)
-        } else {
-            processBarcode(barcode)
+            // Ignore barcode scans in NeedItemNumber state — user must enter Item# manually
+            return
         }
+        processBarcode(barcode)
     }
 
     private fun isPriceSmart(): Boolean {
@@ -220,8 +213,9 @@ class ScannerViewModel @Inject constructor(
             val storeResults = orchestrated.results
             lastNutricion = deferredNutricion.await()
 
-            // PriceSmart: si no hay resultados con precio, pedir Item#
-            if (isPriceSmart() && storeResults.none { it.price != null && it.price > 0 }) {
+            // PriceSmart: si no hay resultados con precio de TIENDAS (ignorar OFF), pedir Item#
+            val storeResultsWithPrice = storeResults.filter { it.source != "open_food_facts" && it.price != null && it.price > 0 }
+            if (isPriceSmart() && storeResultsWithPrice.isEmpty()) {
                 pendingEanForItemNumber = barcode
                 synchronized(scanLock) { processingBarcode = null }
                 candidateBarcode = null
