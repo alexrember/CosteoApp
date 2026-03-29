@@ -7,7 +7,6 @@ import com.mg.costeoapp.core.database.dao.ProductoTiendaDao
 import com.mg.costeoapp.core.ui.viewmodel.UiEvent
 import com.mg.costeoapp.feature.inventario.data.CompraManager
 import com.mg.costeoapp.feature.inventario.data.mapper.NutricionExterna
-import com.mg.costeoapp.feature.inventario.data.mapper.SmartDefaults
 import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
 import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrator
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +18,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @HiltViewModel
@@ -159,28 +157,8 @@ class ScannerViewModel @Inject constructor(
             }
 
             val orchestrated = deferredStores.await()
-            var storeResults = orchestrated.results
+            val storeResults = orchestrated.results
             lastNutricion = deferredNutricion.await()
-
-            // PriceSmart no indexa por barcode — siempre necesita nombre.
-            // Buscar nombre de cualquier fuente disponible (autosuficiente):
-            // 1. Walmart (si respondio), 2. Open Food Facts, 3. BD local (productos previos)
-            val hasPriceSmartResult = storeResults.any { it.storeName == "PriceSmart" }
-            if (!hasPriceSmartResult) {
-                val productName = storeResults.firstOrNull()?.productName
-                    ?: lastNutricion?.nombreProducto
-                    ?: productoDao.getByCodigoBarras(barcode)?.nombre
-                if (!productName.isNullOrBlank()) {
-                    // Traducir ingles→español para mejorar match en tiendas SV
-                    val searchName = SmartDefaults.translateForSearch(productName)
-                    val nameResults = withTimeoutOrNull(5000L) {
-                        searchOrchestrator.searchPriceSmartByName(searchName)
-                    }
-                    if (!nameResults.isNullOrEmpty()) {
-                        storeResults = storeResults + nameResults
-                    }
-                }
-            }
 
             compraManager.cacheSearchResults(storeResults, lastNutricion)
 

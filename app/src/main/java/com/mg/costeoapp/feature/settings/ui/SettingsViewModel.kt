@@ -19,7 +19,6 @@ import javax.inject.Inject
 data class SettingsUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val stockBajoThreshold: Double = 5.0,
-    val useBackendSearch: Boolean = true,
     val backupMessage: String? = null,
     val showImportConfirmDialog: Boolean = false,
     val pendingImportUri: Uri? = null,
@@ -46,11 +45,6 @@ class SettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(stockBajoThreshold = threshold) }
             }
         }
-        viewModelScope.launch {
-            repository.useBackendSearchFlow.collect { enabled ->
-                _uiState.update { it.copy(useBackendSearch = enabled) }
-            }
-        }
     }
 
     fun setThemeMode(mode: ThemeMode) {
@@ -59,10 +53,6 @@ class SettingsViewModel @Inject constructor(
 
     fun setStockBajoThreshold(threshold: Double) {
         viewModelScope.launch { repository.setStockBajoThreshold(threshold) }
-    }
-
-    fun setUseBackendSearch(enabled: Boolean) {
-        viewModelScope.launch { repository.setUseBackendSearch(enabled) }
     }
 
     fun exportBackup(context: Context): Intent? {

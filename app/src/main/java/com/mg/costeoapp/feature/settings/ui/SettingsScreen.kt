@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -298,35 +297,6 @@ fun SettingsScreen(
                 steps = 48
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text("Busqueda de precios", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Filled.Speed, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Usar servidor centralizado", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            "Busquedas mas rapidas con cache compartido",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = uiState.useBackendSearch,
-                        onCheckedChange = { viewModel.setUseBackendSearch(it) }
-                    )
-                }
-            }
         }
     }
 }

@@ -7,10 +7,10 @@ import org.junit.Test
 
 class InputValidationTest {
 
-    // Barcode validation regex from WalmartStoreRepository: "^\\d{8,14}$"
+    // Barcode validation regex: "^\\d{8,14}$"
     private val barcodeRegex = Regex("^\\d{8,14}$")
 
-    // PriceSmart query sanitization: take(100), strip non-letter/non-number/non-space, trim
+    // Query sanitization: take(100), strip non-letter/non-number/non-space, trim
     private fun sanitizeQuery(query: String): String {
         return query.take(100).replace(Regex("[^\\p{L}\\p{N}\\s]"), "").trim()
     }

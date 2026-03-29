@@ -2,10 +2,6 @@ package com.mg.costeoapp.feature.inventario.data.repository
 
 import android.util.Log
 import com.mg.costeoapp.core.domain.model.StoreSearchResult
-import com.mg.costeoapp.feature.settings.SettingsRepository
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
@@ -18,69 +14,47 @@ data class OrchestratedSearchResult(
 )
 
 class StoreSearchOrchestrator @Inject constructor(
-    private val walmartRepository: WalmartStoreRepository,
-    private val priceSmartRepository: PriceSmartStoreRepository,
-    private val superSelectosRepository: SuperSelectosRepository,
-    private val backendRepository: CosteoBackendRepository,
-    private val settingsRepository: SettingsRepository
+    private val backendRepository: CosteoBackendRepository
 ) {
     companion object {
         private const val TAG = "SearchOrchestrator"
-        private const val TIMEOUT_MS = 5000L
+        private const val TIMEOUT_MS = 8000L
     }
 
     suspend fun searchByBarcode(barcode: String): OrchestratedSearchResult {
-        val useBackend = settingsRepository.useBackendSearchFlow.first()
-
-        if (useBackend) {
-            val backendResult = tryBackendSearch { backendRepository.searchByBarcode(barcode) }
-            if (backendResult != null) return backendResult
-            Log.d(TAG, "Backend fallo, usando APIs directas para barcode")
-        }
-
-        return executeParallelSearch(
-            walmartSearch = { walmartRepository.searchByBarcode(barcode) },
-            priceSmartSearch = { priceSmartRepository.searchByBarcode(barcode) },
-            superSelectosSearch = { superSelectosRepository.searchByBarcode(barcode) }
-        )
-    }
-
-    suspend fun searchPriceSmartByName(query: String): List<StoreSearchResult> {
-        return withTimeoutOrNull(TIMEOUT_MS) {
-            priceSmartRepository.searchByName(query).getOrNull()
-        } ?: emptyList()
+        return executeBackendSearch { backendRepository.searchByBarcode(barcode) }
     }
 
     suspend fun searchByName(query: String): OrchestratedSearchResult {
-        val useBackend = settingsRepository.useBackendSearchFlow.first()
-
-        if (useBackend) {
-            val backendResult = tryBackendSearch { backendRepository.searchByName(query) }
-            if (backendResult != null) return backendResult
-            Log.d(TAG, "Backend fallo, usando APIs directas para nombre")
-        }
-
-        return executeParallelSearch(
-            walmartSearch = { walmartRepository.searchByName(query) },
-            priceSmartSearch = { priceSmartRepository.searchByName(query) },
-            superSelectosSearch = { superSelectosRepository.searchByName(query) }
-        )
+        return executeBackendSearch { backendRepository.searchByName(query) }
     }
 
-    private suspend fun tryBackendSearch(
+    private suspend fun executeBackendSearch(
         search: suspend () -> Result<List<StoreSearchResult>>
-    ): OrchestratedSearchResult? {
+    ): OrchestratedSearchResult {
         val start = System.currentTimeMillis()
         return try {
             val result = withTimeoutOrNull(TIMEOUT_MS) { search() }
             when {
                 result == null -> {
                     Log.w(TAG, "Backend timeout")
-                    null
+                    OrchestratedSearchResult(
+                        results = emptyList(),
+                        storesSearched = listOf("Backend Costeo"),
+                        storesTimedOut = listOf("Backend Costeo"),
+                        storesFailed = emptyList(),
+                        totalTimeMs = System.currentTimeMillis() - start
+                    )
                 }
                 result.isFailure -> {
                     Log.w(TAG, "Backend error: ${result.exceptionOrNull()?.message}")
-                    null
+                    OrchestratedSearchResult(
+                        results = emptyList(),
+                        storesSearched = listOf("Backend Costeo"),
+                        storesTimedOut = emptyList(),
+                        storesFailed = listOf("Backend Costeo"),
+                        totalTimeMs = System.currentTimeMillis() - start
+                    )
                 }
                 else -> OrchestratedSearchResult(
                     results = result.getOrDefault(emptyList()),
@@ -92,51 +66,13 @@ class StoreSearchOrchestrator @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Backend exception: ${e.message}", e)
-            null
-        }
-    }
-
-    private suspend fun executeParallelSearch(
-        walmartSearch: suspend () -> Result<List<StoreSearchResult>>,
-        priceSmartSearch: suspend () -> Result<List<StoreSearchResult>>,
-        superSelectosSearch: suspend () -> Result<List<StoreSearchResult>>
-    ): OrchestratedSearchResult {
-        val start = System.currentTimeMillis()
-        val storesSearched = mutableListOf<String>()
-        val storesTimedOut = mutableListOf<String>()
-        val storesFailed = mutableListOf<String>()
-        val allResults = mutableListOf<StoreSearchResult>()
-
-        coroutineScope {
-            val jobs = listOf(
-                "Walmart SV" to async {
-                    withTimeoutOrNull(TIMEOUT_MS) { walmartSearch() }
-                },
-                "PriceSmart" to async {
-                    withTimeoutOrNull(TIMEOUT_MS) { priceSmartSearch() }
-                },
-                "Super Selectos" to async {
-                    withTimeoutOrNull(TIMEOUT_MS) { superSelectosSearch() }
-                }
+            OrchestratedSearchResult(
+                results = emptyList(),
+                storesSearched = listOf("Backend Costeo"),
+                storesTimedOut = emptyList(),
+                storesFailed = listOf("Backend Costeo"),
+                totalTimeMs = System.currentTimeMillis() - start
             )
-
-            for ((name, deferred) in jobs) {
-                storesSearched.add(name)
-                val result = deferred.await()
-                when {
-                    result == null -> storesTimedOut.add(name)
-                    result.isFailure -> storesFailed.add(name)
-                    else -> allResults.addAll(result.getOrDefault(emptyList()))
-                }
-            }
         }
-
-        return OrchestratedSearchResult(
-            results = allResults,
-            storesSearched = storesSearched,
-            storesTimedOut = storesTimedOut,
-            storesFailed = storesFailed,
-            totalTimeMs = System.currentTimeMillis() - start
-        )
     }
 }

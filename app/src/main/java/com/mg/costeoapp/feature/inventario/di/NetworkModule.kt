@@ -2,18 +2,11 @@ package com.mg.costeoapp.feature.inventario.di
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.mg.costeoapp.BuildConfig
-import com.mg.costeoapp.feature.inventario.data.remote.BloomreachSearchApi
 import com.mg.costeoapp.feature.inventario.data.remote.OpenFoodFactsApi
-import com.mg.costeoapp.feature.inventario.data.remote.WalmartVtexApi
 import com.mg.costeoapp.feature.inventario.data.repository.NutritionRepository
-import com.mg.costeoapp.feature.inventario.data.repository.PriceSmartStoreRepository
 import com.mg.costeoapp.feature.inventario.data.repository.CosteoBackendRepository
 import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrator
-import com.mg.costeoapp.feature.inventario.data.repository.SuperSelectosRepository
-import com.mg.costeoapp.feature.inventario.data.repository.WalmartStoreRepository
-import com.mg.costeoapp.feature.settings.SettingsRepository
 import io.github.jan.supabase.SupabaseClient
-import javax.inject.Named
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -37,9 +30,6 @@ object NetworkModule {
         isLenient = true
     }
 
-    // TODO: Add certificate pinning for Walmart VTEX before production release
-    // Get pins with: openssl s_client -connect www.walmart.com.sv:443 | openssl x509 -pubkey | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | base64
-    // Then add: .certificatePinner(CertificatePinner.Builder().add("www.walmart.com.sv", "sha256/REAL_HASH_HERE").build())
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
@@ -63,50 +53,6 @@ object NetworkModule {
             .build()
     }
 
-    @Provides
-    @Singleton
-    fun provideWalmartVtexApi(client: OkHttpClient, json: Json): WalmartVtexApi {
-        return Retrofit.Builder()
-            .baseUrl(WalmartVtexApi.BASE_URL)
-            .client(client)
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-            .build()
-            .create(WalmartVtexApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideWalmartStoreRepository(api: WalmartVtexApi): WalmartStoreRepository {
-        return WalmartStoreRepository(api)
-    }
-
-    // --- PriceSmart Bloomreach Search API ---
-
-    @Provides
-    @Singleton
-    fun provideBloomreachSearchApi(client: OkHttpClient, json: Json): BloomreachSearchApi {
-        return Retrofit.Builder()
-            .baseUrl(BloomreachSearchApi.BASE_URL)
-            .client(client)
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-            .build()
-            .create(BloomreachSearchApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun providePriceSmartStoreRepository(api: BloomreachSearchApi): PriceSmartStoreRepository {
-        return PriceSmartStoreRepository(api)
-    }
-
-    // --- Super Selectos (HTML scraping) ---
-
-    @Provides
-    @Singleton
-    fun provideSuperSelectosRepository(client: OkHttpClient): SuperSelectosRepository {
-        return SuperSelectosRepository(client)
-    }
-
     // --- Backend centralizado (Fase 8) ---
 
     @Provides
@@ -115,24 +61,14 @@ object NetworkModule {
         return CosteoBackendRepository(client, json, supabaseClient)
     }
 
-    // --- Orquestador de busqueda paralela ---
+    // --- Orquestador de busqueda ---
 
     @Provides
     @Singleton
     fun provideStoreSearchOrchestrator(
-        walmartRepository: WalmartStoreRepository,
-        priceSmartRepository: PriceSmartStoreRepository,
-        superSelectosRepository: SuperSelectosRepository,
-        backendRepository: CosteoBackendRepository,
-        settingsRepository: SettingsRepository
+        backendRepository: CosteoBackendRepository
     ): StoreSearchOrchestrator {
-        return StoreSearchOrchestrator(
-            walmartRepository,
-            priceSmartRepository,
-            superSelectosRepository,
-            backendRepository,
-            settingsRepository
-        )
+        return StoreSearchOrchestrator(backendRepository)
     }
 
     // --- Open Food Facts ---
