@@ -367,9 +367,13 @@ async function fetchSelectosByBarcode(barcode: string): Promise<SelectosResult |
         },
       )
       if (priceRes.ok) {
-        const priceData: SelectosPriceResponse = await priceRes.json()
-        currentPrice = priceData.price?.currentPrice != null ? Math.round(priceData.price.currentPrice * 100) : null
-        normalPrice = priceData.price?.normalPrice != null ? Math.round(priceData.price.normalPrice * 100) : null
+        const raw = await priceRes.json()
+        const priceData: SelectosPriceResponse = Array.isArray(raw) ? raw[0] : raw
+        if (priceData?.price) {
+          currentPrice = priceData.price.currentPrice != null ? Math.round(priceData.price.currentPrice * 100) : null
+          normalPrice = priceData.price.normalPrice != null ? Math.round(priceData.price.normalPrice * 100) : null
+        }
+        console.log(`[Selectos] Price: current=${currentPrice} normal=${normalPrice}`)
       }
     } catch (e) {
       console.error('Super Selectos price fetch error:', e)
@@ -799,7 +803,7 @@ async function handleBarcodeSearch(
     })(),
   ])
 
-  console.log(`Barcode ${barcode}: walmart=${!!walmartResult} pricesmart=${!!priceSmartResult} selectos=${!!selectosResult} selectosName=${selectosResult?.productName}`)
+  console.log(`Barcode ${barcode}: walmart=${!!walmartResult} pricesmart=${!!priceSmartResult} selectos=${!!selectosResult} selectosName=${selectosResult?.productName} selectosPrice=${selectosResult?.price}`)
 
   // Pick best data source to create the global product
   const bestSource = walmartResult ?? priceSmartResult ?? (selectosResult ? {
@@ -811,7 +815,7 @@ async function handleBarcodeSearch(
   } : null)
 
   if (!bestSource) {
-    return { results: [], fromCache: false }
+    return { results: [], fromCache: false, debug: { walmart: !!walmartResult, pricesmart: !!priceSmartResult, selectos: !!selectosResult, selectosName: selectosResult?.productName ?? null } }
   }
 
   // Create global_product from API data
@@ -827,8 +831,10 @@ async function handleBarcodeSearch(
   )
 
   if (!globalProduct) {
-    return { results: [], fromCache: false }
+    console.error('[Debug] createGlobalProduct returned null')
+    return { results: [], fromCache: false, debug: 'createGlobalProduct failed' }
   }
+  console.log(`[Debug] globalProduct created: ${globalProduct.id} ${globalProduct.nombre}`)
 
   // Save prices from both stores
   const priceUpserts: Promise<void>[] = []
