@@ -56,6 +56,9 @@ interface ProductPrice {
 
 const PRICE_TTL_MS = 5 * 60 * 60 * 1000 // 5 hours
 
+const BLOOMREACH_AUTH_KEY = Deno.env.get('BLOOMREACH_AUTH_KEY')
+if (!BLOOMREACH_AUTH_KEY) throw new Error('BLOOMREACH_AUTH_KEY not configured')
+
 // ---------------------------------------------------------------------------
 // Walmart VTEX helpers
 // ---------------------------------------------------------------------------
@@ -206,7 +209,7 @@ interface BloomreachProduct {
 function buildPriceSmartParams(query: string): URLSearchParams {
   return new URLSearchParams({
     account_id: '7024',
-    auth_key: Deno.env.get('BLOOMREACH_AUTH_KEY') ?? 'ev7libhybjg5h1d1',
+    auth_key: BLOOMREACH_AUTH_KEY,
     domain_key: 'pricesmart_bloomreach_io_es',
     view_id: 'SV',
     request_type: 'search',

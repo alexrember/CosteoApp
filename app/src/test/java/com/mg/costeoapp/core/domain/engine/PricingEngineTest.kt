@@ -4,6 +4,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import kotlin.math.roundToLong
 
+/**
+ * Tests de la formula de costeo. NOTA: Estos tests replican la formula
+ * de PricingEngine.calcularCostoIngrediente() localmente porque el motor
+ * requiere DAOs de Room que no estan disponibles en unit tests.
+ * Si la formula cambia en PricingEngine, actualizar aqui tambien.
+ */
 class PricingEngineTest {
 
 	private fun calcularCostoIngrediente(

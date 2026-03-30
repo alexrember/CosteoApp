@@ -207,7 +207,7 @@ class ScannerViewModel @Inject constructor(
                             )
                         )
                     }
-                    _events.send(UiEvent.ShowError("${productoLocal.nombre} agregado al carrito"))
+                    _events.send(UiEvent.ShowMessage("${productoLocal.nombre} agregado al carrito"))
 
                     kotlinx.coroutines.delay(1500)
                     synchronized(scanLock) { processingBarcode = null }

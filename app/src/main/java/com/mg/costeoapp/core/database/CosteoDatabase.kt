@@ -40,7 +40,7 @@ import com.mg.costeoapp.core.database.entity.Tienda
         PlatoComponente::class,
         SyncMetadata::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = true
 )
 abstract class CosteoDatabase : RoomDatabase() {
@@ -229,6 +229,12 @@ abstract class CosteoDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE productos ADD COLUMN global_product_id TEXT DEFAULT NULL")
                 db.execSQL("ALTER TABLE productos ADD COLUMN alias TEXT DEFAULT NULL")
                 db.execSQL("ALTER TABLE tiendas ADD COLUMN global_store_id TEXT DEFAULT NULL")
+            }
+        }
+
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_productos_global_product_id ON productos(global_product_id)")
             }
         }
     }

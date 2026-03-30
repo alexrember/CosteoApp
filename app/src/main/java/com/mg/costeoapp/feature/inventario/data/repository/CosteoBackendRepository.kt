@@ -90,14 +90,14 @@ class CosteoBackendRepository @Inject constructor(
             val url = "${supabaseUrl}/functions/v1/link-barcode"
             val bodyJson = json.encodeToString(LinkBarcodeRequest.serializer(), LinkBarcodeRequest(ean, itemNumber))
             val session = supabaseClient.auth.currentSessionOrNull()
-            val bearerToken = session?.accessToken ?: anonKey
-
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url(url)
                 .post(bodyJson.toRequestBody("application/json".toMediaType()))
-                .header("Authorization", "Bearer $bearerToken")
                 .header("apikey", anonKey)
-                .build()
+            if (session?.accessToken != null) {
+                requestBuilder.header("Authorization", "Bearer ${session.accessToken}")
+            }
+            val request = requestBuilder.build()
 
             val response = client.newCall(request).execute()
             response.use { resp ->
@@ -143,16 +143,17 @@ class CosteoBackendRepository @Inject constructor(
             // Try to get current session, refresh if needed
             val session = supabaseClient.auth.currentSessionOrNull()
                 ?: try { supabaseClient.auth.refreshCurrentSession(); supabaseClient.auth.currentSessionOrNull() } catch (_: Exception) { null }
-            val bearerToken = session?.accessToken ?: anonKey
             if (session == null) Log.w(TAG, "No auth session, using anon key")
 
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url(url)
                 .post(body)
-                .header("Authorization", "Bearer $bearerToken")
                 .header("apikey", anonKey)
                 .header("Content-Type", "application/json")
-                .build()
+            if (session?.accessToken != null) {
+                requestBuilder.header("Authorization", "Bearer ${session.accessToken}")
+            }
+            val request = requestBuilder.build()
 
             val response = client.newCall(request).execute()
             response.use { resp ->

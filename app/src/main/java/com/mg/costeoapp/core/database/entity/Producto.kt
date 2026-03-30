@@ -8,7 +8,8 @@ import androidx.room.PrimaryKey
 @Entity(
     tableName = "productos",
     indices = [
-        Index(value = ["codigo_barras"], unique = true)
+        Index(value = ["codigo_barras"], unique = true),
+        Index(value = ["global_product_id"])
     ]
 )
 data class Producto(

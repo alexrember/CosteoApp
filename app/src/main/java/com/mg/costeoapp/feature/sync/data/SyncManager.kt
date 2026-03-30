@@ -182,24 +182,7 @@ class SyncManager @Inject constructor(
         }
     }
 
-    suspend fun syncAll(userId: String): SyncResult {
-        val session = supabase.auth.currentSessionOrNull()
-        if (session == null) {
-            return SyncResult(
-                success = false,
-                errors = listOf("No hay sesion activa. Inicia sesion para sincronizar.")
-            )
-        }
-
-        var result = SyncResult(success = true)
-        result = result + linkProducts()
-        result = result + linkStores()
-        result = result + pushProductAliases(userId)
-        result = result + pushStoreAliases(userId)
-        result = result + pushRecipes(userId)
-        result = result + pushDishes(userId)
-        return result
-    }
+    suspend fun syncAll(userId: String): SyncResult = pushAll(userId)
 
     suspend fun pushAll(userId: String): SyncResult {
         val session = supabase.auth.currentSessionOrNull()

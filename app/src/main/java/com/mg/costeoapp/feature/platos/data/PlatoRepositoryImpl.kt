@@ -42,8 +42,17 @@ class PlatoRepositoryImpl @Inject constructor(
     override fun getComponentesFlow(platoId: Long): Flow<List<PlatoComponente>> =
         componenteDao.getByPlatoFlow(platoId)
 
+    private fun validateComponentes(componentes: List<PlatoComponente>) {
+        componentes.forEach { componente ->
+            require(componente.productoId != null || componente.prefabricadoId != null) {
+                "Componente debe tener producto o receta"
+            }
+        }
+    }
+
     override suspend fun createPlato(plato: Plato, componentes: List<PlatoComponente>): Result<Long> =
         try {
+            validateComponentes(componentes)
             val id = db.withTransaction {
                 val platoId = platoDao.insert(plato)
                 val mapped = componentes.map { it.copy(platoId = platoId) }
@@ -57,6 +66,7 @@ class PlatoRepositoryImpl @Inject constructor(
 
     override suspend fun updatePlato(plato: Plato, componentes: List<PlatoComponente>): Result<Unit> =
         try {
+            validateComponentes(componentes)
             db.withTransaction {
                 platoDao.update(plato.copy(updatedAt = System.currentTimeMillis()))
                 componenteDao.deleteByPlato(plato.id)

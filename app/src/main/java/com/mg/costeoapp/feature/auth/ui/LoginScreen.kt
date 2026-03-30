@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -66,7 +67,7 @@ fun LoginScreen(
             when (event) {
                 is AuthUiEvent.AuthSuccess -> onAuthSuccess()
                 is AuthUiEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
-                is AuthUiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                is AuthUiEvent.ShowError -> { /* handled by inline uiState.error text */ }
             }
         }
     }
@@ -174,7 +175,7 @@ fun LoginScreen(
             ) {
                 if (uiState.isLoading || uiState.syncMessage != null) {
                     CircularProgressIndicator(
-                        modifier = Modifier.height(20.dp),
+                        modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.onPrimary
                     )

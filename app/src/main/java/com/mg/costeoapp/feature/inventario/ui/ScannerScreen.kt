@@ -107,6 +107,7 @@ fun ScannerScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is UiEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                is UiEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
                 else -> {}
             }
         }
