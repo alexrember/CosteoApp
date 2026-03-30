@@ -339,13 +339,11 @@ interface SelectosResult {
 async function fetchSelectosByBarcode(barcode: string): Promise<SelectosResult | null> {
   try {
     const url = `${SELECTOS_PRODUCTS_API}/products?Barcodes=${encodeURIComponent(barcode)}`
-    console.log(`[Selectos] Fetching: ${url}`)
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 5000)
     const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal })
     clearTimeout(timeout)
-    console.log(`[Selectos] Response: ${res.status}`)
-    if (!res.ok) { console.error(`[Selectos] HTTP ${res.status}`); return null }
+    if (!res.ok) return null
 
     const data: SelectosProductResponse = await res.json()
     if (!data.items || data.items.length === 0) return null
@@ -374,7 +372,6 @@ async function fetchSelectosByBarcode(barcode: string): Promise<SelectosResult |
           currentPrice = priceData.price.currentPrice != null ? Math.round(priceData.price.currentPrice * 100) : null
           normalPrice = priceData.price.normalPrice != null ? Math.round(priceData.price.normalPrice * 100) : null
         }
-        console.log(`[Selectos] Price: current=${currentPrice} normal=${normalPrice}`)
       }
     } catch (e) {
       console.error('Super Selectos price fetch error:', e)
@@ -796,8 +793,6 @@ async function handleBarcodeSearch(
     })() : Promise.resolve(null),
   ])
 
-  console.log(`Barcode ${barcode}: walmart=${!!walmartResult} pricesmart=${!!priceSmartResult} selectos=${!!selectosResult} selectosName=${selectosResult?.productName} selectosPrice=${selectosResult?.price}`)
-
   // Pick best data source to create the global product
   const bestSource = walmartResult ?? priceSmartResult ?? (selectosResult ? {
     productName: selectosResult.productName,
@@ -808,7 +803,7 @@ async function handleBarcodeSearch(
   } : null)
 
   if (!bestSource) {
-    return { results: [], fromCache: false, debug: { walmart: !!walmartResult, pricesmart: !!priceSmartResult, selectos: !!selectosResult, selectosName: selectosResult?.productName ?? null } }
+    return { results: [], fromCache: false }
   }
 
   // Create global_product from API data
@@ -824,10 +819,8 @@ async function handleBarcodeSearch(
   )
 
   if (!globalProduct) {
-    console.error('[Debug] createGlobalProduct returned null')
-    return { results: [], fromCache: false, debug: 'createGlobalProduct failed' }
+    return { results: [], fromCache: false }
   }
-  console.log(`[Debug] globalProduct created: ${globalProduct.id} ${globalProduct.nombre}`)
 
   // Save prices from both stores
   const priceUpserts: Promise<void>[] = []

@@ -155,7 +155,6 @@ class ScannerViewModel @Inject constructor(
             }
 
             val productoLocal = productoDao.getByCodigoBarras(barcode)
-            android.util.Log.d("Scanner", "Barcode=$barcode localFound=${productoLocal != null}")
 
             if (productoLocal != null) {
                 val tienda = compraManager.getTienda()

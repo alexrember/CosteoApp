@@ -422,12 +422,8 @@ class ProductoRegistroViewModel @Inject constructor(
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob()).launch {
                 try {
                     val token = productContributionService.getAccessToken()
-                    android.util.Log.d("ProductoRegistro", "Launching contribute: ean=${productoCreado.codigoBarras}, gpId=$gpId, hasToken=${token != null}")
-                    val result = productContributionService.contribute(productoCreado, gpId, token)
-                    android.util.Log.d("ProductoRegistro", "Contribute result: ${result.getOrNull()}")
-                } catch (e: Exception) {
-                    android.util.Log.e("ProductoRegistro", "Contribute exception: ${e.message}", e)
-                }
+                    productContributionService.contribute(productoCreado, gpId, token)
+                } catch (_: Exception) { }
             }
         }
 
