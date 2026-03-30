@@ -458,7 +458,8 @@ class SyncManager @Inject constructor(
                 }
             }
 
-            // Pull store active states
+            // Link stores to global_stores first, then pull active states
+            linkStores()
             pullStoreStates(userId)
 
             Log.d(TAG, "pullUserData: $created productos, $pricesCreated precios from ${aliases.size} aliases")
