@@ -483,8 +483,13 @@ class SyncManager @Inject constructor(
                 return SyncResult(success = true)
             }
 
-            supabase.from("user_store_aliases").upsert(toUpsert) {
-                onConflict = "user_id,store_id"
+            // Update each store alias individually to ensure activo is synced
+            for (dto in toUpsert) {
+                supabase.from("user_store_aliases")
+                    .upsert(dto) {
+                        onConflict = "user_id,store_id"
+                        defaultToNull = false
+                    }
             }
 
             Log.d(TAG, "pushStoreAliases: ${toUpsert.size} upserted")
