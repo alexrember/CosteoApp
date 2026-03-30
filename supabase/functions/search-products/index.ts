@@ -724,21 +724,42 @@ async function handleBarcodeSearch(
     })(),
   ])
 
+  // Try Super Selectos with barcode directly (it supports barcode keyword search)
+  let selectosResult: SelectosResult | null = null
+  if (!walmartResult && !priceSmartResult) {
+    try {
+      const start = Date.now()
+      selectosResult = await fetchSelectosByBarcode(barcode)
+      await updateScraperStatus(supabase, 'superselectos_web', selectosResult != null, Date.now() - start)
+    } catch (e) {
+      console.error('Super Selectos barcode fetch failed:', e)
+    }
+  }
+
   // Pick best data source to create the global product
   const bestSource = walmartResult ?? priceSmartResult
-  if (!bestSource) {
+  const selectosFallback = !bestSource && selectosResult ? {
+    productName: selectosResult.productName,
+    brand: null as string | null,
+    imageUrl: selectosResult.imageUrl,
+    measurementUnit: null as string | null,
+    unitMultiplier: null as number | null,
+  } : null
+
+  if (!bestSource && !selectosFallback) {
     return { results: [], fromCache: false }
   }
 
   // Create global_product from API data
+  const source = bestSource ?? selectosFallback!
   globalProduct = await createGlobalProduct(
     supabase,
     barcode,
-    bestSource.productName ?? 'Sin nombre',
-    bestSource.brand ?? null,
-    bestSource.imageUrl ?? null,
-    bestSource.measurementUnit ?? null,
-    bestSource.unitMultiplier ?? null,
+    source.productName ?? 'Sin nombre',
+    source.brand ?? null,
+    source.imageUrl ?? null,
+    source.measurementUnit ?? null,
+    source.unitMultiplier ?? null,
   )
 
   if (!globalProduct) {
@@ -804,6 +825,35 @@ async function handleBarcodeSearch(
       measurementUnit: globalProduct.unidad_medida,
       unitMultiplier: globalProduct.cantidad_por_empaque,
       source: priceSmartResult.source,
+    })
+  }
+
+  if (selectosResult && selectosResult.price && globalProduct) {
+    priceUpserts.push(
+      upsertProductPrice(
+        supabase,
+        globalProduct.id,
+        selectosResult.storeName,
+        selectosResult.price,
+        null,
+        true,
+        selectosResult.fetchUrl,
+        null,
+        selectosResult.source,
+      ),
+    )
+    results.push({
+      storeName: selectosResult.storeName,
+      productName: selectosResult.productName,
+      brand: null,
+      ean: globalProduct.ean,
+      price: selectosResult.price,
+      listPrice: null,
+      isAvailable: true,
+      imageUrl: selectosResult.imageUrl,
+      measurementUnit: null,
+      unitMultiplier: null,
+      source: selectosResult.source,
     })
   }
 
