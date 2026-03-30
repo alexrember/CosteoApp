@@ -223,9 +223,9 @@ class ScannerViewModel @Inject constructor(
             val storeResults = orchestrated.results
             lastNutricion = deferredNutricion.await()
 
-            // PriceSmart: si no hay resultados con precio de TIENDAS (ignorar OFF), pedir Item#
-            val storeResultsWithPrice = storeResults.filter { it.source != "open_food_facts" && it.price != null && it.price > 0 }
-            if (isPriceSmart() && storeResultsWithPrice.isEmpty()) {
+            // PriceSmart: si no hay precio de PriceSmart, pedir Item#
+            val priceSmartResults = storeResults.filter { it.source == "pricesmart_bloomreach" && it.price != null && it.price > 0 }
+            if (isPriceSmart() && priceSmartResults.isEmpty()) {
                 pendingEanForItemNumber = barcode
                 synchronized(scanLock) { processingBarcode = null }
                 candidateBarcode = null
