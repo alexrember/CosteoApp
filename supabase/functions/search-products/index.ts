@@ -94,7 +94,7 @@ interface WalmartPriceResult {
   isAvailable: boolean
   fetchUrl: string
   source: string
-  // Product metadata (only used when creating new global_products)
+  storeProductId?: string
   productName?: string
   brand?: string
   imageUrl?: string
@@ -131,6 +131,7 @@ async function fetchWalmartByBarcode(barcode: string): Promise<WalmartPriceResul
     isAvailable: offer.IsAvailable ?? false,
     fetchUrl: url,
     source: 'walmart_vtex',
+    storeProductId: item?.itemId ?? undefined,
     productName: product.productName ?? item?.nameComplete ?? undefined,
     brand: product.brand ?? undefined,
     imageUrl: item?.images?.[0]?.imageUrl ?? undefined,
@@ -226,6 +227,7 @@ interface PriceSmartPriceResult {
   fetchUrl: string
   fetchParams: Record<string, string>
   source: string
+  storeProductId?: string
   productName?: string
   brand?: string
   imageUrl?: string
@@ -259,6 +261,7 @@ async function fetchPriceSmartByQuery(query: string): Promise<PriceSmartPriceRes
     fetchUrl: fullUrl,
     fetchParams: paramsObj,
     source: 'pricesmart_bloomreach',
+    storeProductId: doc.pid ?? undefined,
     productName: doc.title ?? undefined,
     brand: doc.brand ?? undefined,
     imageUrl: doc.thumb_image ?? undefined,
@@ -296,73 +299,87 @@ async function searchPriceSmartGeneral(query: string): Promise<UnifiedResult[]> 
 }
 
 // ---------------------------------------------------------------------------
-// Super Selectos HTML scraping helpers
+// Super Selectos REST API helpers
 // ---------------------------------------------------------------------------
 
-const SELECTOS_BASE = 'https://www.superselectos.com/products'
+const SELECTOS_PRODUCTS_API = 'https://ecom-products.superselectos.com/api/accounts/selectos'
+const SELECTOS_PRICES_API = 'https://ecom-productsprices.superselectos.com/api/accounts/selectos'
+const SELECTOS_BRANCH = { id: '104', zoneId: 'ee718f8c-d713-4b5e-b584-125fcadfffee', branchName: 'Super Selectos' }
+
+interface SelectosProductResponse {
+  items: SelectosProduct[]
+  totalItemCount: number
+}
+
+interface SelectosProduct {
+  id: string
+  description?: { name?: string; brand?: string }
+  barcodes?: { barcode: string }[]
+  mediaProducts?: { multimediaId?: string }[]
+}
+
+interface SelectosPriceResponse {
+  priceListId: string
+  productId: string
+  price: { currentPrice: number; normalPrice: number }
+}
 
 interface SelectosResult {
   storeName: string
   productName: string
   price: number | null
+  listPrice: number | null
   imageUrl: string | null
   productId: string | null
   fetchUrl: string
   source: string
 }
 
-function parseSelectosHtml(html: string): SelectosResult[] {
-  const results: SelectosResult[] = []
-  const blocks = html.split('item-producto')
-
-  for (let i = 1; i < blocks.length && results.length < 10; i++) {
-    const block = blocks[i]
-
-    // Extract price
-    const priceMatch = block.match(/class="precio"[^>]*>\$([0-9.]+)/)
-    if (!priceMatch) continue
-
-    // Extract product ID
-    const pidMatch = block.match(/productId=(\d+)/)
-
-    // Extract image
-    const imgMatch = block.match(/prod-images.*?<img[^>]*src="([^"]+)"/s)
-
-    // Extract product name: remove SVG and HTML tags, find first substantial text
-    const noSvg = block.replace(/<svg.*?<\/svg>/gs, '')
-    const textLines = noSvg.replace(/<[^>]+>/g, '\n').split('\n')
-      .map(l => l.trim())
-      .filter(l => l.length > 5 && !l.startsWith('$') && !l.includes('1.00') && !l.includes('Agregar'))
-
-    const productName = textLines[0] || 'Sin nombre'
-
-    const price = parseFloat(priceMatch[1])
-    if (isNaN(price) || price <= 0) continue
-
-    results.push({
-      storeName: 'Super Selectos',
-      productName,
-      price: Math.round(price * 100),
-      imageUrl: imgMatch ? imgMatch[1] : null,
-      productId: pidMatch ? pidMatch[1] : null,
-      fetchUrl: `${SELECTOS_BASE}?keyword=${encodeURIComponent(productName.split(' ').slice(0, 3).join(' '))}`,
-      source: 'superselectos_web',
-    })
-  }
-
-  return results
-}
-
 async function fetchSelectosByBarcode(barcode: string): Promise<SelectosResult | null> {
   try {
-    const url = `${SELECTOS_BASE}?keyword=${encodeURIComponent(barcode)}`
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 CosteoApp/1.0', Accept: 'text/html' },
-    })
+    const url = `${SELECTOS_PRODUCTS_API}/products?Barcodes=${encodeURIComponent(barcode)}`
+    const res = await fetch(url, { headers: { Accept: 'application/json' } })
     if (!res.ok) return null
-    const html = await res.text()
-    const results = parseSelectosHtml(html)
-    return results[0] ?? null
+
+    const data: SelectosProductResponse = await res.json()
+    if (!data.items || data.items.length === 0) return null
+
+    const product = data.items[0]
+    const name = product.description?.name ?? 'Sin nombre'
+    const imageId = product.mediaProducts?.[0]?.multimediaId
+    const imageUrl = imageId ? `https://bitworks-multimedia.superselectos.com/api/selectos/multimedia/${imageId}/content` : null
+
+    // Fetch price
+    let currentPrice: number | null = null
+    let normalPrice: number | null = null
+    try {
+      const priceRes = await fetch(
+        `${SELECTOS_PRICES_API}/products-prices-result?productsIds=${product.id}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ branchOffice: SELECTOS_BRANCH }),
+        },
+      )
+      if (priceRes.ok) {
+        const priceData: SelectosPriceResponse = await priceRes.json()
+        currentPrice = priceData.price?.currentPrice != null ? Math.round(priceData.price.currentPrice * 100) : null
+        normalPrice = priceData.price?.normalPrice != null ? Math.round(priceData.price.normalPrice * 100) : null
+      }
+    } catch (e) {
+      console.error('Super Selectos price fetch error:', e)
+    }
+
+    return {
+      storeName: 'Super Selectos',
+      productName: name,
+      price: currentPrice,
+      listPrice: normalPrice,
+      imageUrl,
+      productId: product.id,
+      fetchUrl: `${SELECTOS_PRODUCTS_API}/products?Barcodes=${encodeURIComponent(barcode)}`,
+      source: 'superselectos_api',
+    }
   } catch (e) {
     console.error('Super Selectos fetch error:', e)
     return null
@@ -371,27 +388,54 @@ async function fetchSelectosByBarcode(barcode: string): Promise<SelectosResult |
 
 async function searchSelectosGeneral(query: string): Promise<UnifiedResult[]> {
   try {
-    const url = `${SELECTOS_BASE}?keyword=${encodeURIComponent(query)}`
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 CosteoApp/1.0', Accept: 'text/html' },
-    })
+    const url = `${SELECTOS_PRODUCTS_API}/products?NameContains=${encodeURIComponent(query)}&pageSize=10`
+    const res = await fetch(url, { headers: { Accept: 'application/json' } })
     if (!res.ok) return []
-    const html = await res.text()
-    const parsed = parseSelectosHtml(html)
 
-    return parsed.map(r => ({
-      storeName: r.storeName,
-      productName: r.productName,
-      brand: null,
-      ean: null,
-      price: r.price,
-      listPrice: null,
-      isAvailable: true,
-      imageUrl: r.imageUrl,
-      measurementUnit: null,
-      unitMultiplier: null,
-      source: r.source,
-    }))
+    const data: SelectosProductResponse = await res.json()
+    if (!data.items || data.items.length === 0) return []
+
+    // Fetch prices for all products
+    const productIds = data.items.map(p => p.id).join(',')
+    let priceMap: Record<string, { current: number; normal: number }> = {}
+    try {
+      const priceRes = await fetch(
+        `${SELECTOS_PRICES_API}/products-prices-result?productsIds=${productIds}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ branchOffice: SELECTOS_BRANCH }),
+        },
+      )
+      if (priceRes.ok) {
+        const priceArr = await priceRes.json()
+        if (Array.isArray(priceArr)) {
+          for (const p of priceArr) {
+            priceMap[p.productId] = { current: p.price?.currentPrice, normal: p.price?.normalPrice }
+          }
+        } else if (priceArr.productId) {
+          priceMap[priceArr.productId] = { current: priceArr.price?.currentPrice, normal: priceArr.price?.normalPrice }
+        }
+      }
+    } catch (_) {}
+
+    return data.items.map(product => {
+      const priceInfo = priceMap[product.id]
+      const imageId = product.mediaProducts?.[0]?.multimediaId
+      return {
+        storeName: 'Super Selectos',
+        productName: product.description?.name ?? 'Sin nombre',
+        brand: product.description?.brand ?? null,
+        ean: product.barcodes?.[0]?.barcode ?? null,
+        price: priceInfo ? Math.round(priceInfo.current * 100) : null,
+        listPrice: priceInfo ? Math.round(priceInfo.normal * 100) : null,
+        isAvailable: true,
+        imageUrl: imageId ? `https://bitworks-multimedia.superselectos.com/api/selectos/multimedia/${imageId}/content` : null,
+        measurementUnit: null,
+        unitMultiplier: null,
+        source: 'superselectos_api',
+      }
+    })
   } catch (e) {
     console.error('Super Selectos search error:', e)
     return []
@@ -437,19 +481,30 @@ async function refreshPriceFromUrl(
         isAvailable: doc.availability_SV === 'true' || doc.availability_SV === 'in_stock',
       }
     }
-    if (cachedPrice.source === 'superselectos_web') {
-      const res = await fetch(cachedPrice.fetch_url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 CosteoApp/1.0', Accept: 'text/html' },
-      })
+    if (cachedPrice.source === 'superselectos_api' || cachedPrice.source === 'superselectos_web') {
+      // Re-fetch product by barcode to get latest price
+      const res = await fetch(cachedPrice.fetch_url, { headers: { Accept: 'application/json' } })
       if (!res.ok) return null
-      const html = await res.text()
-      const parsed = parseSelectosHtml(html)
-      if (parsed.length === 0) return null
-      return {
-        price: parsed[0].price,
-        listPrice: null,
-        isAvailable: true,
-      }
+      const data = await res.json()
+      const product = data.items?.[0]
+      if (!product) return null
+      try {
+        const priceRes = await fetch(
+          `${SELECTOS_PRICES_API}/products-prices-result?productsIds=${product.id}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ branchOffice: SELECTOS_BRANCH }),
+          },
+        )
+        if (!priceRes.ok) return null
+        const priceData = await priceRes.json()
+        return {
+          price: priceData.price?.currentPrice != null ? Math.round(priceData.price.currentPrice * 100) : null,
+          listPrice: priceData.price?.normalPrice != null ? Math.round(priceData.price.normalPrice * 100) : null,
+          isAvailable: true,
+        }
+      } catch { return null }
     }
   } catch (e) {
     console.error(`Error refreshing price from ${cachedPrice.fetch_url}:`, e)
@@ -504,6 +559,7 @@ async function upsertProductPrice(
   fetchUrl: string | null,
   fetchParams: Record<string, unknown> | null,
   source: string,
+  storeProductId: string | null = null,
 ): Promise<void> {
   const now = new Date().toISOString()
   const { error } = await supabase
@@ -518,6 +574,7 @@ async function upsertProductPrice(
         fetch_url: fetchUrl,
         fetch_params: fetchParams,
         source,
+        store_product_id: storeProductId,
         fetched_at: now,
         updated_at: now,
       },
@@ -782,6 +839,7 @@ async function handleBarcodeSearch(
         walmartResult.fetchUrl,
         null,
         walmartResult.source,
+        walmartResult.storeProductId ?? null,
       ),
     )
     results.push({
@@ -811,6 +869,7 @@ async function handleBarcodeSearch(
         priceSmartResult.fetchUrl,
         priceSmartResult.fetchParams,
         priceSmartResult.source,
+        priceSmartResult.storeProductId ?? null,
       ),
     )
     results.push({
@@ -840,6 +899,7 @@ async function handleBarcodeSearch(
         selectosResult.fetchUrl,
         null,
         selectosResult.source,
+        selectosResult.productId,
       ),
     )
     results.push({
@@ -859,23 +919,23 @@ async function handleBarcodeSearch(
 
   await Promise.all(priceUpserts)
 
-  // Search Super Selectos by product name (doesn't support barcode)
-  if (globalProduct && globalProduct.nombre) {
+  // Search Super Selectos by barcode via REST API
+  if (globalProduct) {
     try {
-      const searchName = globalProduct.nombre.split(' ').slice(0, 3).join(' ')
       const start = Date.now()
-      const selectosResult = await fetchSelectosByBarcode(searchName)
-      if (selectosResult && selectosResult.price) {
+      const selectosFromApi = await fetchSelectosByBarcode(barcode)
+      if (selectosFromApi && selectosFromApi.price) {
         await upsertProductPrice(
           supabase,
           globalProduct.id,
-          selectosResult.storeName,
-          selectosResult.price,
-          null,
+          selectosFromApi.storeName,
+          selectosFromApi.price,
+          selectosFromApi.listPrice,
           true,
-          selectosResult.fetchUrl,
+          selectosFromApi.fetchUrl,
           null,
-          selectosResult.source,
+          selectosFromApi.source,
+          selectosFromApi.productId,
         )
         results.push({
           storeName: selectosResult.storeName,
@@ -926,6 +986,7 @@ function fetchMissingStorePrices(
               result.fetchUrl,
               null,
               result.source,
+              result.storeProductId ?? null,
             )
           }
         } catch (e) {
@@ -935,24 +996,24 @@ function fetchMissingStorePrices(
     )
   }
 
-  // Super Selectos — fetch by product name if no cached price
+  // Super Selectos — fetch by barcode via REST API
   if (!cachedStores.has('Super Selectos')) {
     promises.push(
       (async () => {
         try {
-          const searchName = globalProduct.nombre.split(' ').slice(0, 3).join(' ')
-          const result = await fetchSelectosByBarcode(searchName)
+          const result = await fetchSelectosByBarcode(barcode)
           if (result && result.price) {
             await upsertProductPrice(
               supabase,
               globalProduct.id,
               result.storeName,
               result.price,
-              null,
+              result.listPrice,
               true,
               result.fetchUrl,
               null,
               result.source,
+              result.productId,
             )
           }
         } catch (e) {
@@ -979,6 +1040,7 @@ function fetchMissingStorePrices(
               result.fetchUrl,
               result.fetchParams,
               result.source,
+              result.storeProductId ?? null,
             )
           }
         } catch (e) {
