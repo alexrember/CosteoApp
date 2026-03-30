@@ -250,24 +250,25 @@ class SyncManager @Inject constructor(
                 return SyncResult(success = true)
             }
 
+            val unlinkedEans = unlinked.mapNotNull { it.codigoBarras }
+            val allGlobalRows = supabase.from("global_products")
+                .select { filter { isIn("ean", unlinkedEans) } }
+                .decodeList<GlobalProductRow>()
+            val globalByEan = allGlobalRows.associateBy { it.ean }
+
             var linked = 0
             for (producto in unlinked) {
                 try {
-                    val rows = supabase.from("global_products")
-                        .select { filter { eq("ean", producto.codigoBarras!!) } }
-                        .decodeList<GlobalProductRow>()
-
-                    if (rows.isNotEmpty()) {
-                        val globalId = rows.first().id
-                        productoDao.update(
-                            producto.copy(
-                                globalProductId = globalId,
-                                updatedAt = System.currentTimeMillis()
-                            )
+                    val globalRow = globalByEan[producto.codigoBarras] ?: continue
+                    val globalId = globalRow.id
+                    productoDao.update(
+                        producto.copy(
+                            globalProductId = globalId,
+                            updatedAt = System.currentTimeMillis()
                         )
-                        linked++
-                        Log.d(TAG, "Linked producto '${producto.nombre}' -> $globalId")
-                    }
+                    )
+                    linked++
+                    Log.d(TAG, "Linked producto '${producto.nombre}' -> $globalId")
                 } catch (e: Exception) {
                     Log.w(TAG, "Error linking producto '${producto.nombre}': ${e.message}")
                 }
@@ -294,24 +295,26 @@ class SyncManager @Inject constructor(
                 return SyncResult(success = true)
             }
 
+            val allGlobalStores = supabase.from("global_stores")
+                .select()
+                .decodeList<GlobalStoreRow>()
+
             var linked = 0
             for (tienda in unlinked) {
                 try {
-                    val rows = supabase.from("global_stores")
-                        .select { filter { ilike("nombre", "%${tienda.nombre}%") } }
-                        .decodeList<GlobalStoreRow>()
-
-                    if (rows.isNotEmpty()) {
-                        val globalId = rows.first().id
-                        tiendaDao.update(
-                            tienda.copy(
-                                globalStoreId = globalId,
-                                updatedAt = System.currentTimeMillis()
-                            )
+                    val match = allGlobalStores.firstOrNull { globalStore ->
+                        globalStore.nombre.contains(tienda.nombre, ignoreCase = true) ||
+                        tienda.nombre.contains(globalStore.nombre, ignoreCase = true)
+                    } ?: continue
+                    val globalId = match.id
+                    tiendaDao.update(
+                        tienda.copy(
+                            globalStoreId = globalId,
+                            updatedAt = System.currentTimeMillis()
                         )
-                        linked++
-                        Log.d(TAG, "Linked tienda '${tienda.nombre}' -> $globalId")
-                    }
+                    )
+                    linked++
+                    Log.d(TAG, "Linked tienda '${tienda.nombre}' -> $globalId")
                 } catch (e: Exception) {
                     Log.w(TAG, "Error linking tienda '${tienda.nombre}': ${e.message}")
                 }

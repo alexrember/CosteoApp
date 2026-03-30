@@ -50,6 +50,10 @@ object DatabaseModule {
                     super.onCreate(db)
                     DatabaseSeeder.seed(db)
                 }
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    super.onOpen(db)
+                    db.execSQL("PRAGMA foreign_keys = ON")
+                }
             })
             .build()
 

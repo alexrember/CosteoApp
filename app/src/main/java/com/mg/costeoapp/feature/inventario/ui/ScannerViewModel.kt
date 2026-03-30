@@ -13,6 +13,7 @@ import com.mg.costeoapp.feature.inventario.data.repository.StoreSearchOrchestrat
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -154,107 +155,120 @@ class ScannerViewModel @Inject constructor(
                 )
             }
 
-            val productoLocal = productoDao.getByCodigoBarras(barcode)
+            val completed = withTimeoutOrNull(15_000L) {
+                val productoLocal = productoDao.getByCodigoBarras(barcode)
 
-            if (productoLocal != null) {
-                val tienda = compraManager.getTienda()
-                var precio = 0L
-                if (tienda != null) {
-                    val precioTienda = productoTiendaDao.getPrecioActivo(productoLocal.id, tienda.id)
-                    val precioReciente = precioTienda ?: productoTiendaDao.getPrecioMasReciente(productoLocal.id)
-                    precio = precioReciente?.precio ?: 0L
-                }
+                if (productoLocal != null) {
+                    val tienda = compraManager.getTienda()
+                    var precio = 0L
+                    if (tienda != null) {
+                        val precioTienda = productoTiendaDao.getPrecioActivo(productoLocal.id, tienda.id)
+                        val precioReciente = precioTienda ?: productoTiendaDao.getPrecioMasReciente(productoLocal.id)
+                        precio = precioReciente?.precio ?: 0L
+                    }
 
-                compraManager.agregarProducto(productoLocal, 1.0, precio)
+                    compraManager.agregarProducto(productoLocal, 1.0, precio)
 
-                val preciosComparados = mutableListOf<PrecioComparado>()
+                    val preciosComparados = mutableListOf<PrecioComparado>()
 
-                if (precio > 0 && tienda != null) {
-                    preciosComparados.add(PrecioComparado(
-                        tiendaNombre = tienda.nombre,
-                        precio = precio,
-                        fecha = null,
-                        fuente = "local"
-                    ))
-                }
+                    if (precio > 0 && tienda != null) {
+                        preciosComparados.add(PrecioComparado(
+                            tiendaNombre = tienda.nombre,
+                            precio = precio,
+                            fecha = null,
+                            fuente = "local"
+                        ))
+                    }
 
-                if (productoLocal.codigoBarras != null) {
-                    val tiendaNombreLocal = tienda?.nombre?.lowercase() ?: ""
-                    val orchestrated = searchOrchestrator.searchByBarcode(productoLocal.codigoBarras, getActiveStoreNames())
-                    orchestrated.results.filter { it.isAvailable && it.price != null }.forEach { result ->
-                        val yaExiste = preciosComparados.any { existing ->
-                            existing.tiendaNombre.lowercase().contains(result.storeName.lowercase().take(8)) ||
-                            result.storeName.lowercase().contains(existing.tiendaNombre.lowercase().take(8))
-                        }
-                        if (!yaExiste) {
-                            preciosComparados.add(PrecioComparado(
-                                tiendaNombre = result.storeName,
-                                precio = result.price!!,
-                                fecha = null,
-                                fuente = result.source
-                            ))
+                    if (productoLocal.codigoBarras != null) {
+                        val tiendaNombreLocal = tienda?.nombre?.lowercase() ?: ""
+                        val orchestrated = searchOrchestrator.searchByBarcode(productoLocal.codigoBarras, getActiveStoreNames())
+                        orchestrated.results.filter { it.isAvailable && it.price != null }.forEach { result ->
+                            val yaExiste = preciosComparados.any { existing ->
+                                existing.tiendaNombre.lowercase().contains(result.storeName.lowercase().take(8)) ||
+                                result.storeName.lowercase().contains(existing.tiendaNombre.lowercase().take(8))
+                            }
+                            if (!yaExiste) {
+                                preciosComparados.add(PrecioComparado(
+                                    tiendaNombre = result.storeName,
+                                    precio = result.price!!,
+                                    fecha = null,
+                                    fuente = result.source
+                                ))
+                            }
                         }
                     }
-                }
 
-                _uiState.update {
-                    it.copy(
-                        isProcessing = false,
-                        lookupState = BarcodeLookupState.EncontradoLocal(
-                            productoLocal, preciosComparados
+                    _uiState.update {
+                        it.copy(
+                            isProcessing = false,
+                            lookupState = BarcodeLookupState.EncontradoLocal(
+                                productoLocal, preciosComparados
+                            )
                         )
-                    )
+                    }
+                    _events.send(UiEvent.ShowError("${productoLocal.nombre} agregado al carrito"))
+
+                    kotlinx.coroutines.delay(1500)
+                    synchronized(scanLock) { processingBarcode = null }
+                    if (preciosComparados.size <= 1) {
+                        _uiState.update { it.copy(lookupState = BarcodeLookupState.Idle) }
+                    }
+                    return@withTimeoutOrNull
                 }
-                _events.send(UiEvent.ShowError("${productoLocal.nombre} agregado al carrito"))
 
-                kotlinx.coroutines.delay(1500)
-                synchronized(scanLock) { processingBarcode = null }
-                if (preciosComparados.size <= 1) {
-                    _uiState.update { it.copy(lookupState = BarcodeLookupState.Idle) }
+                val deferredStores = async {
+                    searchOrchestrator.searchByBarcode(barcode, getActiveStoreNames())
                 }
-                return@launch
-            }
 
-            val deferredStores = async {
-                searchOrchestrator.searchByBarcode(barcode, getActiveStoreNames())
-            }
+                val deferredNutricion = async {
+                    nutritionRepository.searchByBarcode(barcode)
+                }
 
-            val deferredNutricion = async {
-                nutritionRepository.searchByBarcode(barcode)
-            }
+                val orchestrated = deferredStores.await()
+                val storeResults = orchestrated.results
+                lastNutricion = deferredNutricion.await()
 
-            val orchestrated = deferredStores.await()
-            val storeResults = orchestrated.results
-            lastNutricion = deferredNutricion.await()
+                // PriceSmart: si no hay precio de PriceSmart, pedir Item#
+                val priceSmartResults = storeResults.filter { it.source == "pricesmart_bloomreach" && it.price != null && it.price > 0 }
+                if (isPriceSmart() && priceSmartResults.isEmpty()) {
+                    pendingEanForItemNumber = barcode
+                    synchronized(scanLock) { processingBarcode = null }
+                    candidateBarcode = null
+                    candidateCount = 0
+                    _uiState.update {
+                        it.copy(
+                            isProcessing = false,
+                            lookupState = BarcodeLookupState.NeedItemNumber(barcode)
+                        )
+                    }
+                    return@withTimeoutOrNull
+                }
 
-            // PriceSmart: si no hay precio de PriceSmart, pedir Item#
-            val priceSmartResults = storeResults.filter { it.source == "pricesmart_bloomreach" && it.price != null && it.price > 0 }
-            if (isPriceSmart() && priceSmartResults.isEmpty()) {
-                pendingEanForItemNumber = barcode
-                synchronized(scanLock) { processingBarcode = null }
-                candidateBarcode = null
-                candidateCount = 0
+                compraManager.cacheSearchResults(storeResults, lastNutricion)
+
                 _uiState.update {
                     it.copy(
                         isProcessing = false,
-                        lookupState = BarcodeLookupState.NeedItemNumber(barcode)
+                        lookupState = if (storeResults.isNotEmpty())
+                            BarcodeLookupState.EncontradoApi(barcode, storeResults)
+                        else
+                            BarcodeLookupState.NoEncontrado(barcode)
                     )
                 }
-                return@launch
+                _navEvents.send(ScannerNavEvent.GoToRegistro(barcode))
             }
 
-            compraManager.cacheSearchResults(storeResults, lastNutricion)
-
-            _uiState.update {
-                it.copy(
-                    isProcessing = false,
-                    lookupState = if (storeResults.isNotEmpty())
-                        BarcodeLookupState.EncontradoApi(barcode, storeResults)
-                    else
-                        BarcodeLookupState.NoEncontrado(barcode)
-                )
+            if (completed == null) {
+                synchronized(scanLock) { processingBarcode = null }
+                _uiState.update {
+                    it.copy(
+                        isProcessing = false,
+                        lookupState = BarcodeLookupState.Idle
+                    )
+                }
+                _events.send(UiEvent.ShowError("Busqueda agotada. Intenta de nuevo."))
             }
-            _navEvents.send(ScannerNavEvent.GoToRegistro(barcode))
         }
     }
 

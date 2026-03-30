@@ -21,6 +21,9 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @Serializable
+private data class LinkBarcodeRequest(val ean: String, val itemNumber: String)
+
+@Serializable
 private data class BackendSearchRequest(
     val query: String? = null,
     val barcode: String? = null,
@@ -85,9 +88,7 @@ class CosteoBackendRepository @Inject constructor(
     suspend fun linkBarcodeToItemNumber(ean: String, itemNumber: String): Result<List<StoreSearchResult>> = withContext(Dispatchers.IO) {
         try {
             val url = "${supabaseUrl}/functions/v1/link-barcode"
-            val bodyJson = buildString {
-                append("{\"ean\":\""); append(ean); append("\",\"itemNumber\":\""); append(itemNumber); append("\"}")
-            }
+            val bodyJson = json.encodeToString(LinkBarcodeRequest.serializer(), LinkBarcodeRequest(ean, itemNumber))
             val session = supabaseClient.auth.currentSessionOrNull()
             val bearerToken = session?.accessToken ?: anonKey
 

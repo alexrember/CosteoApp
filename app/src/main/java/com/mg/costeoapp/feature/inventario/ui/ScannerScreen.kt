@@ -404,10 +404,13 @@ private fun CameraPreview(
         BarcodeScanning.getClient(options)
     }
 
+    var resolvedCameraProvider: ProcessCameraProvider? = null
+
     DisposableEffect(Unit) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
+            resolvedCameraProvider = cameraProvider
 
             val preview = Preview.Builder().build().also {
                 it.surfaceProvider = previewView.surfaceProvider
@@ -453,7 +456,7 @@ private fun CameraPreview(
         }, ContextCompat.getMainExecutor(context))
 
         onDispose {
-            cameraProviderFuture.get().unbindAll()
+            resolvedCameraProvider?.unbindAll()
             scanner.close()
             executor.shutdown()
         }

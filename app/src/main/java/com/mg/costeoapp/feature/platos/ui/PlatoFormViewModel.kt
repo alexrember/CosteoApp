@@ -175,7 +175,15 @@ class PlatoFormViewModel @Inject constructor(
                     val precioUnitario = precio.precioUnitario ?: 0L
                     val contenidoTotal = item.producto.cantidadPorEmpaque * maxOf(item.producto.unidadesPorEmpaque, 1)
                     if (contenidoTotal <= 0) 0L
-                    else (precioUnitario.toDouble() / contenidoTotal * cantidad).roundToLong()
+                    else {
+                        val precioPorUnidad = precioUnitario.toDouble() / contenidoTotal
+                        val costo = precioPorUnidad * cantidad
+                        if (item.producto.factorMerma in 1..99) {
+                            (costo / (1.0 - item.producto.factorMerma / 100.0)).roundToLong()
+                        } else {
+                            costo.roundToLong()
+                        }
+                    }
                 } else 0L
 
                 costoTotal += costoItem

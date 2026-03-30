@@ -1041,6 +1041,21 @@ Deno.serve(async (req) => {
     }
 
     const { query, barcode, stores } = (await req.json()) as SearchRequest
+
+    // Input validation
+    if (barcode && !/^\d{4,14}$/.test(barcode)) {
+      return new Response(
+        JSON.stringify({ error: 'Barcode invalido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+    if (query && query.length > 200) {
+      return new Response(
+        JSON.stringify({ error: 'Query muy largo' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
     // Normalize store names for matching
     const activeStores = stores?.map(s => s.toLowerCase()) ?? null // null = search all
 
