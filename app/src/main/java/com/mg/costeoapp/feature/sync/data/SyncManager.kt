@@ -38,7 +38,7 @@ private data class GlobalProductRow(
 @Serializable
 private data class GlobalStoreRow(
     val id: String,
-    @SerialName("name") val name: String
+    val nombre: String
 )
 
 @Serializable
@@ -72,7 +72,7 @@ private data class UserProductAliasWithProduct(
 @Serializable
 private data class UserStoreAliasDto(
     @SerialName("user_id") val userId: String,
-    @SerialName("global_store_id") val globalStoreId: String,
+    @SerialName("store_id") val globalStoreId: String,
     val alias: String
 )
 
@@ -290,7 +290,7 @@ class SyncManager @Inject constructor(
             for (tienda in unlinked) {
                 try {
                     val rows = supabase.from("global_stores")
-                        .select { filter { ilike("name", tienda.nombre) } }
+                        .select { filter { ilike("nombre", tienda.nombre) } }
                         .decodeList<GlobalStoreRow>()
 
                     if (rows.isNotEmpty()) {
@@ -482,7 +482,7 @@ class SyncManager @Inject constructor(
             }
 
             supabase.from("user_store_aliases").upsert(toUpsert) {
-                onConflict = "user_id,global_store_id"
+                onConflict = "user_id,store_id"
             }
 
             Log.d(TAG, "pushStoreAliases: ${toUpsert.size} upserted")
