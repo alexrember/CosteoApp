@@ -481,7 +481,7 @@ async function refreshPriceFromUrl(
         isAvailable: doc.availability_SV === 'true' || doc.availability_SV === 'in_stock',
       }
     }
-    if (cachedPrice.source === 'superselectos_api' || cachedPrice.source === 'superselectos_web') {
+    if (cachedPrice.source === 'superselectos_api' || cachedPrice.source === 'superselectos_api') {
       // Re-fetch product by barcode to get latest price
       const res = await fetch(cachedPrice.fetch_url, { headers: { Accept: 'application/json' } })
       if (!res.ok) return null
@@ -779,36 +779,37 @@ async function handleBarcodeSearch(
         return null
       }
     })(),
+    (async () => {
+      const start = Date.now()
+      try {
+        const r = await fetchSelectosByBarcode(barcode)
+        await updateScraperStatus(supabase, 'superselectos_api', r != null, Date.now() - start)
+        return r
+      } catch (e) {
+        console.error('Super Selectos fetch failed:', e)
+        await updateScraperStatus(supabase, 'superselectos_api', false, Date.now() - start)
+        return null
+      }
+    })(),
   ])
 
-  // Try Super Selectos with barcode directly (it supports barcode keyword search)
-  let selectosResult: SelectosResult | null = null
-  if (!walmartResult && !priceSmartResult) {
-    try {
-      const start = Date.now()
-      selectosResult = await fetchSelectosByBarcode(barcode)
-      await updateScraperStatus(supabase, 'superselectos_web', selectosResult != null, Date.now() - start)
-    } catch (e) {
-      console.error('Super Selectos barcode fetch failed:', e)
-    }
-  }
+  console.log(`Barcode ${barcode}: walmart=${!!walmartResult} pricesmart=${!!priceSmartResult} selectos=${!!selectosResult} selectosName=${selectosResult?.productName}`)
 
   // Pick best data source to create the global product
-  const bestSource = walmartResult ?? priceSmartResult
-  const selectosFallback = !bestSource && selectosResult ? {
+  const bestSource = walmartResult ?? priceSmartResult ?? (selectosResult ? {
     productName: selectosResult.productName,
     brand: null as string | null,
     imageUrl: selectosResult.imageUrl,
     measurementUnit: null as string | null,
     unitMultiplier: null as number | null,
-  } : null
+  } : null)
 
-  if (!bestSource && !selectosFallback) {
+  if (!bestSource) {
     return { results: [], fromCache: false }
   }
 
   // Create global_product from API data
-  const source = bestSource ?? selectosFallback!
+  const source = bestSource
   globalProduct = await createGlobalProduct(
     supabase,
     barcode,
@@ -918,44 +919,6 @@ async function handleBarcodeSearch(
   }
 
   await Promise.all(priceUpserts)
-
-  // Search Super Selectos by barcode via REST API
-  if (globalProduct) {
-    try {
-      const start = Date.now()
-      const selectosFromApi = await fetchSelectosByBarcode(barcode)
-      if (selectosFromApi && selectosFromApi.price) {
-        await upsertProductPrice(
-          supabase,
-          globalProduct.id,
-          selectosFromApi.storeName,
-          selectosFromApi.price,
-          selectosFromApi.listPrice,
-          true,
-          selectosFromApi.fetchUrl,
-          null,
-          selectosFromApi.source,
-          selectosFromApi.productId,
-        )
-        results.push({
-          storeName: selectosResult.storeName,
-          productName: selectosResult.productName,
-          brand: null,
-          ean: globalProduct.ean,
-          price: selectosResult.price,
-          listPrice: null,
-          isAvailable: true,
-          imageUrl: selectosResult.imageUrl,
-          measurementUnit: null,
-          unitMultiplier: null,
-          source: selectosResult.source,
-        })
-      }
-      await updateScraperStatus(supabase, 'superselectos_web', true, Date.now() - start)
-    } catch (e) {
-      console.error('Super Selectos search by name failed:', e)
-    }
-  }
 
   return { results, fromCache: false }
 }
@@ -1104,7 +1067,7 @@ Deno.serve(async (req) => {
       await supabase.from('search_logs').insert({
         user_id: userId,
         barcode,
-        stores_searched: ['walmart_vtex', 'pricesmart_bloomreach', 'superselectos_web'],
+        stores_searched: ['walmart_vtex', 'pricesmart_bloomreach', 'superselectos_api'],
         stores_found: storesFound,
         results_count: results.length,
         from_cache: fromCache,
@@ -1160,13 +1123,13 @@ Deno.serve(async (req) => {
         try {
           const results = await searchSelectosGeneral(query)
           const ms = Date.now() - start
-          await updateScraperStatus(supabase, 'superselectos_web', true, ms)
-          return { store: 'superselectos_web', results, ms, ok: true }
+          await updateScraperStatus(supabase, 'superselectos_api', true, ms)
+          return { store: 'superselectos_api', results, ms, ok: true }
         } catch (e) {
           const ms = Date.now() - start
           console.error('Super Selectos fetch failed:', e)
-          await updateScraperStatus(supabase, 'superselectos_web', false, ms)
-          return { store: 'superselectos_web', results: [], ms, ok: false }
+          await updateScraperStatus(supabase, 'superselectos_api', false, ms)
+          return { store: 'superselectos_api', results: [], ms, ok: false }
         }
       })(),
     )
