@@ -694,25 +694,6 @@ async function handleBarcodeSearch(
     const freshPrices = cachedPrices.filter(isPriceFresh)
     const stalePrices = cachedPrices.filter((p) => !isPriceFresh(p))
 
-    // If all prices are fresh, return cached
-    if (freshPrices.length > 0 && stalePrices.length === 0) {
-      const results: UnifiedResult[] = freshPrices.map((p) => ({
-        storeName: p.store_name,
-        productName: globalProduct!.nombre,
-        brand: globalProduct!.marca,
-        ean: globalProduct!.ean,
-        price: p.price != null ? Number(p.price) : null,
-        listPrice: p.list_price != null ? Number(p.list_price) : null,
-        isAvailable: p.is_available ?? true,
-        imageUrl: globalProduct!.imagen_url,
-        measurementUnit: globalProduct!.unidad_medida,
-        unitMultiplier: globalProduct!.cantidad_por_empaque,
-        source: p.source,
-      }))
-
-      return { results, fromCache: true }
-    }
-
     // 3. Refresh stale prices using stored fetch_url
     const refreshPromises: Promise<void>[] = []
 
@@ -737,7 +718,7 @@ async function handleBarcodeSearch(
       )
     }
 
-    // Also fetch from stores that don't have a cached price yet
+    // Always fetch from stores that don't have a cached price yet
     const cachedStores = new Set(cachedPrices.map((p) => p.store_name))
     const fetchNewPromises = fetchMissingStorePrices(supabase, barcode, globalProduct, cachedStores)
 
