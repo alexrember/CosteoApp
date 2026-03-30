@@ -73,7 +73,8 @@ private data class UserProductAliasWithProduct(
 private data class UserStoreAliasDto(
     @SerialName("user_id") val userId: String,
     @SerialName("store_id") val globalStoreId: String,
-    val alias: String
+    val alias: String,
+    val activo: Boolean = true
 )
 
 @Serializable
@@ -466,14 +467,15 @@ class SyncManager @Inject constructor(
      */
     private suspend fun pushStoreAliases(userId: String): SyncResult {
         return try {
-            val allStores = tiendaDao.getAllOnce()
+            val allStores = tiendaDao.getAllIncludingInactiveOnce()
             val toUpsert = allStores
                 .filter { it.globalStoreId != null }
                 .map { t ->
                     UserStoreAliasDto(
                         userId = userId,
                         globalStoreId = t.globalStoreId!!,
-                        alias = t.nombre
+                        alias = t.nombre,
+                        activo = t.activo
                     )
                 }
 

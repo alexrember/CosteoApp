@@ -49,6 +49,9 @@ interface TiendaDao {
     @Query("SELECT * FROM tiendas WHERE updated_at > :since")
     suspend fun getModifiedSince(since: Long): List<Tienda>
 
-    @Query("SELECT * FROM tiendas")
+    @Query("SELECT * FROM tiendas WHERE activo = 1")
     suspend fun getAllOnce(): List<Tienda>
+
+    @Query("SELECT * FROM tiendas")
+    suspend fun getAllIncludingInactiveOnce(): List<Tienda>
 }
