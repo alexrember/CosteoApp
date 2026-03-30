@@ -157,10 +157,15 @@ class SyncManager @Inject constructor(
         private const val TAG = "SyncManager"
     }
 
-    fun pushInBackground() {
+    fun pushInBackground(delayMs: Long = 0) {
         bgScope.launch {
             try {
-                val userId = supabase.auth.currentSessionOrNull()?.user?.id ?: return@launch
+                if (delayMs > 0) kotlinx.coroutines.delay(delayMs)
+                val userId = supabase.auth.currentSessionOrNull()?.user?.id
+                if (userId == null) {
+                    Log.d(TAG, "Auto-push: no session, skipping")
+                    return@launch
+                }
                 val result = pushAll(userId)
                 Log.d(TAG, "Auto-push: pushed=${result.pushedCount}, errors=${result.errors}")
             } catch (e: Exception) {

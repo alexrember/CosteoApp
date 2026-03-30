@@ -23,7 +23,7 @@ class CosteoApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         appScope.launch { compraManager.restaurarDesdeDb() }
-        syncManager.pushInBackground()
+        syncManager.pushInBackground(delayMs = 3000)
     }
 
     override val workManagerConfiguration: Configuration
