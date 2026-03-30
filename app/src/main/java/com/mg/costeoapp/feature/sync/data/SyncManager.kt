@@ -483,13 +483,21 @@ class SyncManager @Inject constructor(
                 return SyncResult(success = true)
             }
 
-            // Update each store alias individually to ensure activo is synced
             for (dto in toUpsert) {
-                supabase.from("user_store_aliases")
-                    .upsert(dto) {
-                        onConflict = "user_id,store_id"
-                        defaultToNull = false
-                    }
+                // Check if alias exists
+                val existing = supabase.from("user_store_aliases")
+                    .select { filter { eq("user_id", dto.userId); eq("store_id", dto.globalStoreId) } }
+                    .decodeList<kotlinx.serialization.json.JsonObject>()
+
+                if (existing.isNotEmpty()) {
+                    // Update activo field
+                    supabase.from("user_store_aliases")
+                        .update({ set("activo", dto.activo); set("alias", dto.alias) }) {
+                            filter { eq("user_id", dto.userId); eq("store_id", dto.globalStoreId) }
+                        }
+                } else {
+                    supabase.from("user_store_aliases").insert(dto)
+                }
             }
 
             Log.d(TAG, "pushStoreAliases: ${toUpsert.size} upserted")
