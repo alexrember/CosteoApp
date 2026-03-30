@@ -338,8 +338,13 @@ interface SelectosResult {
 async function fetchSelectosByBarcode(barcode: string): Promise<SelectosResult | null> {
   try {
     const url = `${SELECTOS_PRODUCTS_API}/products?Barcodes=${encodeURIComponent(barcode)}`
-    const res = await fetch(url, { headers: { Accept: 'application/json' } })
-    if (!res.ok) return null
+    console.log(`[Selectos] Fetching: ${url}`)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 5000)
+    const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal })
+    clearTimeout(timeout)
+    console.log(`[Selectos] Response: ${res.status}`)
+    if (!res.ok) { console.error(`[Selectos] HTTP ${res.status}`); return null }
 
     const data: SelectosProductResponse = await res.json()
     if (!data.items || data.items.length === 0) return null
@@ -380,8 +385,9 @@ async function fetchSelectosByBarcode(barcode: string): Promise<SelectosResult |
       fetchUrl: `${SELECTOS_PRODUCTS_API}/products?Barcodes=${encodeURIComponent(barcode)}`,
       source: 'superselectos_api',
     }
-  } catch (e) {
-    console.error('Super Selectos fetch error:', e)
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error(`[Selectos] Error: ${msg}`)
     return null
   }
 }
