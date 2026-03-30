@@ -25,6 +25,7 @@ import javax.inject.Inject
 class ScannerViewModel @Inject constructor(
     private val productoDao: ProductoDao,
     private val productoTiendaDao: ProductoTiendaDao,
+    private val tiendaDao: com.mg.costeoapp.core.database.dao.TiendaDao,
     private val searchOrchestrator: StoreSearchOrchestrator,
     private val nutritionRepository: NutritionRepository,
     private val backendRepository: CosteoBackendRepository,
@@ -85,6 +86,10 @@ class ScannerViewModel @Inject constructor(
             return
         }
         processBarcode(barcode)
+    }
+
+    private suspend fun getActiveStoreNames(): List<String> {
+        return tiendaDao.getAllOnce().filter { it.activo }.map { it.nombre }
     }
 
     private fun isPriceSmart(): Boolean {
@@ -176,7 +181,7 @@ class ScannerViewModel @Inject constructor(
 
                 if (productoLocal.codigoBarras != null) {
                     val tiendaNombreLocal = tienda?.nombre?.lowercase() ?: ""
-                    val orchestrated = searchOrchestrator.searchByBarcode(productoLocal.codigoBarras)
+                    val orchestrated = searchOrchestrator.searchByBarcode(productoLocal.codigoBarras, getActiveStoreNames())
                     orchestrated.results.filter { it.isAvailable && it.price != null }.forEach { result ->
                         val yaExiste = preciosComparados.any { existing ->
                             existing.tiendaNombre.lowercase().contains(result.storeName.lowercase().take(8)) ||
@@ -212,7 +217,7 @@ class ScannerViewModel @Inject constructor(
             }
 
             val deferredStores = async {
-                searchOrchestrator.searchByBarcode(barcode)
+                searchOrchestrator.searchByBarcode(barcode, getActiveStoreNames())
             }
 
             val deferredNutricion = async {

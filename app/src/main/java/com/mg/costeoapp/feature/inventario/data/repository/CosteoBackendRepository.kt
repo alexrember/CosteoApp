@@ -23,7 +23,8 @@ import javax.inject.Inject
 @Serializable
 private data class BackendSearchRequest(
     val query: String? = null,
-    val barcode: String? = null
+    val barcode: String? = null,
+    val stores: List<String>? = null
 )
 
 @Serializable
@@ -73,12 +74,12 @@ class CosteoBackendRepository @Inject constructor(
     private val supabaseUrl: String by lazy { NativeSecrets.getSupabaseUrl() }
     private val anonKey: String by lazy { NativeSecrets.getSupabaseAnonKey() }
 
-    suspend fun searchByBarcode(barcode: String): Result<List<StoreSearchResult>> {
-        return executeSearch(BackendSearchRequest(barcode = barcode))
+    suspend fun searchByBarcode(barcode: String, stores: List<String>? = null): Result<List<StoreSearchResult>> {
+        return executeSearch(BackendSearchRequest(barcode = barcode, stores = stores))
     }
 
-    suspend fun searchByName(query: String): Result<List<StoreSearchResult>> {
-        return executeSearch(BackendSearchRequest(query = query))
+    suspend fun searchByName(query: String, stores: List<String>? = null): Result<List<StoreSearchResult>> {
+        return executeSearch(BackendSearchRequest(query = query, stores = stores))
     }
 
     suspend fun linkBarcodeToItemNumber(ean: String, itemNumber: String): Result<List<StoreSearchResult>> = withContext(Dispatchers.IO) {

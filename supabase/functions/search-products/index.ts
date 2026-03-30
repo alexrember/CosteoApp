@@ -8,6 +8,7 @@ import { corsHeaders } from '../_shared/cors.ts'
 interface SearchRequest {
   query: string
   barcode?: string
+  stores?: string[]  // e.g. ["Walmart", "PriceSmart", "Super Selectos"]
 }
 
 interface UnifiedResult {
@@ -681,9 +682,15 @@ async function updateScraperStatus(
 // Barcode search flow (global_products + product_prices)
 // ---------------------------------------------------------------------------
 
+function shouldSearchStore(storeName: string, activeStores: string[] | null): boolean {
+  if (!activeStores) return true // null = search all
+  return activeStores.some(s => storeName.toLowerCase().includes(s) || s.includes(storeName.toLowerCase().substring(0, 6)))
+}
+
 async function handleBarcodeSearch(
   supabase: ReturnType<typeof createClient>,
   barcode: string,
+  activeStores: string[] | null = null,
 ): Promise<{ results: UnifiedResult[]; fromCache: boolean }> {
   // 1. Check if product exists in global_products
   let globalProduct = await getGlobalProduct(supabase, barcode)
@@ -745,8 +752,13 @@ async function handleBarcodeSearch(
   }
 
   // 5. Product NOT in global_products — call store APIs to discover it
+  // Only search stores the user has active
+  const searchWalmart = shouldSearchStore('walmart', activeStores)
+  const searchPriceSmart = shouldSearchStore('pricesmart', activeStores)
+  const searchSelectos = shouldSearchStore('super selectos', activeStores)
+
   const [walmartResult, priceSmartResult, selectosResult] = await Promise.all([
-    (async () => {
+    searchWalmart ? (async () => {
       const start = Date.now()
       try {
         const r = await fetchWalmartByBarcode(barcode)
@@ -757,8 +769,8 @@ async function handleBarcodeSearch(
         await updateScraperStatus(supabase, 'walmart_vtex', false, Date.now() - start)
         return null
       }
-    })(),
-    (async () => {
+    })() : Promise.resolve(null),
+    searchPriceSmart ? (async () => {
       const start = Date.now()
       try {
         const r = await fetchPriceSmartByQuery(barcode)
@@ -769,8 +781,8 @@ async function handleBarcodeSearch(
         await updateScraperStatus(supabase, 'pricesmart_bloomreach', false, Date.now() - start)
         return null
       }
-    })(),
-    (async () => {
+    })() : Promise.resolve(null),
+    searchSelectos ? (async () => {
       const start = Date.now()
       try {
         const r = await fetchSelectosByBarcode(barcode)
@@ -781,7 +793,7 @@ async function handleBarcodeSearch(
         await updateScraperStatus(supabase, 'superselectos_api', false, Date.now() - start)
         return null
       }
-    })(),
+    })() : Promise.resolve(null),
   ])
 
   console.log(`Barcode ${barcode}: walmart=${!!walmartResult} pricesmart=${!!priceSmartResult} selectos=${!!selectosResult} selectosName=${selectosResult?.productName} selectosPrice=${selectosResult?.price}`)
@@ -1035,7 +1047,9 @@ Deno.serve(async (req) => {
       } catch (_) { /* auth failed, continue as anonymous */ }
     }
 
-    const { query, barcode } = (await req.json()) as SearchRequest
+    const { query, barcode, stores } = (await req.json()) as SearchRequest
+    // Normalize store names for matching
+    const activeStores = stores?.map(s => s.toLowerCase()) ?? null // null = search all
 
     if (!query && !barcode) {
       return new Response(
@@ -1054,7 +1068,11 @@ Deno.serve(async (req) => {
 
     // --- BARCODE SEARCH: global_products + product_prices flow ---
     if (barcode) {
-      const { results, fromCache } = await handleBarcodeSearch(supabase, barcode)
+      const { results: allResults, fromCache } = await handleBarcodeSearch(supabase, barcode, activeStores)
+      // Filter results by user's active stores
+      const results = activeStores
+        ? allResults.filter(r => activeStores.some(s => r.storeName.toLowerCase().includes(s) || s.includes(r.storeName.toLowerCase().substring(0, 6))))
+        : allResults
 
       const storesFound = [...new Set(results.map(r => r.storeName))]
       await supabase.from('search_logs').insert({

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface TiendaRepository {
     fun getAll(): Flow<List<Tienda>>
+    fun getAllIncludingInactive(): Flow<List<Tienda>>
     suspend fun getById(id: Long): Tienda?
     fun search(query: String): Flow<List<Tienda>>
     suspend fun insert(tienda: Tienda): Result<Long>

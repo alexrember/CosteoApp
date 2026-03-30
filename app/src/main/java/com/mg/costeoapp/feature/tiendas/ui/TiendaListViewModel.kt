@@ -1,12 +1,10 @@
-// TODO: Extract shared list ViewModel pattern (search debounce, softDelete, clearError) into BaseListViewModel
 package com.mg.costeoapp.feature.tiendas.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mg.costeoapp.feature.sync.data.SyncManager
 import com.mg.costeoapp.feature.tiendas.data.TiendaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,45 +14,30 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TiendaListViewModel @Inject constructor(
-    private val repository: TiendaRepository
+    private val repository: TiendaRepository,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TiendaListUiState())
     val uiState: StateFlow<TiendaListUiState> = _uiState.asStateFlow()
 
-    private var searchJob: Job? = null
-
     init {
         loadTiendas()
     }
 
-    private fun loadTiendas(debounce: Boolean = false) {
-        searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            if (debounce) delay(300)
-            val flow = if (_uiState.value.searchQuery.isBlank()) {
-                repository.getAll()
-            } else {
-                repository.search(_uiState.value.searchQuery)
-            }
-            flow.collect { tiendas ->
+    private fun loadTiendas() {
+        viewModelScope.launch {
+            repository.getAllIncludingInactive().collect { tiendas ->
                 _uiState.update { it.copy(tiendas = tiendas, isLoading = false) }
             }
         }
     }
 
-    fun onSearchQueryChanged(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
-        loadTiendas(debounce = true)
-    }
-
-    fun softDelete(id: Long) {
+    fun toggleTienda(id: Long) {
         viewModelScope.launch {
-            repository.softDelete(id)
+            val tienda = _uiState.value.tiendas.find { it.id == id } ?: return@launch
+            repository.update(tienda.copy(activo = !tienda.activo, updatedAt = System.currentTimeMillis()))
+            syncManager.pushInBackground()
         }
-    }
-
-    fun clearError() {
-        _uiState.update { it.copy(error = null) }
     }
 }

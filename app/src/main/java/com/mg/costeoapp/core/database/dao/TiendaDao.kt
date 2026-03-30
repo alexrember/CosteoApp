@@ -14,6 +14,9 @@ interface TiendaDao {
     @Query("SELECT * FROM tiendas WHERE activo = 1 ORDER BY nombre ASC")
     fun getAll(): Flow<List<Tienda>>
 
+    @Query("SELECT * FROM tiendas ORDER BY nombre ASC")
+    fun getAllIncludingInactive(): Flow<List<Tienda>>
+
     @Query("SELECT * FROM tiendas WHERE id = :id")
     suspend fun getById(id: Long): Tienda?
 

@@ -14,6 +14,8 @@ class TiendaRepositoryImpl @Inject constructor(
 
     override fun getAll(): Flow<List<Tienda>> = tiendaDao.getAll()
 
+    override fun getAllIncludingInactive(): Flow<List<Tienda>> = tiendaDao.getAllIncludingInactive()
+
     override suspend fun getById(id: Long): Tienda? = tiendaDao.getById(id)
 
     override fun search(query: String): Flow<List<Tienda>> = tiendaDao.search(query)

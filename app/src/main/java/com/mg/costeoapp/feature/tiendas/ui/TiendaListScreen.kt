@@ -1,127 +1,95 @@
 package com.mg.costeoapp.feature.tiendas.ui
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Card
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mg.costeoapp.core.database.entity.Tienda
-import com.mg.costeoapp.core.ui.components.ConfirmDeleteDialog
-import com.mg.costeoapp.core.ui.components.CosteoSearchBar
-import com.mg.costeoapp.core.ui.components.EmptyStateMessage
+import com.mg.costeoapp.core.ui.components.CosteoTopAppBar
 import com.mg.costeoapp.core.ui.components.LoadingIndicator
 
 @Composable
 fun TiendaListScreen(
-    onNavigateToForm: (Long?) -> Unit,
+    onNavigateToForm: (Long?) -> Unit = {},
     viewModel: TiendaListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-    var tiendaToDelete by remember { mutableStateOf<Tienda?>(null) }
-
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearError()
-        }
-    }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { onNavigateToForm(null) }) {
-                Icon(Icons.Filled.Add, contentDescription = "Agregar tienda")
-            }
+        topBar = {
+            CosteoTopAppBar(title = "Mis tiendas")
         }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(16.dp)
         ) {
-            CosteoSearchBar(
-                query = uiState.searchQuery,
-                onQueryChanged = viewModel::onSearchQueryChanged,
-                placeholder = "Buscar tienda..."
+            Text(
+                text = "Selecciona las tiendas donde compras. Solo buscaremos precios en las tiendas activas.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            when {
-                uiState.isLoading -> LoadingIndicator()
-                uiState.tiendas.isEmpty() && uiState.searchQuery.isNotBlank() -> EmptyStateMessage(
-                    message = "No se encontraron resultados para \"${uiState.searchQuery}\""
-                )
-                uiState.tiendas.isEmpty() -> EmptyStateMessage(
-                    message = "Todavia no tienes tiendas registradas.\nAgrega donde compras para empezar.",
-                    actionLabel = "Agregar tienda",
-                    onAction = { onNavigateToForm(null) }
-                )
-                else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (uiState.isLoading) {
+                LoadingIndicator()
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     items(uiState.tiendas, key = { it.id }) { tienda ->
-                        TiendaItem(
+                        TiendaToggleItem(
                             tienda = tienda,
-                            onClick = { onNavigateToForm(tienda.id) },
-                            onDelete = { tiendaToDelete = tienda }
+                            onToggle = { viewModel.toggleTienda(tienda.id) }
                         )
                     }
                 }
             }
         }
     }
-
-    tiendaToDelete?.let { tienda ->
-        ConfirmDeleteDialog(
-            itemName = tienda.nombre,
-            onConfirm = {
-                viewModel.softDelete(tienda.id)
-                tiendaToDelete = null
-            },
-            onDismiss = { tiendaToDelete = null }
-        )
-    }
 }
 
 @Composable
-private fun TiendaItem(
+private fun TiendaToggleItem(
     tienda: Tienda,
-    onClick: () -> Unit,
-    onDelete: () -> Unit
+    onToggle: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick)
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (tienda.activo)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            else
+                MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Row(
             modifier = Modifier
@@ -132,23 +100,32 @@ private fun TiendaItem(
             Icon(
                 Icons.Filled.Store,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                modifier = Modifier.size(32.dp),
+                tint = if (tienda.activo)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = tienda.nombre,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = "Eliminar",
-                    tint = MaterialTheme.colorScheme.error
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = tienda.nombre,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = if (tienda.activo) FontWeight.Bold else FontWeight.Normal
+                )
+                Text(
+                    text = if (tienda.activo) "Activa" else "Inactiva",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (tienda.activo)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Switch(
+                checked = tienda.activo,
+                onCheckedChange = { onToggle() }
+            )
         }
     }
 }

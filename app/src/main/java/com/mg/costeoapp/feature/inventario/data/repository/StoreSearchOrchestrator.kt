@@ -21,12 +21,12 @@ class StoreSearchOrchestrator @Inject constructor(
         private const val TIMEOUT_MS = 8000L
     }
 
-    suspend fun searchByBarcode(barcode: String): OrchestratedSearchResult {
-        return executeBackendSearch { backendRepository.searchByBarcode(barcode) }
+    suspend fun searchByBarcode(barcode: String, stores: List<String>? = null): OrchestratedSearchResult {
+        return executeBackendSearch { backendRepository.searchByBarcode(barcode, stores) }
     }
 
-    suspend fun searchByName(query: String): OrchestratedSearchResult {
-        return executeBackendSearch { backendRepository.searchByName(query) }
+    suspend fun searchByName(query: String, stores: List<String>? = null): OrchestratedSearchResult {
+        return executeBackendSearch { backendRepository.searchByName(query, stores) }
     }
 
     private suspend fun executeBackendSearch(
