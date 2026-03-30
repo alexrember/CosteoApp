@@ -16,12 +16,14 @@ class CosteoApp : Application(), Configuration.Provider {
 
     @Inject lateinit var compraManager: CompraManager
     @Inject lateinit var workerFactory: HiltWorkerFactory
+    @Inject lateinit var syncManager: com.mg.costeoapp.feature.sync.data.SyncManager
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         appScope.launch { compraManager.restaurarDesdeDb() }
+        syncManager.pushInBackground()
     }
 
     override val workManagerConfiguration: Configuration
