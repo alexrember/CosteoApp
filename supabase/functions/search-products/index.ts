@@ -296,6 +296,109 @@ async function searchPriceSmartGeneral(query: string): Promise<UnifiedResult[]> 
 }
 
 // ---------------------------------------------------------------------------
+// Super Selectos HTML scraping helpers
+// ---------------------------------------------------------------------------
+
+const SELECTOS_BASE = 'https://www.superselectos.com/products'
+
+interface SelectosResult {
+  storeName: string
+  productName: string
+  price: number | null
+  imageUrl: string | null
+  productId: string | null
+  fetchUrl: string
+  source: string
+}
+
+function parseSelectosHtml(html: string): SelectosResult[] {
+  const results: SelectosResult[] = []
+  const blocks = html.split('item-producto')
+
+  for (let i = 1; i < blocks.length && results.length < 10; i++) {
+    const block = blocks[i]
+
+    // Extract price
+    const priceMatch = block.match(/class="precio"[^>]*>\$([0-9.]+)/)
+    if (!priceMatch) continue
+
+    // Extract product ID
+    const pidMatch = block.match(/productId=(\d+)/)
+
+    // Extract image
+    const imgMatch = block.match(/prod-images.*?<img[^>]*src="([^"]+)"/s)
+
+    // Extract product name: remove SVG and HTML tags, find first substantial text
+    const noSvg = block.replace(/<svg.*?<\/svg>/gs, '')
+    const textLines = noSvg.replace(/<[^>]+>/g, '\n').split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 5 && !l.startsWith('$') && !l.includes('1.00') && !l.includes('Agregar'))
+
+    const productName = textLines[0] || 'Sin nombre'
+
+    const price = parseFloat(priceMatch[1])
+    if (isNaN(price) || price <= 0) continue
+
+    results.push({
+      storeName: 'Super Selectos',
+      productName,
+      price: Math.round(price * 100),
+      imageUrl: imgMatch ? imgMatch[1] : null,
+      productId: pidMatch ? pidMatch[1] : null,
+      fetchUrl: `${SELECTOS_BASE}?keyword=${encodeURIComponent(productName.split(' ').slice(0, 3).join(' '))}`,
+      source: 'superselectos_web',
+    })
+  }
+
+  return results
+}
+
+async function fetchSelectosByBarcode(barcode: string): Promise<SelectosResult | null> {
+  try {
+    const url = `${SELECTOS_BASE}?keyword=${encodeURIComponent(barcode)}`
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 CosteoApp/1.0', Accept: 'text/html' },
+    })
+    if (!res.ok) return null
+    const html = await res.text()
+    const results = parseSelectosHtml(html)
+    return results[0] ?? null
+  } catch (e) {
+    console.error('Super Selectos fetch error:', e)
+    return null
+  }
+}
+
+async function searchSelectosGeneral(query: string): Promise<UnifiedResult[]> {
+  try {
+    const url = `${SELECTOS_BASE}?keyword=${encodeURIComponent(query)}`
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 CosteoApp/1.0', Accept: 'text/html' },
+    })
+    if (!res.ok) return []
+    const html = await res.text()
+    const parsed = parseSelectosHtml(html)
+
+    return parsed.map(r => ({
+      storeName: r.storeName,
+      productName: r.productName,
+      brand: null,
+      ean: null,
+      price: r.price,
+      listPrice: null,
+      isAvailable: true,
+      imageUrl: r.imageUrl,
+      measurementUnit: null,
+      unitMultiplier: null,
+      source: r.source,
+    }))
+  } catch (e) {
+    console.error('Super Selectos search error:', e)
+    return []
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Refresh price using stored fetch_url
 // ---------------------------------------------------------------------------
 
@@ -332,6 +435,20 @@ async function refreshPriceFromUrl(
         price: doc.price_SV != null ? Math.round(doc.price_SV * 100) : null,
         listPrice: null,
         isAvailable: doc.availability_SV === 'true' || doc.availability_SV === 'in_stock',
+      }
+    }
+    if (cachedPrice.source === 'superselectos_web') {
+      const res = await fetch(cachedPrice.fetch_url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 CosteoApp/1.0', Accept: 'text/html' },
+      })
+      if (!res.ok) return null
+      const html = await res.text()
+      const parsed = parseSelectosHtml(html)
+      if (parsed.length === 0) return null
+      return {
+        price: parsed[0].price,
+        listPrice: null,
+        isAvailable: true,
       }
     }
   } catch (e) {
@@ -580,7 +697,7 @@ async function handleBarcodeSearch(
   }
 
   // 5. Product NOT in global_products — call store APIs to discover it
-  const [walmartResult, priceSmartResult] = await Promise.all([
+  const [walmartResult, priceSmartResult, selectosResult] = await Promise.all([
     (async () => {
       const start = Date.now()
       try {
@@ -692,6 +809,44 @@ async function handleBarcodeSearch(
 
   await Promise.all(priceUpserts)
 
+  // Search Super Selectos by product name (doesn't support barcode)
+  if (globalProduct && globalProduct.nombre) {
+    try {
+      const searchName = globalProduct.nombre.split(' ').slice(0, 3).join(' ')
+      const start = Date.now()
+      const selectosResult = await fetchSelectosByBarcode(searchName)
+      if (selectosResult && selectosResult.price) {
+        await upsertProductPrice(
+          supabase,
+          globalProduct.id,
+          selectosResult.storeName,
+          selectosResult.price,
+          null,
+          true,
+          selectosResult.fetchUrl,
+          null,
+          selectosResult.source,
+        )
+        results.push({
+          storeName: selectosResult.storeName,
+          productName: selectosResult.productName,
+          brand: null,
+          ean: globalProduct.ean,
+          price: selectosResult.price,
+          listPrice: null,
+          isAvailable: true,
+          imageUrl: selectosResult.imageUrl,
+          measurementUnit: null,
+          unitMultiplier: null,
+          source: selectosResult.source,
+        })
+      }
+      await updateScraperStatus(supabase, 'superselectos_web', true, Date.now() - start)
+    } catch (e) {
+      console.error('Super Selectos search by name failed:', e)
+    }
+  }
+
   return { results, fromCache: false }
 }
 
@@ -725,6 +880,33 @@ function fetchMissingStorePrices(
           }
         } catch (e) {
           console.error('Walmart missing-store fetch failed:', e)
+        }
+      })(),
+    )
+  }
+
+  // Super Selectos — fetch by product name if no cached price
+  if (!cachedStores.has('Super Selectos')) {
+    promises.push(
+      (async () => {
+        try {
+          const searchName = globalProduct.nombre.split(' ').slice(0, 3).join(' ')
+          const result = await fetchSelectosByBarcode(searchName)
+          if (result && result.price) {
+            await upsertProductPrice(
+              supabase,
+              globalProduct.id,
+              result.storeName,
+              result.price,
+              null,
+              true,
+              result.fetchUrl,
+              null,
+              result.source,
+            )
+          }
+        } catch (e) {
+          console.error('Super Selectos missing-store fetch failed:', e)
         }
       })(),
     )
@@ -810,7 +992,7 @@ Deno.serve(async (req) => {
       await supabase.from('search_logs').insert({
         user_id: userId,
         barcode,
-        stores_searched: ['walmart_vtex', 'pricesmart_bloomreach'],
+        stores_searched: ['walmart_vtex', 'pricesmart_bloomreach', 'superselectos_web'],
         stores_found: storesFound,
         results_count: results.length,
         from_cache: fromCache,
@@ -856,6 +1038,23 @@ Deno.serve(async (req) => {
           console.error('PriceSmart fetch failed:', e)
           await updateScraperStatus(supabase, 'pricesmart_bloomreach', false, ms)
           return { store: 'pricesmart_bloomreach', results: [], ms, ok: false }
+        }
+      })(),
+    )
+
+    storePromises.push(
+      (async () => {
+        const start = Date.now()
+        try {
+          const results = await searchSelectosGeneral(query)
+          const ms = Date.now() - start
+          await updateScraperStatus(supabase, 'superselectos_web', true, ms)
+          return { store: 'superselectos_web', results, ms, ok: true }
+        } catch (e) {
+          const ms = Date.now() - start
+          console.error('Super Selectos fetch failed:', e)
+          await updateScraperStatus(supabase, 'superselectos_web', false, ms)
+          return { store: 'superselectos_web', results: [], ms, ok: false }
         }
       })(),
     )
