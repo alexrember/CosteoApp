@@ -291,7 +291,7 @@ class SyncManager @Inject constructor(
             for (tienda in unlinked) {
                 try {
                     val rows = supabase.from("global_stores")
-                        .select { filter { ilike("nombre", tienda.nombre) } }
+                        .select { filter { ilike("nombre", "%${tienda.nombre}%") } }
                         .decodeList<GlobalStoreRow>()
 
                     if (rows.isNotEmpty()) {

@@ -124,6 +124,7 @@ private class FakeTiendaRepository(
     private var nextId = 100L
 
     override fun getAll(): Flow<List<Tienda>> = flowOf(tiendas.filter { it.activo })
+    override fun getAllIncludingInactive(): Flow<List<Tienda>> = flowOf(tiendas.toList())
     override suspend fun getById(id: Long): Tienda? = tiendas.find { it.id == id }
     override fun search(query: String): Flow<List<Tienda>> = flowOf(
         tiendas.filter { it.activo && it.nombre.contains(query, ignoreCase = true) }

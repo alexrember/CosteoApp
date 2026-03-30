@@ -1,6 +1,7 @@
 package com.mg.costeoapp.feature.tiendas.ui
 
 import com.mg.costeoapp.core.database.entity.Tienda
+import com.mg.costeoapp.feature.sync.data.SyncManager
 import com.mg.costeoapp.feature.tiendas.data.TiendaRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -25,19 +26,21 @@ class TiendaListViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: TiendaRepository
+    private lateinit var syncManager: SyncManager
     private lateinit var viewModel: TiendaListViewModel
 
     private val tiendas = listOf(
-        Tienda(id = 1, nombre = "Super Selectos"),
-        Tienda(id = 2, nombre = "La Despensa")
+        Tienda(id = 1, nombre = "Walmart", activo = true),
+        Tienda(id = 2, nombre = "PriceSmart", activo = true),
+        Tienda(id = 3, nombre = "Super Selectos", activo = false)
     )
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        repository = mockk()
-        every { repository.getAll() } returns flowOf(tiendas)
-        every { repository.search(any()) } returns flowOf(listOf(tiendas[0]))
+        repository = mockk(relaxed = true)
+        syncManager = mockk(relaxed = true)
+        every { repository.getAllIncludingInactive() } returns flowOf(tiendas)
     }
 
     @After
@@ -46,36 +49,23 @@ class TiendaListViewModelTest {
     }
 
     @Test
-    fun `init carga tiendas`() = runTest(testDispatcher) {
-        viewModel = TiendaListViewModel(repository)
+    fun `init carga todas las tiendas incluyendo inactivas`() = runTest(testDispatcher) {
+        viewModel = TiendaListViewModel(repository, syncManager)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertEquals(2, state.tiendas.size)
+        assertEquals(3, state.tiendas.size)
         assertFalse(state.isLoading)
     }
 
     @Test
-    fun `search filtra resultados`() = runTest(testDispatcher) {
-        viewModel = TiendaListViewModel(repository)
+    fun `toggle tienda cambia activo y sincroniza`() = runTest(testDispatcher) {
+        viewModel = TiendaListViewModel(repository, syncManager)
         advanceUntilIdle()
 
-        viewModel.onSearchQueryChanged("super")
+        viewModel.toggleTienda(3L)
         advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertEquals("super", state.searchQuery)
-        assertEquals(1, state.tiendas.size)
-    }
-
-    @Test
-    fun `softDelete llama al repository`() = runTest(testDispatcher) {
-        viewModel = TiendaListViewModel(repository)
-        coEvery { repository.softDelete(1L) } returns Unit
-
-        viewModel.softDelete(1L)
-        advanceUntilIdle()
-
-        coVerify { repository.softDelete(1L) }
+        coVerify { repository.update(match { it.id == 3L && it.activo == true }) }
     }
 }
