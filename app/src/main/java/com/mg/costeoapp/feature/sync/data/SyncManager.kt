@@ -78,6 +78,13 @@ private data class UserStoreAliasDto(
 )
 
 @Serializable
+private data class UserStoreAliasResponse(
+    @SerialName("store_id") val storeId: String,
+    val alias: String? = null,
+    val activo: Boolean? = null
+)
+
+@Serializable
 private data class UserRecipeDto(
     val id: String? = null,
     @SerialName("user_id") val userId: String,
@@ -451,6 +458,9 @@ class SyncManager @Inject constructor(
                 }
             }
 
+            // Pull store active states
+            pullStoreStates(userId)
+
             Log.d(TAG, "pullUserData: $created productos, $pricesCreated precios from ${aliases.size} aliases")
             var result = SyncResult(success = true, pulledCount = created + pricesCreated)
             result = result + pullRecipes(userId)
@@ -459,6 +469,31 @@ class SyncManager @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "pullUserData failed: ${e.message}", e)
             SyncResult(success = false, errors = listOf("Error descargando datos: ${e.message}"))
+        }
+    }
+
+    /**
+     * Pull store active states from server and update local tiendas.
+     */
+    private suspend fun pullStoreStates(userId: String) {
+        try {
+            val remoteAliases = supabase.from("user_store_aliases")
+                .select { filter { eq("user_id", userId) } }
+                .decodeList<UserStoreAliasResponse>()
+
+            if (remoteAliases.isEmpty()) return
+
+            val allStores = tiendaDao.getAllIncludingInactiveOnce()
+            for (remote in remoteAliases) {
+                val localStore = allStores.find { it.globalStoreId == remote.storeId } ?: continue
+                val remoteActivo = remote.activo ?: true
+                if (localStore.activo != remoteActivo) {
+                    tiendaDao.update(localStore.copy(activo = remoteActivo, updatedAt = System.currentTimeMillis()))
+                    Log.d(TAG, "Updated store '${localStore.nombre}' activo=$remoteActivo from cloud")
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "pullStoreStates failed: ${e.message}")
         }
     }
 
